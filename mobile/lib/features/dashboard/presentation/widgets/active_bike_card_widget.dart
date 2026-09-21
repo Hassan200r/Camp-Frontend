@@ -58,17 +58,20 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
                 ),
               ),
               // Raised circular icon button
-              SkeuomorphicContainer(
-                borderRadius: 100,
-                shadows: AppColors.skeuRaisedSmall,
-                child: const SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: Center(
-                    child: Icon(
-                      Icons.two_wheeler_rounded,
-                      color: AppColors.darkCharcoal,
-                      size: 20,
+              GestureDetector(
+                onTap: widget.onDetailsPressed,
+                child: SkeuomorphicContainer(
+                  borderRadius: 100,
+                  shadows: AppColors.skeuRaisedSmall,
+                  child: const SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: Center(
+                      child: Icon(
+                        Icons.two_wheeler_rounded,
+                        color: AppColors.darkCharcoal,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
@@ -100,31 +103,34 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
           const SizedBox(height: 14),
 
           // ── Motorcycle visual showcase — inset recessed surface ──────────
-          SkeuomorphicInsetContainer(
-            borderRadius: 20,
-            padding: const EdgeInsets.all(20),
-            child: SizedBox(
-              height: 130,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.sports_motorsports_rounded,
-                      size: 52,
-                      color: AppColors.darkCharcoal.withValues(alpha: 0.25),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'BMW R 1250 GS Adventure',
-                      style: TextStyle(
-                        color: AppColors.darkCharcoal.withValues(alpha: 0.4),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.4,
+          GestureDetector(
+            onTap: widget.onDetailsPressed,
+            child: SkeuomorphicInsetContainer(
+              borderRadius: 20,
+              padding: const EdgeInsets.all(20),
+              child: SizedBox(
+                height: 130,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.sports_motorsports_rounded,
+                        size: 52,
+                        color: AppColors.darkCharcoal.withValues(alpha: 0.25),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      Text(
+                        'BMW R 1250 GS Adventure',
+                        style: TextStyle(
+                          color: AppColors.darkCharcoal.withValues(alpha: 0.4),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -197,7 +203,7 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
                   height: 10,
                   child: FractionallySizedBox(
                     alignment: Alignment.centerLeft,
-                    widthFactor: _fuelAnim.value,
+                    widthFactor: _fuelAnim.value.clamp(0.0, 1.0), // Guaranteed safe range
                     child: Container(
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(

@@ -24,6 +24,7 @@ class AppHeaderWidget extends StatelessWidget {
         children: [
           // ── Left: Skeuomorphic Raised Circular Hamburger Button ────────────
           GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: onMenuPressed,
             child: SkeuomorphicContainer(
               borderRadius: 100,
@@ -31,24 +32,16 @@ class AppHeaderWidget extends StatelessWidget {
               child: SizedBox(
                 width: 48,
                 height: 48,
-                child: CustomPaint(
-                  painter: DashedCircleBorderPainter(
-                    color: AppColors.dashedBlue.withValues(alpha: 0.7),
-                    dashLength: 4.5,
-                    dashGap: 3.5,
-                    strokeWidth: 1.4,
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _bar(AppColors.darkCharcoal),
-                        const SizedBox(height: 3.2),
-                        _bar(AppColors.darkCharcoal),
-                        const SizedBox(height: 3.2),
-                        _bar(AppColors.darkCharcoal),
-                      ],
-                    ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _bar(AppColors.darkCharcoal),
+                      const SizedBox(height: 3.2),
+                      _bar(AppColors.darkCharcoal),
+                      const SizedBox(height: 3.2),
+                      _bar(AppColors.darkCharcoal),
+                    ],
                   ),
                 ),
               ),
@@ -144,53 +137,53 @@ class _CampMountainLogoPainter extends CustomPainter {
 }
 
 // ─── Dashed circle border painter ──────────────────────────────────────────
-class DashedCircleBorderPainter extends CustomPainter {
-  final Color color;
-  final double dashLength;
-  final double dashGap;
-  final double strokeWidth;
+// class DashedCircleBorderPainter extends CustomPainter {
+//   final Color color;
+//   final double dashLength;
+//   final double dashGap;
+//   final double strokeWidth;
 
-  DashedCircleBorderPainter({
-    required this.color,
-    required this.dashLength,
-    required this.dashGap,
-    required this.strokeWidth,
-  });
+//   DashedCircleBorderPainter({
+//     required this.color,
+//     required this.dashLength,
+//     required this.dashGap,
+//     required this.strokeWidth,
+//   });
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
+//   @override
+//   void paint(Canvas canvas, Size size) {
+//     final paint = Paint()
+//       ..color = color
+//       ..strokeWidth = strokeWidth
+//       ..style = PaintingStyle.stroke;
 
-    final double radius = (size.width - strokeWidth) / 2;
-    final center = Offset(size.width / 2, size.height / 2);
-    final double circumference = 2 * math.pi * radius;
-    final int dashCount =
-        (circumference / (dashLength + dashGap)).floor();
-    final double sweepAngle =
-        (dashLength / circumference) * 2 * math.pi;
-    final double gapAngle =
-        (dashGap / circumference) * 2 * math.pi;
+//     final double radius = (size.width - strokeWidth) / 2;
+//     final center = Offset(size.width / 2, size.height / 2);
+//     final double circumference = 2 * math.pi * radius;
+//     final int dashCount =
+//         (circumference / (dashLength + dashGap)).floor();
+//     final double sweepAngle =
+//         (dashLength / circumference) * 2 * math.pi;
+//     final double gapAngle =
+//         (dashGap / circumference) * 2 * math.pi;
 
-    double angle = 0;
-    for (int i = 0; i < dashCount; i++) {
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        angle,
-        sweepAngle,
-        false,
-        paint,
-      );
-      angle += sweepAngle + gapAngle;
-    }
-  }
+//     double angle = 0;
+//     for (int i = 0; i < dashCount; i++) {
+//       canvas.drawArc(
+//         Rect.fromCircle(center: center, radius: radius),
+//         angle,
+//         sweepAngle,
+//         false,
+//         paint,
+//       );
+//       angle += sweepAngle + gapAngle;
+//     }
+//   }
 
-  @override
-  bool shouldRepaint(covariant DashedCircleBorderPainter old) =>
-      old.color != color ||
-      old.dashLength != dashLength ||
-      old.dashGap != dashGap ||
-      old.strokeWidth != strokeWidth;
-}
+//   @override
+//   bool shouldRepaint(covariant DashedCircleBorderPainter old) =>
+//       old.color != color ||
+//       old.dashLength != dashLength ||
+//       old.dashGap != dashGap ||
+//       old.strokeWidth != strokeWidth;
+// }

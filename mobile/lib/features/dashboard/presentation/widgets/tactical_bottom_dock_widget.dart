@@ -48,15 +48,15 @@ class _TacticalBottomDockWidgetState extends State<TacticalBottomDockWidget> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _button(0, Icons.explore_rounded,      'Explore Home'),
+          _button(0, Icons.explore_rounded, 'Explore Home'),
           const SizedBox(width: 8),
           _button(1, Icons.qr_code_scanner_rounded, 'Bike Scan'),
           const SizedBox(width: 8),
-          _button(2, Icons.navigation_rounded,   'Navigation'),
+          _button(2, Icons.navigation_rounded, 'Navigation'),
           const SizedBox(width: 8),
-          _button(3, Icons.build_rounded,         'Maintenance'),
+          _button(3, Icons.build_rounded, 'Maintenance'),
           const SizedBox(width: 8),
-          _button(4, Icons.tune_rounded,          'Settings'),
+          _button(4, Icons.tune_rounded, 'Settings'),
         ],
       ),
     );
@@ -74,26 +74,18 @@ class _TacticalBottomDockWidgetState extends State<TacticalBottomDockWidget> {
         behavior: HitTestBehavior.opaque,
         child: active
             ? SkeuomorphicOrangeIconButton(icon: icon, size: 48)
-            : CustomPaint(
-                painter: DashedCircleBorderPainter(
-                  color: AppColors.dashedBlue.withValues(alpha: 0.65),
-                  dashLength: 4.5,
-                  dashGap: 3.5,
-                  strokeWidth: 1.4,
-                ),
-                child: SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: Center(
-                    child: Icon(
-                      icon,
-                      color: const Color(0xFFD1D5DB),
-                      size: 21,
-                    ),
+            : SizedBox(
+                width: 48,
+                height: 48,
+                child: Center(
+                  child: Icon(
+                    icon,
+                    color: const Color(0xFF9CA3AF), // Muted grey icon
+                    size: 21,
                   ),
                 ),
               ),
       ),
     );
-  }
+}
 }

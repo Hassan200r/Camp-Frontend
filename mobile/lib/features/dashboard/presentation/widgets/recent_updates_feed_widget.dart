@@ -62,14 +62,19 @@ class RecentUpdatesFeedWidget extends StatelessWidget {
                 ),
               ],
             ),
+            // 1. First GestureDetector: "Mark all read" link
             GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: onMarkAllRead,
-              child: const Text(
-                'Mark all read',
-                style: TextStyle(
-                  color: AppColors.terracotta,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                child: Text(
+                  'Mark all read',
+                  style: TextStyle(
+                    color: AppColors.terracotta,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
@@ -84,7 +89,7 @@ class RecentUpdatesFeedWidget extends StatelessWidget {
           title: 'Weather Advisory',
           timeAgo: '8m ago',
           description:
-              'Sudden mist and gusty winds reported at High Pass summit (Elev. 8,200ft).',
+          'Sudden mist and gusty winds reported at High Pass summit (Elev. 8,200ft).',
           actionLabel: 'View Radar',
           actionIcon: Icons.radar_rounded,
           onAction: onViewRadar,
@@ -111,7 +116,7 @@ class RecentUpdatesFeedWidget extends StatelessWidget {
           title: 'TPMS Update',
           timeAgo: '25m ago',
           description:
-              'Rear tire psi optimized for dirt/gravel transit (32 PSI).',
+          'Rear tire psi optimized for dirt/gravel transit (32 PSI).',
           actionLabel: 'Dismiss',
           actionIcon: Icons.check_rounded,
           onAction: onDismissTpms,
@@ -187,8 +192,9 @@ class RecentUpdatesFeedWidget extends StatelessWidget {
 
                 const SizedBox(height: 10),
 
-                // Raised pill action button
+                // 2. Second GestureDetector: Raised pill action button
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: onAction,
                   child: SkeuomorphicContainer(
                     borderRadius: 14,

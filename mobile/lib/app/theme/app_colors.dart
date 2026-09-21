@@ -5,6 +5,7 @@ class AppColors {
   AppColors._();
 
   // ── Core Tactile Clay Background ──────────────────────────────────────────
+  static const Color background = Color(0xFF1E1E1E);
   static const Color clay = Color(0xFFEBE8DF);
   static const Color clayDark = Color(0xFFE0DDD2);    // recessed/inset surfaces
   static const Color clayDeep = Color(0xFFD4D0C6);    // deep pressed surfaces

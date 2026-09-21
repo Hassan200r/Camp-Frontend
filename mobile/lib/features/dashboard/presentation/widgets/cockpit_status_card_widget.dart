@@ -4,11 +4,13 @@ import '../../../../core/utils/skeuomorphic_container.dart';
 
 /// Dark Rider Banner wrapped in a soft tactile bezel ring
 class CockpitStatusCardWidget extends StatelessWidget {
+  final String? avatarUrl;
   final VoidCallback? onCtaPressed;
   final VoidCallback? onProfilePressed;
 
   const CockpitStatusCardWidget({
     super.key,
+    this.avatarUrl,
     this.onCtaPressed,
     this.onProfilePressed,
   });
@@ -64,15 +66,20 @@ class CockpitStatusCardWidget extends StatelessWidget {
                               colors: [Color(0xFF4A3223), Color(0xFF2B1A10)],
                             ),
                           ),
-                          child: const Center(
-                            child: Text(
-                              'Elena',
-                              style: TextStyle(
-                                color: Color(0xFFFDE68A),
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
+                          child: Center(
+                            child: avatarUrl != null
+                                ? CircleAvatar(
+                                    radius: 26,
+                                    backgroundImage: NetworkImage(avatarUrl!),
+                                  )
+                                : const Text(
+                                    'Elena',
+                                    style: TextStyle(
+                                      color: Color(0xFFFDE68A),
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
                           ),
                         ),
                         Positioned(
@@ -201,7 +208,7 @@ class CockpitStatusCardWidget extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   _darkPill(Icons.access_time_rounded, '08:42 AM'),
-                  _darkPill(Icons.satellite_alt_rounded, 'GPS Locked, lahore'),
+                  _darkPill(Icons.satellite_alt_rounded, 'GPS Locked, Lahore'),
                   _darkPill(Icons.wb_sunny_rounded, 'Sunny 68°F • 4mph NW'),
                 ],
               ),

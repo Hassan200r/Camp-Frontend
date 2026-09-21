@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../widgets/active_bike_card_widget.dart';
+import '../widgets/app_drawer_widget.dart';
 import '../widgets/app_header_widget.dart';
 import '../widgets/cockpit_status_card_widget.dart';
-import '../widgets/voice_copilot_bar_widget.dart';
 import '../widgets/maintenance_alert_card_widget.dart';
-import '../widgets/active_bike_card_widget.dart';
 import '../widgets/recent_updates_feed_widget.dart';
 import '../widgets/tactical_bottom_dock_widget.dart';
+import '../widgets/voice_copilot_bar_widget.dart';
 
 /// CAMP Explore Home / Dashboard Screen
 class HomeScreen extends StatefulWidget {
@@ -18,6 +19,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // 1. Define the GlobalKey for Scaffold
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   int _selectedDockIndex = 0;
   bool _maintenanceAlertDismissed = false;
 
@@ -50,6 +54,8 @@ class _HomeScreenState extends State<HomeScreen> {
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
+        key: _scaffoldKey, // 2. Attach the key here
+        drawer: const AppDrawerWidget(), // 3. Attach your side menu drawer
         backgroundColor: AppColors.clay,
         body: Stack(
           children: [
@@ -64,7 +70,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     // 1. App Header (Top Navigation Bar)
                     AppHeaderWidget(
-                      onMenuPressed: () => _showNotification('Menu opened'),
+                      onMenuPressed: () {
+                        // Opens the Scaffold drawer menu safely via key
+                        _scaffoldKey.currentState?.openDrawer();
+                      },
                       onBadgePressed: () => _showNotification('Explore mode active'),
                     ),
 
