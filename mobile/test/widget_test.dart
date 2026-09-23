@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:camp/main.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('CAMP Explore Home smoke test', (WidgetTester tester) async {

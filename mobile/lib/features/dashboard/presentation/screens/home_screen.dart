@@ -145,6 +145,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     setState(() {
                       _selectedDockIndex = index;
                     });
+                    if (index == 1) {
+                      Navigator.of(context).pushNamed('/bike-scan');
+                      return;
+                    }
                     final tabNames = [
                       'Explore Home',
                       'Bike Scan',

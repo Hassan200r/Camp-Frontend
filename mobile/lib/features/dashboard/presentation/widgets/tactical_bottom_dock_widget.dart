@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/skeuomorphic_container.dart';
-import 'app_header_widget.dart';
 
 /// Floating tactical bottom dock — dark raised pill with dashed inactive buttons
 class TacticalBottomDockWidget extends StatefulWidget {
