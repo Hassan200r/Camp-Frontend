@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_theme.dart';
 import '../../../../core/utils/skeuomorphic_container.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
 import '../../../dashboard/presentation/widgets/tactical_bottom_dock_widget.dart';
 
@@ -19,88 +22,55 @@ class GarageScreen extends StatelessWidget {
           children: [
             SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
+              padding: EdgeInsets.fromLTRB(AppColors.screenPadding, 12, AppColors.screenPadding, 110),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Top Bar
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
-                        child: SkeuomorphicContainer(
-                          borderRadius: 100,
-                          shadows: AppColors.skeuRaisedSmall,
-                          child: const SizedBox(
-                            width: 48,
-                            height: 48,
-                            child: Icon(Icons.arrow_back_rounded, color: AppColors.darkCharcoal),
-                          ),
-                        ),
+                  // ── Top Bar ───────────────────────────────────────────────
+                  CampAppBar(
+                    leading: CampAppBarLeading.back,
+                    titleText: 'MY GARAGE',
+                    actionWidget: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.clay,
+                        borderRadius: BorderRadius.circular(AppColors.radiusPill),
+                        boxShadow: AppColors.skeuRaisedSmall,
                       ),
-                      const Text(
-                        'MY GARAGE',
-                        style: TextStyle(
-                          color: AppColors.darkCharcoal,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.directions_bike_rounded, size: 16, color: AppColors.tacticalOrange),
+                          const SizedBox(width: 6),
+                          Text('1 ACTIVE', style: AppTextStyles.overlineTerracotta.copyWith(letterSpacing: 0.6)),
+                        ],
                       ),
-                      SkeuomorphicContainer(
-                        borderRadius: 20,
-                        shadows: AppColors.skeuRaisedSmall,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.directions_bike_rounded, size: 16, color: Color(0xFFF56500)),
-                            SizedBox(width: 6),
-                            Text(
-                              '1 ACTIVE',
-                              style: TextStyle(
-                                color: AppColors.darkCharcoal,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
 
-                  const SizedBox(height: 18),
+                  const SizedBox(height: AppColors.cardGap),
 
-                  // Synced Success Banner
-                  const SkeuomorphicContainer(
-                    borderRadius: 20,
-                    color: Color(0xFFFDE8D4),
-                    padding: EdgeInsets.all(14),
+                  // ── Synced Success Banner ─────────────────────────────────
+                  CampCard(
+                    color: const Color(0xFFFDE8D4),
+                    borderRadius: AppColors.radiusTile,
+                    padding: const EdgeInsets.all(14),
                     child: Row(
                       children: [
-                        Icon(Icons.check_circle_rounded, color: Color(0xFFF56500), size: 22),
-                        SizedBox(width: 10),
+                        const Icon(Icons.check_circle_rounded, color: AppColors.tacticalOrange, size: 22),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Telemetry Synced to Garage',
-                                style: TextStyle(
-                                  color: Color(0xFFF56500),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w900,
-                                ),
+                                style: AppTextStyles.itemTitle.copyWith(color: AppColors.tacticalOrangeDark),
                               ),
-                              SizedBox(height: 2),
+                              const SizedBox(height: 2),
                               Text(
-                                'Vehicle specifications, OBD status, and tire pressures recorded.',
-                                style: TextStyle(
-                                  color: AppColors.mutedText,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                'Vehicle specifications, OBD status, and tyre pressures recorded.',
+                                style: AppTextStyles.caption,
                               ),
                             ],
                           ),
@@ -109,49 +79,63 @@ class GarageScreen extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 18),
+                  const SizedBox(height: AppColors.cardGap),
 
-                  // Active Motorcycle Card in Garage
-                  SkeuomorphicContainer(
-                    borderRadius: 24,
-                    padding: const EdgeInsets.all(18),
+                  // ── Active Motorcycle Card ────────────────────────────────
+                  CampCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: SizedBox(
+                          borderRadius: BorderRadius.circular(AppColors.radiusTile),
+                          child: const SizedBox(
                             height: 160,
                             width: double.infinity,
-                            child: Image.asset(
-                              'assets/images/bmw_r1250_scan_placeholder.jpg',
-                              fit: BoxFit.cover,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(color: AppColors.clayDark),
+                              child: Center(
+                                child: Icon(Icons.two_wheeler_rounded, size: 56, color: AppColors.mutedLight),
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(height: 14),
-                        const Text(
-                          '2023 BMW R 1250 GS Adventure',
-                          style: TextStyle(
-                            color: AppColors.darkCharcoal,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
+                        Text('2023 BMW R 1250 GS Adventure', style: AppTextStyles.title),
                         const SizedBox(height: 4),
-                        const Text(
-                          'VIN: WB10J9309PZE84102 • 14,820 Verified Miles',
-                          style: TextStyle(
-                            color: AppColors.mutedText,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        Row(
+                          children: [
+                            const StatusChip(label: 'ACTIVE', variant: StatusChipVariant.success, showDot: true),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'VIN: WB10J9309PZE84102 • 14,820 km',
+                                style: AppTextStyles.caption,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 14),
+
+                        // ── Telemetry Chips ───────────────────────────────
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _specChip(Icons.speed_rounded, '14,820 km'),
+                            _specChip(Icons.local_gas_station_rounded, '78% fuel'),
+                            _specChip(Icons.circle_outlined, '2.4 / 2.2 bar'),
+                            _specChip(Icons.build_outlined, '560 km to service'),
+                          ],
+                        ),
+
                         const SizedBox(height: 16),
-                        SkeuomorphicOrangeButton(
+
+                        PrimaryButton(
                           label: 'Launch Diagnostics',
                           icon: Icons.qr_code_scanner_rounded,
                           onTap: () => Navigator.of(context).pushNamed('/bike-scan'),
+                          isFullWidth: true,
                         ),
                       ],
                     ),
@@ -160,7 +144,7 @@ class GarageScreen extends StatelessWidget {
               ),
             ),
 
-            // Bottom Dock
+            // ── Bottom Dock ───────────────────────────────────────────────
             Positioned(
               left: 0,
               right: 0,
@@ -169,11 +153,8 @@ class GarageScreen extends StatelessWidget {
                 child: TacticalBottomDockWidget(
                   selectedIndex: 0,
                   onIndexChanged: (idx) {
-                    if (idx == 0) {
-                      Navigator.of(context).pushReplacementNamed('/');
-                    } else if (idx == 1) {
-                      Navigator.of(context).pushReplacementNamed('/bike-scan');
-                    }
+                    if (idx == 0) Navigator.of(context).pushReplacementNamed('/');
+                    if (idx == 1) Navigator.of(context).pushReplacementNamed('/bike-scan');
                   },
                 ),
               ),
@@ -183,4 +164,21 @@ class GarageScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _specChip(IconData icon, String label) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: AppColors.clayDark,
+          borderRadius: BorderRadius.circular(AppColors.radiusPill),
+          boxShadow: AppColors.skeuRecessed,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: AppColors.terracotta),
+            const SizedBox(width: 5),
+            Text(label, style: AppTextStyles.caption.copyWith(color: AppColors.darkCharcoal, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      );
 }

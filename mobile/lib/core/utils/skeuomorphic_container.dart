@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
+
 import '../../app/theme/app_colors.dart';
 
 /// Reusable raised skeuomorphic container.
 /// Renders the classic dual-shadow convex "extruded clay" look.
 class SkeuomorphicContainer extends StatelessWidget {
+  const SkeuomorphicContainer({
+    required this.child,
+    super.key,
+    this.borderRadius = AppColors.radiusCard,
+    this.color,
+    this.padding,
+    this.shadows,
+  });
+
   final Widget child;
   final double borderRadius;
   final Color? color;
   final EdgeInsetsGeometry? padding;
   final List<BoxShadow>? shadows;
-
-  const SkeuomorphicContainer({
-    super.key,
-    required this.child,
-    this.borderRadius = 20,
-    this.color,
-    this.padding,
-    this.shadows,
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -36,16 +37,16 @@ class SkeuomorphicContainer extends StatelessWidget {
 /// Recessed / inset variant — used for voice input bars and search fields.
 /// Inverts the shadow direction to simulate a pressed-in surface.
 class SkeuomorphicInsetContainer extends StatelessWidget {
+  const SkeuomorphicInsetContainer({
+    required this.child,
+    super.key,
+    this.borderRadius = AppColors.radiusTile,
+    this.padding,
+  });
+
   final Widget child;
   final double borderRadius;
   final EdgeInsetsGeometry? padding;
-
-  const SkeuomorphicInsetContainer({
-    super.key,
-    required this.child,
-    this.borderRadius = 30,
-    this.padding,
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -67,22 +68,23 @@ class SkeuomorphicInsetContainer extends StatelessWidget {
 
 /// Glowing skeuomorphic orange button — extruded with gradient and warm glow.
 class SkeuomorphicOrangeButton extends StatelessWidget {
+  const SkeuomorphicOrangeButton({
+    required this.label,
+    super.key,
+    this.onTap,
+    this.icon,
+    this.borderRadius = AppColors.radiusPill,
+  });
+
   final String label;
   final VoidCallback? onTap;
   final IconData? icon;
   final double borderRadius;
 
-  const SkeuomorphicOrangeButton({
-    super.key,
-    required this.label,
-    this.onTap,
-    this.icon,
-    this.borderRadius = 20,
-  });
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
@@ -125,20 +127,21 @@ class SkeuomorphicOrangeButton extends StatelessWidget {
 
 /// Circular glowing orange icon button (for arrows / AI trigger)
 class SkeuomorphicOrangeIconButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback? onTap;
-  final double size;
-
   const SkeuomorphicOrangeIconButton({
-    super.key,
     required this.icon,
+    super.key,
     this.onTap,
     this.size = 48,
   });
 
+  final IconData icon;
+  final VoidCallback? onTap;
+  final double size;
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
         width: size,

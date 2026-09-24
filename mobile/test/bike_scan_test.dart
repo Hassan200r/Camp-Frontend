@@ -48,7 +48,7 @@ void main() {
 
     // Verify Next Scheduled Maintenance
     expect(find.text('NEXT SCHEDULED MAINTENANCE'), findsOneWidget);
-    expect(find.text('18,000 mi • Valve Check & Fluids'), findsOneWidget);
+    expect(find.text('18,000 km • Valve Check & Fluids'), findsOneWidget);
   });
 
   testWidgets('Tapping RE-SCAN triggers scan animation and randomizes telemetry',

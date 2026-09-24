@@ -6,9 +6,17 @@ class AppColors {
 
   // ── Core Tactile Clay Background ──────────────────────────────────────────
   static const Color background = Color(0xFF1E1E1E);
-  static const Color clay = Color(0xFFEBE8DF);
-  static const Color clayDark = Color(0xFFE0DDD2);    // recessed/inset surfaces
-  static const Color clayDeep = Color(0xFFD4D0C6);    // deep pressed surfaces
+  static const Color clay = Color(0xFFEDF1F7);
+  static const Color clayDark = Color(0xFFE3E8F0);    // recessed/inset surfaces
+  static const Color clayDeep = Color(0xFFD5DCE7);    // deep pressed surfaces
+
+  // ── Layout & Shape Tokens ─────────────────────────────────────────────────
+  static const double radiusCard = 26;
+  static const double radiusTile = 18;
+  static const double radiusPill = 999;
+  static const double screenPadding = 16;
+  static const double cardGap = 16;
+  static const double cardPadding = 18;
 
   // ── Skeuomorphic Dual-Shadow System ──────────────────────────────────────
   /// Raised extrusion (convex / floating element)
@@ -20,7 +28,7 @@ class AppColors {
           spreadRadius: 1,
         ),
         BoxShadow(
-          color: Color(0x33A39D8F),
+          color: Color(0x33A3B1C6),
           offset: Offset(6, 6),
           blurRadius: 12,
           spreadRadius: 1,
@@ -36,7 +44,7 @@ class AppColors {
           spreadRadius: 0,
         ),
         BoxShadow(
-          color: Color(0x28A39D8F),
+          color: Color(0x28A3B1C6),
           offset: Offset(3, 3),
           blurRadius: 8,
           spreadRadius: 0,
@@ -52,7 +60,7 @@ class AppColors {
           spreadRadius: 0,
         ),
         BoxShadow(
-          color: Color(0x3CA39D8F),
+          color: Color(0x3CA3B1C6),
           offset: Offset(-3, -3),
           blurRadius: 6,
           spreadRadius: 0,
@@ -104,7 +112,7 @@ class AppColors {
           spreadRadius: 0,
         ),
         BoxShadow(
-          color: Color(0x44A39D8F),
+          color: Color(0x44A3B1C6),
           offset: Offset(6, 6),
           blurRadius: 16,
           spreadRadius: 2,
@@ -123,7 +131,6 @@ class AppColors {
   static const Color alertRed     = Color(0xFFDC2626);
   static const Color alertRedBg   = Color(0xFFFEE2E2);
   static const Color terracotta   = Color(0xFF8A4C24);
-  static const Color dashedBlue   = Color(0xFF90A8CC);
 
   // ── Floating Dock ─────────────────────────────────────────────────────────
   static const Color dockBackground = Color(0xFF14171A);

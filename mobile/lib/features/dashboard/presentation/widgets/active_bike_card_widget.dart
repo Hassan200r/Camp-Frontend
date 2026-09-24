@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/utils/skeuomorphic_container.dart';
+import '../../../../app/theme/app_theme.dart';
+import '../../../../core/widgets/widgets.dart';
 
 /// Active Motorcycle Overview — skeuomorphic raised card with inset sub-surfaces
 class ActiveBikeCardWidget extends StatefulWidget {
-  final VoidCallback? onDetailsPressed;
-
   const ActiveBikeCardWidget({super.key, this.onDetailsPressed});
+
+  final VoidCallback? onDetailsPressed;
 
   @override
   State<ActiveBikeCardWidget> createState() => _ActiveBikeCardWidgetState();
@@ -20,10 +22,7 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
+    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
     _fuelAnim = Tween<double>(begin: 0.0, end: 0.78).animate(
       CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
     );
@@ -38,75 +37,40 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
 
   @override
   Widget build(BuildContext context) {
-    return SkeuomorphicContainer(
-      borderRadius: 24,
-      padding: const EdgeInsets.all(18),
+    return CampCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header row ──────────────────────────────────────────────────
+          // ── Header row ────────────────────────────────────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'ACTIVE MOTORCYCLE',
-                style: TextStyle(
-                  color: AppColors.terracotta,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.0,
-                ),
+                style: AppTextStyles.overlineTerracotta,
               ),
-              // Raised circular icon button
-              GestureDetector(
+              IconTile(
+                icon: Icons.two_wheeler_rounded,
+                size: 40,
+                isInset: false,
                 onTap: widget.onDetailsPressed,
-                child: SkeuomorphicContainer(
-                  borderRadius: 100,
-                  shadows: AppColors.skeuRaisedSmall,
-                  child: const SizedBox(
-                    width: 40,
-                    height: 40,
-                    child: Center(
-                      child: Icon(
-                        Icons.two_wheeler_rounded,
-                        color: AppColors.darkCharcoal,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                ),
               ),
             ],
           ),
 
           const SizedBox(height: 8),
 
-          const Text(
-            'BMW R1250 GS Adventure',
-            style: TextStyle(
-              color: AppColors.darkCharcoal,
-              fontSize: 21,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.3,
-            ),
-          ),
+          Text('BMW R1250 GS Adventure', style: AppTextStyles.title),
           const SizedBox(height: 3),
-          const Text(
-            'Edition Triple Black • 2023',
-            style: TextStyle(
-              color: AppColors.mutedText,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          Text('Edition Triple Black • 2023', style: AppTextStyles.bodySecondary),
 
           const SizedBox(height: 14),
 
-          // ── Motorcycle visual showcase — inset recessed surface ──────────
+          // ── Motorcycle visual showcase — inset recessed surface ───────────
           GestureDetector(
             onTap: widget.onDetailsPressed,
-            child: SkeuomorphicInsetContainer(
-              borderRadius: 20,
+            child: InsetTile(
+              borderRadius: AppColors.radiusTile,
               padding: const EdgeInsets.all(20),
               child: SizedBox(
                 height: 130,
@@ -122,10 +86,8 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
                       const SizedBox(height: 8),
                       Text(
                         'BMW R 1250 GS Adventure',
-                        style: TextStyle(
+                        style: AppTextStyles.bodySecondary.copyWith(
                           color: AppColors.darkCharcoal.withValues(alpha: 0.4),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
                           letterSpacing: 0.4,
                         ),
                       ),
@@ -138,63 +100,40 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
 
           const SizedBox(height: 16),
 
-          // ── Specs tiles row ────────────────────────────────────────────
+          // ── Specs tiles row ───────────────────────────────────────────────
           Row(
             children: [
-              Expanded(
-                child: _specTile('Boxer Twin', 'ShiftCam'),
-              ),
+              Expanded(child: _specTile('Boxer Twin', 'ShiftCam')),
               const SizedBox(width: 8),
-              Expanded(
-                child: _specTile('7.9 gal cap', 'Aluminum Tank'),
-              ),
+              Expanded(child: _specTile('30 L', 'Aluminium Tank')),
               const SizedBox(width: 8),
-              Expanded(
-                child: _specTile('14,820 mi', 'logged'),
-              ),
+              Expanded(child: _specTile('14,820 km', 'logged')),
             ],
           ),
 
           const SizedBox(height: 18),
 
-          // ── Fuel Level ─────────────────────────────────────────────────
-          const Row(
+          // ── Fuel Level ────────────────────────────────────────────────────
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.local_gas_station_rounded,
-                    size: 16,
-                    color: AppColors.terracotta,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    'Fuel Level',
-                    style: TextStyle(
-                      color: AppColors.darkCharcoal,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+                  const Icon(Icons.local_gas_station_rounded, size: 16, color: AppColors.terracotta),
+                  const SizedBox(width: 6),
+                  Text('Fuel Level', style: AppTextStyles.itemTitle),
                 ],
               ),
-              Text(
-                '78% (280 mi est.)',
-                style: TextStyle(
-                  color: AppColors.darkCharcoal,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              Text('78%  (450 km est.)', style: AppTextStyles.body),
             ],
           ),
 
           const SizedBox(height: 8),
 
           // Recessed inset fuel bar track
-          SkeuomorphicInsetContainer(
+          InsetTile(
             borderRadius: 8,
+            padding: EdgeInsets.zero,
             child: AnimatedBuilder(
               animation: _fuelAnim,
               builder: (ctx, _) => ClipRRect(
@@ -203,15 +142,11 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
                   height: 10,
                   child: FractionallySizedBox(
                     alignment: Alignment.centerLeft,
-                    widthFactor: _fuelAnim.value.clamp(0.0, 1.0), // Guaranteed safe range
+                    widthFactor: _fuelAnim.value.clamp(0.0, 1.0),
                     child: Container(
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [
-                            AppColors.tacticalOrangeLight,
-                            AppColors.tacticalOrange,
-                            AppColors.tacticalOrangeDark,
-                          ],
+                          colors: [AppColors.tacticalOrangeLight, AppColors.tacticalOrange, AppColors.tacticalOrangeDark],
                         ),
                         borderRadius: BorderRadius.all(Radius.circular(7)),
                       ),
@@ -224,74 +159,31 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
 
           const SizedBox(height: 16),
 
-          // ── Service Health Score — raised panel ─────────────────────────
-          SkeuomorphicContainer(
-            borderRadius: 16,
+          // ── Service Health Score ──────────────────────────────────────────
+          CampCard(
+            borderRadius: AppColors.radiusTile,
             shadows: AppColors.skeuRaisedSmall,
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                // Recessed icon well
-                SkeuomorphicInsetContainer(
-                  borderRadius: 12,
-                  padding: const EdgeInsets.all(8),
-                  child: const Icon(
-                    Icons.tune_rounded,
-                    color: AppColors.terracotta,
-                    size: 20,
-                  ),
-                ),
-
+                IconTile(icon: Icons.tune_rounded, iconColor: AppColors.terracotta),
                 const SizedBox(width: 12),
-
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Service Health Score',
-                        style: TextStyle(
-                          color: AppColors.darkCharcoal,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      SizedBox(height: 3),
-                      Text(
-                        'Diagnostics clean • All systems nominal',
-                        style: TextStyle(
-                          color: AppColors.mutedText,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      Text('Service Health Score', style: AppTextStyles.itemTitle),
+                      const SizedBox(height: 3),
+                      Text('Diagnostics clean • All systems nominal', style: AppTextStyles.caption),
                     ],
                   ),
                 ),
-
                 const SizedBox(width: 8),
-
-                // Score readout with orange tint
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      '84%',
-                      style: TextStyle(
-                        color: AppColors.tacticalOrange,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    Text(
-                      'REMAINING',
-                      style: TextStyle(
-                        color: AppColors.mutedLight,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
+                    Text('84%', style: AppTextStyles.statMedium.copyWith(color: AppColors.tacticalOrange)),
+                    Text('REMAINING', style: AppTextStyles.overline),
                   ],
                 ),
               ],
@@ -302,30 +194,14 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
     );
   }
 
-  Widget _specTile(String title, String sub) => SkeuomorphicInsetContainer(
+  Widget _specTile(String title, String sub) => InsetTile(
         borderRadius: 14,
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         child: Column(
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: AppColors.darkCharcoal,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w800,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            Text(title, style: AppTextStyles.itemTitle, textAlign: TextAlign.center),
             const SizedBox(height: 2),
-            Text(
-              sub,
-              style: const TextStyle(
-                color: AppColors.mutedText,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            Text(sub, style: AppTextStyles.caption, textAlign: TextAlign.center),
           ],
         ),
       );

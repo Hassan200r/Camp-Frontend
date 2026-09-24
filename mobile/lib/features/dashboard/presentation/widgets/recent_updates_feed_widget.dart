@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
+
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/utils/skeuomorphic_container.dart';
+import '../../../../app/theme/app_theme.dart';
+import '../../../../core/widgets/widgets.dart';
 
 /// Recent Updates Feed — individual raised skeuomorphic cards per update
 class RecentUpdatesFeedWidget extends StatelessWidget {
-  final VoidCallback? onMarkAllRead;
-  final VoidCallback? onViewRadar;
-  final VoidCallback? onLocateBeacon;
-  final VoidCallback? onDismissTpms;
-
   const RecentUpdatesFeedWidget({
     super.key,
     this.onMarkAllRead,
@@ -17,79 +14,41 @@ class RecentUpdatesFeedWidget extends StatelessWidget {
     this.onDismissTpms,
   });
 
+  final VoidCallback? onMarkAllRead;
+  final VoidCallback? onViewRadar;
+  final VoidCallback? onLocateBeacon;
+  final VoidCallback? onDismissTpms;
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Section Header ───────────────────────────────────────────────
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                const Text(
-                  'Recent Updates',
-                  style: TextStyle(
-                    color: AppColors.darkCharcoal,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [
-                        AppColors.tacticalOrangeLight,
-                        AppColors.tacticalOrange,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: AppColors.orangeGlow,
-                  ),
-                  child: const Text(
-                    '3 New',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ],
+        // ── Section Header ─────────────────────────────────────────────────
+        SectionHeader(
+          title: 'Recent Updates',
+          badge: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [AppColors.tacticalOrangeLight, AppColors.tacticalOrange]),
+              borderRadius: BorderRadius.circular(AppColors.radiusPill),
+              boxShadow: AppColors.orangeGlow,
             ),
-            // 1. First GestureDetector: "Mark all read" link
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onMarkAllRead,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                child: Text(
-                  'Mark all read',
-                  style: TextStyle(
-                    color: AppColors.terracotta,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+            child: const Text(
+              '3 New',
+              style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900),
             ),
-          ],
+          ),
+          actionLabel: 'Mark all read',
+          onAction: onMarkAllRead,
         ),
-
-        const SizedBox(height: 12),
 
         _updateCard(
           icon: Icons.air_rounded,
           iconColor: const Color(0xFFD97706),
           title: 'Weather Advisory',
           timeAgo: '8m ago',
-          description:
-          'Sudden mist and gusty winds reported at High Pass summit (Elev. 8,200ft).',
+          description: 'Sudden mist and gusty winds reported at High Pass summit (Elev. 2,500 m).',
           actionLabel: 'View Radar',
           actionIcon: Icons.radar_rounded,
           onAction: onViewRadar,
@@ -115,8 +74,7 @@ class RecentUpdatesFeedWidget extends StatelessWidget {
           iconColor: AppColors.terracotta,
           title: 'TPMS Update',
           timeAgo: '25m ago',
-          description:
-          'Rear tire psi optimized for dirt/gravel transit (32 PSI).',
+          description: 'Rear tire pressure optimized for dirt/gravel transit (2.2 bar).',
           actionLabel: 'Dismiss',
           actionIcon: Icons.check_rounded,
           onAction: onDismissTpms,
@@ -135,18 +93,13 @@ class RecentUpdatesFeedWidget extends StatelessWidget {
     required IconData actionIcon,
     required VoidCallback? onAction,
   }) {
-    return SkeuomorphicContainer(
-      borderRadius: 20,
-      padding: const EdgeInsets.all(16),
+    return CampCard(
+      borderRadius: AppColors.radiusTile + 2,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Recessed icon well
-          SkeuomorphicInsetContainer(
-            borderRadius: 14,
-            padding: const EdgeInsets.all(9),
-            child: Icon(icon, color: iconColor, size: 22),
-          ),
+          IconTile(icon: icon, iconColor: iconColor, size: 42, borderRadius: 14),
 
           const SizedBox(width: 14),
 
@@ -157,64 +110,34 @@ class RecentUpdatesFeedWidget extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Flexible(
-                      child: Text(
-                        title,
-                        style: const TextStyle(
-                          color: AppColors.darkCharcoal,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      timeAgo,
-                      style: const TextStyle(
-                        color: AppColors.mutedText,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    Flexible(child: Text(title, style: AppTextStyles.itemTitle)),
+                    Text(timeAgo, style: AppTextStyles.caption),
                   ],
                 ),
 
                 const SizedBox(height: 5),
 
-                Text(
-                  description,
-                  style: const TextStyle(
-                    color: Color(0xFF4B5563),
-                    fontSize: 12.5,
-                    height: 1.35,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                Text(description, style: AppTextStyles.bodySecondary),
 
                 const SizedBox(height: 10),
 
-                // 2. Second GestureDetector: Raised pill action button
+                // Raised pill action button
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: onAction,
-                  child: SkeuomorphicContainer(
-                    borderRadius: 14,
-                    shadows: AppColors.skeuRaisedSmall,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.clay,
+                      borderRadius: BorderRadius.circular(AppColors.radiusTile),
+                      boxShadow: AppColors.skeuRaisedSmall,
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(actionIcon,
-                            size: 14, color: AppColors.terracotta),
+                        Icon(actionIcon, size: 14, color: AppColors.terracotta),
                         const SizedBox(width: 6),
-                        Text(
-                          actionLabel,
-                          style: const TextStyle(
-                            color: AppColors.darkCharcoal,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                        Text(actionLabel, style: AppTextStyles.overlineTerracotta.copyWith(letterSpacing: 0.4)),
                       ],
                     ),
                   ),

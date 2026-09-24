@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../../../app/theme/app_colors.dart';
 import '../widgets/active_bike_card_widget.dart';
 import '../widgets/app_drawer_widget.dart';
@@ -19,7 +20,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // 1. Define the GlobalKey for Scaffold
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   int _selectedDockIndex = 0;
@@ -29,13 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        content: Text(message, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         backgroundColor: AppColors.darkCharcoal,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -54,8 +48,8 @@ class _HomeScreenState extends State<HomeScreen> {
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        key: _scaffoldKey, // 2. Attach the key here
-        drawer: const AppDrawerWidget(), // 3. Attach your side menu drawer
+        key: _scaffoldKey,
+        drawer: const AppDrawerWidget(),
         backgroundColor: AppColors.clay,
         body: Stack(
           children: [
@@ -64,28 +58,30 @@ class _HomeScreenState extends State<HomeScreen> {
               bottom: false,
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 110.0),
+                padding: EdgeInsets.fromLTRB(
+                  AppColors.screenPadding,
+                  8.0,
+                  AppColors.screenPadding,
+                  110.0,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // 1. App Header (Top Navigation Bar)
+                    // 1. App Header
                     AppHeaderWidget(
-                      onMenuPressed: () {
-                        // Opens the Scaffold drawer menu safely via key
-                        _scaffoldKey.currentState?.openDrawer();
-                      },
+                      onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
                       onBadgePressed: () => _showNotification('Explore mode active'),
                     ),
 
                     const SizedBox(height: 14),
 
-                    // 2. Cockpit Status Card (Dark Rider Banner)
+                    // 2. Cockpit Status Card (Hero)
                     CockpitStatusCardWidget(
                       onProfilePressed: () => _showNotification('Opening Rider Profile: Elena Vance'),
                       onCtaPressed: () => _showNotification('Navigating to Alpine Route 4'),
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppColors.cardGap),
 
                     // 3. Voice Copilot Input Bar
                     VoiceCopilotBarWidget(
@@ -98,20 +94,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppColors.cardGap),
 
-                    // 4. Maintenance Alert Card (Conditionally visible if not dismissed)
+                    // 4. Maintenance Alert Card (dismissible)
                     if (!_maintenanceAlertDismissed) ...[
                       MaintenanceAlertCardWidget(
                         onScheduleService: () => _showNotification('Scheduling certified service...'),
                         onDismiss: () {
-                          setState(() {
-                            _maintenanceAlertDismissed = true;
-                          });
+                          setState(() => _maintenanceAlertDismissed = true);
                           _showNotification('Maintenance alert dismissed');
                         },
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: AppColors.cardGap),
                     ],
 
                     // 5. Active Motorcycle Overview Card
@@ -119,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       onDetailsPressed: () => _showNotification('Opening BMW R1250 GS Telemetry'),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: AppColors.cardGap),
 
                     // 6. Recent Updates Feed
                     RecentUpdatesFeedWidget(
@@ -133,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // 7. Tactical Bottom Dock (Floating Navigation Bar)
+            // 7. Tactical Bottom Dock (Floating)
             Positioned(
               left: 0,
               right: 0,
@@ -142,20 +136,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: TacticalBottomDockWidget(
                   selectedIndex: _selectedDockIndex,
                   onIndexChanged: (index) {
-                    setState(() {
-                      _selectedDockIndex = index;
-                    });
+                    setState(() => _selectedDockIndex = index);
                     if (index == 1) {
                       Navigator.of(context).pushNamed('/bike-scan');
                       return;
                     }
-                    final tabNames = [
-                      'Explore Home',
-                      'Bike Scan',
-                      'Navigation',
-                      'Maintenance Tools',
-                      'Settings & Filters'
-                    ];
+                    final tabNames = ['Explore Home', 'Bike Scan', 'Navigation', 'Maintenance Tools', 'Settings & Filters'];
                     _showNotification('Switched to ${tabNames[index]}');
                   },
                 ),
