@@ -131,9 +131,13 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
       return const SizedBox(width: 48, height: 48);
     }
 
+    if (leading == CampAppBarLeading.back) {
+      return CampBackButton(onTap: onLeadingPressed);
+    }
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: onLeadingPressed ?? (leading == CampAppBarLeading.back ? () => Navigator.of(context).maybePop() : null),
+      onTap: onLeadingPressed,
       child: Container(
         width: 48,
         height: 48,
@@ -143,18 +147,16 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
           boxShadow: AppColors.skeuRaisedSmall,
         ),
         child: Center(
-          child: leading == CampAppBarLeading.back
-              ? const Icon(Icons.arrow_back_rounded, color: AppColors.darkCharcoal, size: 20)
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _bar(),
-                    const SizedBox(height: 3.2),
-                    _bar(),
-                    const SizedBox(height: 3.2),
-                    _bar(),
-                  ],
-                ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _bar(),
+              const SizedBox(height: 3.2),
+              _bar(),
+              const SizedBox(height: 3.2),
+              _bar(),
+            ],
+          ),
         ),
       ),
     );
@@ -211,5 +213,37 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
     }
 
     return const SizedBox(width: 48, height: 48);
+  }
+}
+
+/// Circular back button styled with CAMP 48px circle and skeuRaisedSmall shadow.
+class CampBackButton extends StatelessWidget {
+  const CampBackButton({
+    super.key,
+    this.onTap,
+    this.icon = Icons.arrow_back_rounded,
+  });
+
+  final VoidCallback? onTap;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap ?? () => Navigator.of(context).maybePop(),
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: AppColors.clay,
+          shape: BoxShape.circle,
+          boxShadow: AppColors.skeuRaisedSmall,
+        ),
+        child: Center(
+          child: Icon(icon, color: AppColors.darkCharcoal, size: 20),
+        ),
+      ),
+    );
   }
 }

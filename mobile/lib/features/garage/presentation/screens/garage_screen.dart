@@ -21,7 +21,7 @@ class GarageScreen extends StatelessWidget {
           children: [
             SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.fromLTRB(AppColors.screenPadding, 12, AppColors.screenPadding, 110),
+              padding: const EdgeInsets.fromLTRB(AppColors.screenPadding, 12, AppColors.screenPadding, 110),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

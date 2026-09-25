@@ -4,16 +4,16 @@ import '../../../../core/utils/skeuomorphic_container.dart';
 
 /// Voice Copilot Bar — recessed inset surface with glowing orange AI button.
 class VoiceCopilotBarWidget extends StatefulWidget {
-  final ValueChanged<String>? onSubmitted;
-  final VoidCallback? onVoicePressed;
-  final VoidCallback? onAiPressed;
-
   const VoiceCopilotBarWidget({
     super.key,
     this.onSubmitted,
     this.onVoicePressed,
     this.onAiPressed,
   });
+
+  final ValueChanged<String>? onSubmitted;
+  final VoidCallback? onVoicePressed;
+  final VoidCallback? onAiPressed;
 
   @override
   State<VoiceCopilotBarWidget> createState() => _VoiceCopilotBarWidgetState();
@@ -73,9 +73,9 @@ class _VoiceCopilotBarWidgetState extends State<VoiceCopilotBarWidget> {
 // =============================================================================
 
 class _VoiceMicButton extends StatelessWidget {
-  final VoidCallback? onTap;
-
   const _VoiceMicButton({this.onTap});
+
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -101,13 +101,13 @@ class _VoiceMicButton extends StatelessWidget {
 }
 
 class _CopilotInputField extends StatelessWidget {
-  final TextEditingController controller;
-  final ValueChanged<String>? onSubmitted;
-
   const _CopilotInputField({
     required this.controller,
     this.onSubmitted,
   });
+
+  final TextEditingController controller;
+  final ValueChanged<String>? onSubmitted;
 
   static const _textStyle = TextStyle(
     color: AppColors.darkCharcoal,

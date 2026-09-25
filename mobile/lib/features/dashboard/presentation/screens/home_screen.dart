@@ -58,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
               bottom: false,
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(
+                padding: const EdgeInsets.fromLTRB(
                   AppColors.screenPadding,
                   8.0,
                   AppColors.screenPadding,

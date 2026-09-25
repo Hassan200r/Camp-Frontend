@@ -53,7 +53,6 @@ linter:
     - prefer_final_fields
     - prefer_final_locals
     - throw_in_finally
-    - unnecessary_await_in_return
     - avoid_unnecessary_containers
     - avoid_void_async
     - hash_and_equals

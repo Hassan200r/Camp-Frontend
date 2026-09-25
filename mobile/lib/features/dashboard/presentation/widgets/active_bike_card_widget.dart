@@ -166,7 +166,7 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                IconTile(icon: Icons.tune_rounded, iconColor: AppColors.terracotta),
+                const IconTile(icon: Icons.tune_rounded, iconColor: AppColors.terracotta),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(

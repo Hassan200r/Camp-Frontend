@@ -516,7 +516,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Expanded(
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () => _showNotification('Opening profile editor...'),
+                    onTap: () => Navigator.of(context).pushNamed('/edit-profile'),
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 11),
                       decoration: BoxDecoration(

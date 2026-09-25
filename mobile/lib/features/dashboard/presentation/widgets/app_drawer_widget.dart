@@ -107,9 +107,9 @@ class AppDrawerWidget extends StatelessWidget {
               Text('BMW R 1250 GS Adventure', style: AppTextStyles.caption),
             ])),
           ]),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: const Divider(height: 1, color: Color(0x11000000)),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(height: 1, color: Color(0x11000000)),
           ),
           Row(children: [
             _pill('PRO Touring', icon: Icons.emoji_events_rounded, orange: true),

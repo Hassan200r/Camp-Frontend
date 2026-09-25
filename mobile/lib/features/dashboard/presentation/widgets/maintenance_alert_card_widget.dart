@@ -28,13 +28,13 @@ class MaintenanceAlertCardWidget extends StatelessWidget {
               // ── Vertical orange extrusion stripe ───────────────────────
               Container(
                 width: 10,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [AppColors.tacticalOrangeLight, AppColors.tacticalOrange, AppColors.tacticalOrangeDark],
                   ),
-                  boxShadow: const [
+                  boxShadow: [
                     BoxShadow(color: Color(0x33F56500), offset: Offset(3, 0), blurRadius: 6),
                   ],
                   borderRadius: BorderRadius.only(
@@ -54,7 +54,7 @@ class MaintenanceAlertCardWidget extends StatelessWidget {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          IconTile(icon: Icons.build_rounded, iconColor: AppColors.terracotta),
+                          const IconTile(icon: Icons.build_rounded, iconColor: AppColors.terracotta),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text('Necessary Maintenance', style: AppTextStyles.itemTitle),
