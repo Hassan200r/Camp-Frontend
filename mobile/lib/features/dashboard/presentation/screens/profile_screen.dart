@@ -313,7 +313,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onIndexChanged: (index) {
                     setState(() => _selectedDockIndex = index);
                     if (index == 0) Navigator.of(context).pushReplacementNamed('/');
-                    if (index == 1) Navigator.of(context).pushNamed('/bike-scan');
+                    if (index == 1) Navigator.of(context).pushNamed('/add-bike');
                   },
                 ),
               ),

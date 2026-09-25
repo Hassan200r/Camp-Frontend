@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app/theme/app_theme.dart';
+import 'features/bike_scan/presentation/screens/add_motorcycle_screen.dart';
 import 'features/bike_scan/presentation/screens/bike_scan_screen.dart';
 import 'features/dashboard/presentation/screens/home_screen.dart';
 import 'features/dashboard/presentation/screens/profile_screen.dart';
@@ -23,6 +24,8 @@ class CampApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const HomeScreen(),
+        '/add-bike': (context) => const AddMotorcycleScreen(),
+        '/add-motorcycle': (context) => const AddMotorcycleScreen(),
         '/bike-scan': (context) => const BikeScanScreen(),
         '/bike-profile': (context) => const BikeScanScreen(),
         '/garage': (context) => const GarageScreen(),

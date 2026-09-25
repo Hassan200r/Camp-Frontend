@@ -13,6 +13,8 @@ class CampCard extends StatelessWidget {
     this.borderRadius = AppColors.radiusCard,
     this.color,
     this.shadows,
+    this.border,
+    this.onTap,
     this.clipBehavior = Clip.antiAlias,
   });
 
@@ -21,15 +23,18 @@ class CampCard extends StatelessWidget {
   final double borderRadius;
   final Color? color;
   final List<BoxShadow>? shadows;
+  final BoxBorder? border;
+  final VoidCallback? onTap;
   final Clip clipBehavior;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final card = Container(
       clipBehavior: clipBehavior,
       decoration: BoxDecoration(
         color: color ?? AppColors.clay,
         borderRadius: BorderRadius.circular(borderRadius),
+        border: border,
         boxShadow: shadows ?? AppColors.skeuRaised,
       ),
       child: Padding(
@@ -37,5 +42,15 @@ class CampCard extends StatelessWidget {
         child: child,
       ),
     );
+
+    if (onTap != null) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: card,
+      );
+    }
+
+    return card;
   }
 }

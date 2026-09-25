@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
-import '../../../../core/utils/skeuomorphic_container.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
 import '../../../dashboard/presentation/widgets/tactical_bottom_dock_widget.dart';
@@ -154,7 +153,7 @@ class GarageScreen extends StatelessWidget {
                   selectedIndex: 0,
                   onIndexChanged: (idx) {
                     if (idx == 0) Navigator.of(context).pushReplacementNamed('/');
-                    if (idx == 1) Navigator.of(context).pushReplacementNamed('/bike-scan');
+                    if (idx == 1) Navigator.of(context).pushReplacementNamed('/add-bike');
                   },
                 ),
               ),

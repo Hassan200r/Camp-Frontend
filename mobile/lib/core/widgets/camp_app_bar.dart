@@ -53,6 +53,7 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.leading = CampAppBarLeading.menu,
     this.onLeadingPressed,
     this.titleText,
+    this.titleWidget,
     this.actionText,
     this.actionIcon,
     this.actionWidget,
@@ -63,6 +64,7 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
   final CampAppBarLeading leading;
   final VoidCallback? onLeadingPressed;
   final String? titleText;
+  final Widget? titleWidget;
   final String? actionText;
   final IconData? actionIcon;
   final Widget? actionWidget;
@@ -83,8 +85,10 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
           // ── Left: Circular Back / Menu Button ─────────────────────────────
           _buildLeading(context),
 
-          // ── Center: Title or CAMP Mountain Logo ───────────────────────────
-          if (titleText != null)
+          // ── Center: Custom Widget, Title or CAMP Mountain Logo ────────────
+          if (titleWidget != null)
+            titleWidget!
+          else if (titleText != null)
             Text(
               titleText!,
               style: GoogleFonts.manrope(
