@@ -11,6 +11,7 @@ class SectionHeader extends StatelessWidget {
     super.key,
     this.badge,
     this.actionLabel,
+    this.actionWidget,
     this.onAction,
     this.padding = const EdgeInsets.only(bottom: 12),
   });
@@ -18,6 +19,7 @@ class SectionHeader extends StatelessWidget {
   final String title;
   final Widget? badge;
   final String? actionLabel;
+  final Widget? actionWidget;
   final VoidCallback? onAction;
   final EdgeInsetsGeometry padding;
 
@@ -47,7 +49,9 @@ class SectionHeader extends StatelessWidget {
               ],
             ],
           ),
-          if (actionLabel != null && onAction != null)
+          if (actionWidget != null)
+            actionWidget!
+          else if (actionLabel != null && onAction != null)
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: onAction,
