@@ -9,8 +9,8 @@ import 'features/dashboard/presentation/screens/profile_screen.dart';
 import 'features/garage/presentation/screens/garage_screen.dart';
 import 'features/mechanics/presentation/screens/add_mechanic_screen.dart';
 import 'features/mechanics/presentation/screens/mechanics_home_screen.dart';
-import 'features/mechanics/presentation/screens/mechanics_map_screen.dart';
-import 'features/mechanics/presentation/screens/voice_assistant_screen.dart';
+import 'features/navigation/presentation/screens/navigation_map_screen.dart';
+import 'features/voice_copilot/presentation/screens/voice_assistant_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,9 +41,12 @@ class CampApp extends StatelessWidget {
         '/mechanics': (context) => const MechanicsHomeScreen(),
         '/mechanics/add': (context) => const AddMechanicScreen(),
         '/add-mechanic': (context) => const AddMechanicScreen(),
-        '/mechanics/map': (context) => const MechanicsMapScreen(),
-        '/mechanics/voice-assistant': (context) => const VoiceAssistantScreen(),
+        '/navigation/map': (context) => const NavigationMapScreen(),
+        // TODO: Legacy route aliases — kept for temporary backward compatibility during team branch merges. Remove once confirmed unused across all teammate branches.
+        '/mechanics/map': (context) => const NavigationMapScreen(),
+        '/voice-copilot': (context) => const VoiceAssistantScreen(),
         '/voice-assistant': (context) => const VoiceAssistantScreen(),
+        '/mechanics/voice-assistant': (context) => const VoiceAssistantScreen(),
         '/route-packs': (context) => const HomeScreen(),
         '/ride-history': (context) => const ProfileScreen(),
         '/predictive-maintenance': (context) => const MechanicsHomeScreen(),

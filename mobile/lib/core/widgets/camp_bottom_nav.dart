@@ -56,7 +56,7 @@ class CampBottomNav extends StatelessWidget {
         break;
       case 2:
         Navigator.of(context).pushNamedAndRemoveUntil(
-          '/mechanics/map',
+          '/navigation/map',
           (route) => route.settings.name == '/',
         );
         break;
