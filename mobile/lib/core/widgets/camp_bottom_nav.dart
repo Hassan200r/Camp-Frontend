@@ -33,7 +33,7 @@ class CampBottomNav extends StatelessWidget {
     CampNavItem(icon: Icons.qr_code_scanner_rounded, label: 'Bike Scan'),
     CampNavItem(icon: Icons.navigation_rounded, label: 'Navigation'),
     CampNavItem(icon: Icons.handyman_rounded, label: 'Mechanic'),
-    CampNavItem(icon: Icons.tune_rounded, label: 'Settings'),
+    CampNavItem(icon: Icons.account_balance_wallet_rounded, label: 'Finances & Rig Health'),
   ];
 
   /// Standard tab navigation helper across all screens
@@ -68,7 +68,7 @@ class CampBottomNav extends StatelessWidget {
         break;
       case 4:
         Navigator.of(context).pushNamedAndRemoveUntil(
-          '/profile',
+          '/finances-rig-health',
           (route) => route.settings.name == '/',
         );
         break;
