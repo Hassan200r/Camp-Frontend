@@ -18,6 +18,7 @@ class LabeledTextField extends StatelessWidget {
     this.trailingIconColor,
     this.readOnly = false,
     this.onTap,
+    this.maxLines = 1,
   });
 
   final String label;
@@ -30,6 +31,7 @@ class LabeledTextField extends StatelessWidget {
   final Color? trailingIconColor;
   final bool readOnly;
   final VoidCallback? onTap;
+  final int maxLines;
 
   @override
   Widget build(BuildContext context) {
@@ -80,6 +82,7 @@ class LabeledTextField extends StatelessWidget {
             boxShadow: AppColors.skeuRecessed,
           ),
           child: Row(
+            crossAxisAlignment: maxLines > 1 ? CrossAxisAlignment.start : CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: TextField(
@@ -87,6 +90,7 @@ class LabeledTextField extends StatelessWidget {
                   keyboardType: keyboardType,
                   readOnly: readOnly,
                   onTap: onTap,
+                  maxLines: maxLines,
                   style: AppTextStyles.body,
                   cursorColor: AppColors.tacticalOrange,
                   decoration: const InputDecoration(

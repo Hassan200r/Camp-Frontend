@@ -120,7 +120,9 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
 
           // ── Right: Optional Action Pill or Widget ─────────────────────────
-          _buildAction(),
+          Flexible(
+            child: _buildAction(),
+          ),
         ],
       ),
     );
@@ -194,16 +196,18 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
                 Icon(actionIcon, size: 15, color: AppColors.tacticalOrange),
                 const SizedBox(width: 6),
               ],
-              Text(
-                actionText!,
-                maxLines: 1,
-                softWrap: false,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.manrope(
-                  color: AppColors.terracotta,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.8,
+              Flexible(
+                child: Text(
+                  actionText!,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.manrope(
+                    color: AppColors.terracotta,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                  ),
                 ),
               ),
             ],

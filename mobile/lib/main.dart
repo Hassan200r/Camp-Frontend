@@ -7,6 +7,7 @@ import 'features/dashboard/presentation/screens/edit_profile_screen.dart';
 import 'features/dashboard/presentation/screens/home_screen.dart';
 import 'features/dashboard/presentation/screens/profile_screen.dart';
 import 'features/garage/presentation/screens/garage_screen.dart';
+import 'features/maintenance/presentation/screens/finance_rig_health_screen.dart';
 import 'features/mechanics/presentation/screens/add_mechanic_screen.dart';
 import 'features/mechanics/presentation/screens/mechanics_home_screen.dart';
 import 'features/mechanics/presentation/screens/mechanics_map_screen.dart';
@@ -46,7 +47,8 @@ class CampApp extends StatelessWidget {
         '/voice-assistant': (context) => const VoiceAssistantScreen(),
         '/route-packs': (context) => const HomeScreen(),
         '/ride-history': (context) => const ProfileScreen(),
-        '/predictive-maintenance': (context) => const MechanicsHomeScreen(),
+        '/finance-rig-health': (context) => const FinanceRigHealthScreen(),
+        '/predictive-maintenance': (context) => const FinanceRigHealthScreen(),
         '/carburetor-tuning': (context) => const MechanicsHomeScreen(),
         '/settings': (context) => const ProfileScreen(),
         '/emergency-sos': (context) => const HomeScreen(),

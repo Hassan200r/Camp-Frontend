@@ -14,6 +14,7 @@ class SectionHeader extends StatelessWidget {
     this.actionWidget,
     this.onAction,
     this.padding = const EdgeInsets.only(bottom: 12),
+    this.maxLines = 1,
   });
 
   final String title;
@@ -22,6 +23,7 @@ class SectionHeader extends StatelessWidget {
   final Widget? actionWidget;
   final VoidCallback? onAction;
   final EdgeInsetsGeometry padding;
+  final int maxLines;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +40,7 @@ class SectionHeader extends StatelessWidget {
                 Flexible(
                   child: Text(
                     title,
-                    maxLines: 1,
+                    maxLines: maxLines,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.manrope(
                       color: AppColors.darkCharcoal,
