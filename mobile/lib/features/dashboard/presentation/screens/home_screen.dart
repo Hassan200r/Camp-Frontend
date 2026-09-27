@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/widgets/camp_bottom_nav.dart';
 import '../widgets/active_bike_card_widget.dart';
 import '../widgets/app_drawer_widget.dart';
 import '../widgets/app_header_widget.dart';
@@ -22,7 +23,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  int _selectedDockIndex = 0;
   bool _maintenanceAlertDismissed = false;
 
   void _showNotification(String message) {
@@ -77,20 +77,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     // 2. Cockpit Status Card (Hero)
                     CockpitStatusCardWidget(
-                      onProfilePressed: () => _showNotification('Opening Rider Profile: Elena Vance'),
-                      onCtaPressed: () => _showNotification('Navigating to Alpine Route 4'),
+                      onProfilePressed: () => Navigator.of(context).pushNamed('/profile'),
+                      onCtaPressed: () => Navigator.of(context).pushNamed('/mechanics/map'),
                     ),
 
                     const SizedBox(height: AppColors.cardGap),
 
                     // 3. Voice Copilot Input Bar
                     VoiceCopilotBarWidget(
-                      onVoicePressed: () => _showNotification('Listening for voice command...'),
-                      onAiPressed: () => _showNotification('AI Assistant activated'),
+                      onVoicePressed: () => Navigator.of(context).pushNamed('/mechanics/voice-assistant'),
+                      onAiPressed: () => Navigator.of(context).pushNamed('/mechanics/voice-assistant'),
                       onSubmitted: (query) {
-                        if (query.isNotEmpty) {
-                          _showNotification('CAMP Copilot: Analyzing "$query"');
-                        }
+                        Navigator.of(context).pushNamed('/mechanics/voice-assistant');
                       },
                     ),
 
@@ -99,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     // 4. Maintenance Alert Card (dismissible)
                     if (!_maintenanceAlertDismissed) ...[
                       MaintenanceAlertCardWidget(
-                        onScheduleService: () => _showNotification('Scheduling certified service...'),
+                        onScheduleService: () => Navigator.of(context).pushNamed('/mechanics'),
                         onDismiss: () {
                           setState(() => _maintenanceAlertDismissed = true);
                           _showNotification('Maintenance alert dismissed');
@@ -110,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     // 5. Active Motorcycle Overview Card
                     ActiveBikeCardWidget(
-                      onDetailsPressed: () => _showNotification('Opening BMW R1250 GS Telemetry'),
+                      onDetailsPressed: () => Navigator.of(context).pushNamed('/garage'),
                     ),
 
                     const SizedBox(height: AppColors.cardGap),
@@ -118,8 +116,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     // 6. Recent Updates Feed
                     RecentUpdatesFeedWidget(
                       onMarkAllRead: () => _showNotification('All updates marked as read'),
-                      onViewRadar: () => _showNotification('Loading High Pass live weather radar...'),
-                      onLocateBeacon: () => _showNotification('Locating Rider Marcus on GPS map...'),
+                      onViewRadar: () => Navigator.of(context).pushNamed('/mechanics/map'),
+                      onLocateBeacon: () => Navigator.of(context).pushNamed('/mechanics/map'),
                       onDismissTpms: () => _showNotification('TPMS notification cleared'),
                     ),
                   ],
@@ -134,15 +132,9 @@ class _HomeScreenState extends State<HomeScreen> {
               bottom: 24,
               child: Center(
                 child: TacticalBottomDockWidget(
-                  selectedIndex: _selectedDockIndex,
+                  selectedIndex: 0,
                   onIndexChanged: (index) {
-                    setState(() => _selectedDockIndex = index);
-                    if (index == 1) {
-                      Navigator.of(context).pushNamed('/add-bike');
-                      return;
-                    }
-                    final tabNames = ['Explore Home', 'Bike Scan', 'Navigation', 'Maintenance Tools', 'Settings & Filters'];
-                    _showNotification('Switched to ${tabNames[index]}');
+                    CampBottomNav.navigateToTab(context, index, currentIndex: 0);
                   },
                 ),
               ),

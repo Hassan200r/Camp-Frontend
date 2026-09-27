@@ -105,6 +105,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         duration: const Duration(milliseconds: 2000),
       ),
     );
+    Navigator.of(context).pop();
   }
 
   void _onDeleteAccount() {

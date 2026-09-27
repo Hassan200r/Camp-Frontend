@@ -29,7 +29,7 @@ class AppDrawerWidget extends StatelessWidget {
           child: Column(children: [
             _topBar(context),
             const SizedBox(height: 18),
-            _riderSummary(),
+            _riderSummary(context),
             const SizedBox(height: 18),
             Expanded(
               child: ListView(
@@ -38,13 +38,29 @@ class AppDrawerWidget extends StatelessWidget {
                 children: [
                   _menuItem(context, icon: Icons.person_outline_rounded, title: 'User Profile', route: '/profile'),
                   _menuItem(context, icon: Icons.directions_bike_rounded, title: 'Bike Profile', badge: 'Active', route: '/bike-profile'),
-                  _menuItem(context, icon: Icons.cloud_download_outlined, title: 'Route Packs', subtitle: 'Offline Topo & Telemetry', badge: '5 Available', orangeBadge: true, route: '/route-packs'),
+                  _menuItem(context, icon: Icons.two_wheeler_rounded, iconColor: _orange, title: 'Add a Motorcycle', subtitle: 'Vision & Telemetry Onboarding', badge: 'Step 1 of 4', orangeBadge: true, route: '/add-bike'),
+                  _menuItem(
+                    context,
+                    icon: Icons.cloud_download_outlined,
+                    title: 'Route Packs',
+                    subtitle: 'Offline Topo & Telemetry',
+                    badge: '5 Available',
+                    orangeBadge: true,
+                    onTap: () => _showRoutePacksModal(context),
+                  ),
                   _menuItem(context, icon: Icons.access_time_rounded, title: 'Ride History', subtitle: 'GPS Tracks & Stats', badge: '24 Logged', route: '/ride-history'),
                   _menuItem(context, icon: Icons.compass_calibration_rounded, title: 'Predictive Maintenance', notification: '1', route: '/predictive-maintenance'),
+                  _menuItem(context, icon: Icons.handyman_rounded, iconColor: _orange, title: 'Find a Mechanic', subtitle: 'Community Pitstops & Roadside', badge: 'Active', orangeBadge: true, route: '/mechanics'),
                   _menuItem(context, icon: Icons.build_outlined, iconColor: _orange, title: 'Add a Mechanic', subtitle: 'Community Pitstops', badge: '+ Contributor', orangeBadge: true, route: '/add-mechanic'),
                   _menuItem(context, icon: Icons.settings_suggest_rounded, title: 'Carburetor Tuning', subtitle: 'High Altitude Jetting', badge: 'Tuning Req.', orangeBadge: true, route: '/carburetor-tuning'),
                   _menuItem(context, icon: Icons.settings_outlined, title: 'Settings', route: '/settings'),
-                  _menuItem(context, icon: Icons.emergency_rounded, iconColor: AppColors.alertRed, title: 'Emergency SOS & Telematics', route: '/emergency-sos'),
+                  _menuItem(
+                    context,
+                    icon: Icons.emergency_rounded,
+                    iconColor: AppColors.alertRed,
+                    title: 'Emergency SOS & Telematics',
+                    onTap: () => _showEmergencySosModal(context),
+                  ),
                 ],
               ),
             ),
@@ -80,50 +96,58 @@ class AppDrawerWidget extends StatelessWidget {
         ),
       ]);
 
-  Widget _riderSummary() => SkeuomorphicContainer(
-        borderRadius: AppColors.radiusTile,
-        color: Colors.white.withValues(alpha: .88),
-        padding: const EdgeInsets.all(14),
-        child: Column(children: [
-          Row(children: [
-            Stack(clipBehavior: Clip.none, children: [
-              Container(
-                width: 54,
-                height: 54,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.clay,
-                  border: Border.all(color: _orange, width: 2),
+  Widget _riderSummary(BuildContext context) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).pushNamed('/profile');
+        },
+        child: SkeuomorphicContainer(
+          borderRadius: AppColors.radiusTile,
+          color: Colors.white.withValues(alpha: .88),
+          padding: const EdgeInsets.all(14),
+          child: Column(children: [
+            Row(children: [
+              Stack(clipBehavior: Clip.none, children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.clay,
+                    border: Border.all(color: _orange, width: 2),
+                  ),
+                  child: const Icon(Icons.person_rounded, color: AppColors.terracotta, size: 29),
                 ),
-                child: const Icon(Icons.person_rounded, color: AppColors.terracotta, size: 29),
-              ),
-              const Positioned(right: -1, bottom: 1, child: _StatusDot(color: AppColors.statusGreen)),
+                const Positioned(right: -1, bottom: 1, child: _StatusDot(color: AppColors.statusGreen)),
+              ]),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Alex Henderson', style: AppTextStyles.cardTitle),
+                const SizedBox(height: 3),
+                Text('BMW R 1250 GS Adventure', style: AppTextStyles.caption),
+              ])),
             ]),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Alex Henderson', style: AppTextStyles.cardTitle),
-              const SizedBox(height: 3),
-              Text('BMW R 1250 GS Adventure', style: AppTextStyles.caption),
-            ])),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Divider(height: 1, color: Color(0x11000000)),
+            ),
+            Row(children: [
+              _pill('PRO Touring', icon: Icons.emoji_events_rounded, orange: true),
+              const Spacer(),
+              Text('14,820 km logged', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700, fontSize: 11)),
+            ]),
           ]),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(height: 1, color: Color(0x11000000)),
-          ),
-          Row(children: [
-            _pill('PRO Touring', icon: Icons.emoji_events_rounded, orange: true),
-            const Spacer(),
-            Text('14,820 km logged', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700, fontSize: 11)),
-          ]),
-        ]),
+        ),
       );
 
   Widget _menuItem(
     BuildContext context, {
     required IconData icon,
     required String title,
-    required String route,
+    String? route,
+    VoidCallback? onTap,
     String? subtitle,
     String? badge,
     String? notification,
@@ -133,7 +157,14 @@ class AppDrawerWidget extends StatelessWidget {
       Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: GestureDetector(
-          onTap: () => Navigator.of(context).pushNamed(route),
+          onTap: () {
+            Navigator.of(context).pop();
+            if (onTap != null) {
+              onTap();
+            } else if (route != null) {
+              Navigator.of(context).pushNamed(route);
+            }
+          },
           child: SkeuomorphicContainer(
             borderRadius: AppColors.radiusTile,
             shadows: AppColors.skeuRaisedSmall,
@@ -207,7 +238,26 @@ class AppDrawerWidget extends StatelessWidget {
       );
 
   Widget _logout(BuildContext context) => GestureDetector(
-        onTap: () => Navigator.of(context).pushNamed('/logout'),
+        onTap: () {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Logged out successfully',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12.5,
+                ),
+              ),
+              backgroundColor: AppColors.darkCharcoal,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              duration: const Duration(milliseconds: 2000),
+            ),
+          );
+        },
         child: SkeuomorphicContainer(
           borderRadius: AppColors.radiusTile,
           shadows: AppColors.skeuRaisedSmall,
@@ -221,6 +271,301 @@ class AppDrawerWidget extends StatelessWidget {
           ]),
         ),
       );
+
+  void _showRoutePacksModal(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        decoration: BoxDecoration(
+          color: AppColors.clay,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.25),
+              blurRadius: 24,
+              offset: const Offset(0, -6),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 42,
+                height: 4.5,
+                decoration: BoxDecoration(
+                  color: AppColors.clayDark,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.tacticalOrange.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.cloud_download_outlined, color: AppColors.tacticalOrange, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Offline Route Packs',
+                        style: GoogleFonts.manrope(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.darkCharcoal,
+                        ),
+                      ),
+                      Text(
+                        '5 Topo regions cached & ready offline',
+                        style: GoogleFonts.manrope(
+                          fontSize: 12,
+                          color: AppColors.mutedText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            ...[
+              ('Cascade Alpine Loop', '340 MB • WA Pass High Alpine', true),
+              ('Karakoram Highway Pass', '520 MB • 15,397 ft Peak Pass', true),
+              ('Stelvio Pass Alpine', '410 MB • Eastern Alps 48 Hairpins', true),
+              ('Moab Slickrock Trail', '290 MB • Red Rock Desert Grid', true),
+              ('Tail of the Dragon', '180 MB • 318 Curves in 11 mi', true),
+            ].map((pack) => Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.clayDark),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle_rounded, color: AppColors.statusGreen, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              pack.$1,
+                              style: GoogleFonts.manrope(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.darkCharcoal,
+                              ),
+                            ),
+                            Text(
+                              pack.$2,
+                              style: GoogleFonts.manrope(
+                                fontSize: 11,
+                                color: AppColors.mutedText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.clayDark,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Ready',
+                          style: GoogleFonts.manrope(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.statusGreen,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Offline Route Packs verified: 1.74 GB cached'),
+                      duration: Duration(milliseconds: 1400),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.darkCharcoal,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: const Text('All Packs Synchronized', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEmergencySosModal(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF181513),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          border: Border.all(color: AppColors.alertRed.withValues(alpha: 0.5), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.6),
+              blurRadius: 28,
+              offset: const Offset(0, -6),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.alertRed.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.alertRed.withValues(alpha: 0.6)),
+                  ),
+                  child: const Icon(Icons.emergency_rounded, color: AppColors.alertRed, size: 26),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'EMERGENCY SOS & TELEMATICS',
+                        style: GoogleFonts.manrope(
+                          color: AppColors.alertRed,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Distress Beacon & Satellite ICE',
+                        style: GoogleFonts.manrope(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              ),
+              child: Column(
+                children: [
+                  _sosRow('Satellite Beacon', 'Active • Iridium #IR-88210-GS', Icons.satellite_alt_rounded),
+                  const Divider(color: Colors.white12, height: 16),
+                  _sosRow('VHF Emergency Radio', '151.625 MHz (Channel 4)', Icons.radio_rounded),
+                  const Divider(color: Colors.white12, height: 16),
+                  _sosRow('ICE Contact', 'Elena Vance (+1 555-0199)', Icons.contact_phone_rounded),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('🚨 SOS Distress Ping Broadcast! Emergency frequency 151.625 MHz notified.'),
+                      backgroundColor: AppColors.alertRed,
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.alertRed,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                icon: const Icon(Icons.cell_tower_rounded, color: Colors.white, size: 20),
+                label: const Text(
+                  'BROADCAST DISTRESS SIGNAL',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 0.6),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sosRow(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.tacticalOrange),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.w600)),
+              Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _StatusDot extends StatelessWidget {

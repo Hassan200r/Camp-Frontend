@@ -197,22 +197,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: TacticalBottomDockWidget(
                   selectedIndex: 4, // Profile tab active
                   onIndexChanged: (index) {
-                    if (index == 0) {
-                      Navigator.of(context).pushReplacementNamed('/');
-                    } else if (index == 1) {
-                      Navigator.of(context).pushNamed('/add-bike');
-                    } else if (index == 4) {
-                      // Already on Profile
-                    } else {
-                      final tabNames = [
-                        'Explore Home',
-                        'Bike Scan',
-                        'Navigation',
-                        'Maintenance Tools',
-                        'Profile',
-                      ];
-                      _showNotification('Switched to ${tabNames[index]}');
-                    }
+                    if (index == 4) return;
+                    CampBottomNav.navigateToTab(context, index, currentIndex: 4);
                   },
                 ),
               ),
@@ -438,7 +424,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(width: 10),
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () => _showNotification('Navigating to Alpine Route 4...'),
+                    onTap: () => Navigator.of(context).pushNamed('/mechanics/map'),
                     child: Container(
                       width: 44,
                       height: 44,
@@ -1001,9 +987,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required bool isPrimary,
     required String? imagePath,
   }) {
-    return Container(
-      width: 236,
-      padding: const EdgeInsets.all(12),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.of(context).pushNamed('/garage'),
+      child: Container(
+        width: 236,
+        padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.clay,
         borderRadius: BorderRadius.circular(AppColors.radiusCard),
@@ -1131,6 +1120,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
         ],
+      ),
       ),
     );
   }
@@ -1332,7 +1322,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // View Full Report Button
           GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => _showNotification('Loading full maintenance telemetry report...'),
+            onTap: () => Navigator.of(context).pushNamed('/mechanics'),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 10),
@@ -1701,7 +1691,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // View Emergency Protocols button
           GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => _showNotification('Opening encrypted emergency protocols...'),
+            onTap: () => _showNotification('Emergency ICE & Health Protocols: Iridium #IR-88210-GS active'),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
@@ -1781,7 +1771,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon: Icons.person_outline_rounded,
                 title: 'Edit Personal Info',
                 trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
-                onTap: () => _showNotification('Personal Info'),
+                onTap: () => Navigator.of(context).pushNamed('/edit-profile'),
               ),
               const Divider(height: 1, color: Color(0x12000000)),
               _buildSettingsRow(
@@ -1831,7 +1821,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 title: 'Offline Maps',
                 subtitle: '1.4 GB / 8.2 GB cached',
                 trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
-                onTap: () => _showNotification('Offline Maps Manager'),
+                onTap: () => _showNotification('Offline Maps: 1.4 GB / 8.2 GB cached across 5 route packs'),
               ),
               const Divider(height: 1, color: Color(0x12000000)),
               _buildSettingsRow(

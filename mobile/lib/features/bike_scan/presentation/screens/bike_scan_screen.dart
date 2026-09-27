@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/skeuomorphic_container.dart';
+import '../../../../core/widgets/camp_bottom_nav.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
 import '../../../dashboard/presentation/widgets/tactical_bottom_dock_widget.dart';
 
@@ -151,16 +152,24 @@ class _BikeScanScreenState extends State<BikeScanScreen>
     WidgetsBinding.instance.removeObserver(this);
     _scanAnimController.dispose();
     _cameraController?.dispose();
+    _cameraController = null;
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final CameraController? camera = _cameraController;
-    if (camera == null || !camera.value.isInitialized) return;
+    if (camera == null) return;
 
-    if (state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = false;
+          _isCameraLoading = false;
+        });
+      }
       camera.dispose();
+      _cameraController = null;
     } else if (state == AppLifecycleState.resumed) {
       _initializeCamera();
     }
@@ -168,8 +177,10 @@ class _BikeScanScreenState extends State<BikeScanScreen>
 
   // ── Camera Initialization & Graceful Fallback ─────────────────────────────
   Future<void> _initializeCamera() async {
+    if (!mounted) return;
     setState(() {
       _isCameraLoading = true;
+      _isCameraInitialized = false;
       _cameraError = false;
     });
 
@@ -186,6 +197,10 @@ class _BikeScanScreenState extends State<BikeScanScreen>
         orElse: () => cameras.first,
       );
 
+      final oldController = _cameraController;
+      _cameraController = null;
+      await oldController?.dispose();
+
       final controller = CameraController(
         backCamera,
         ResolutionPreset.high,
@@ -197,7 +212,10 @@ class _BikeScanScreenState extends State<BikeScanScreen>
         const Duration(milliseconds: 800),
       );
 
-      if (!mounted) return;
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
 
       setState(() {
         _isCameraInitialized = true;
@@ -206,6 +224,8 @@ class _BikeScanScreenState extends State<BikeScanScreen>
       });
     } catch (_) {
       if (!mounted) return;
+      _cameraController?.dispose();
+      _cameraController = null;
       setState(() {
         _isCameraInitialized = false;
         _isCameraLoading = false;
@@ -217,10 +237,11 @@ class _BikeScanScreenState extends State<BikeScanScreen>
   // ── Flash Toggle ──────────────────────────────────────────────────────────
   Future<void> _toggleFlash() async {
     final controller = _cameraController;
-    if (controller != null && _isCameraInitialized) {
+    if (controller != null && _isCameraInitialized && controller.value.isInitialized) {
       try {
         final newMode = _isFlashOn ? FlashMode.off : FlashMode.torch;
         await controller.setFlashMode(newMode);
+        if (!mounted) return;
         setState(() {
           _isFlashOn = !_isFlashOn;
         });
@@ -231,6 +252,7 @@ class _BikeScanScreenState extends State<BikeScanScreen>
       }
     }
 
+    if (!mounted) return;
     setState(() {
       _isFlashOn = !_isFlashOn;
     });
@@ -276,6 +298,7 @@ class _BikeScanScreenState extends State<BikeScanScreen>
   }
 
   void _showNotification(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -423,23 +446,10 @@ class _BikeScanScreenState extends State<BikeScanScreen>
                 child: TacticalBottomDockWidget(
                   selectedIndex: 1, // Bike Scan Tab Active
                   onIndexChanged: (index) {
-                    if (index == 0) {
-                      if (Navigator.of(context).canPop()) {
-                        Navigator.of(context).pop();
-                      } else {
-                        Navigator.of(context).pushReplacementNamed('/');
-                      }
-                    } else if (index == 1) {
+                    if (index == 1) {
                       _runScanAnimation();
                     } else {
-                      final tabNames = [
-                        'Explore Home',
-                        'Bike Scan',
-                        'Navigation',
-                        'Maintenance Tools',
-                        'Settings & Filters',
-                      ];
-                      _showNotification('Switched to ${tabNames[index]}');
+                      CampBottomNav.navigateToTab(context, index, currentIndex: 1);
                     }
                   },
                 ),
@@ -1000,7 +1010,10 @@ class _BikeScanScreenState extends State<BikeScanScreen>
 
   // ── Viewport Background (Camera feed vs High-Res Placeholder) ──────────────
   Widget _buildViewportBackground() {
-    if (_isCameraInitialized && _cameraController != null && !_cameraError) {
+    if (_isCameraInitialized &&
+        _cameraController != null &&
+        _cameraController!.value.isInitialized &&
+        !_cameraError) {
       return SizedBox.expand(
         child: FittedBox(
           fit: BoxFit.cover,
@@ -1575,9 +1588,12 @@ class _BikeScanScreenState extends State<BikeScanScreen>
 
   // ── 5. Next Scheduled Maintenance Card ────────────────────────────────────
   Widget _buildMaintenanceCard() {
-    return SkeuomorphicContainer(
-      borderRadius: 22,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.of(context).pushNamed('/mechanics'),
+      child: SkeuomorphicContainer(
+        borderRadius: 22,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
           // Circular Wrench Badge
@@ -1640,6 +1656,7 @@ class _BikeScanScreenState extends State<BikeScanScreen>
             ),
           ),
         ],
+      ),
       ),
     );
   }

@@ -19,22 +19,61 @@ class CampNavItem {
 class CampBottomNav extends StatelessWidget {
   const CampBottomNav({
     required this.selectedIndex,
-    required this.onIndexChanged,
+    this.onIndexChanged,
     super.key,
     this.items = defaultItems,
   });
 
   final int selectedIndex;
-  final ValueChanged<int> onIndexChanged;
+  final ValueChanged<int>? onIndexChanged;
   final List<CampNavItem> items;
 
   static const List<CampNavItem> defaultItems = [
     CampNavItem(icon: Icons.explore_rounded, label: 'Explore Home'),
     CampNavItem(icon: Icons.qr_code_scanner_rounded, label: 'Bike Scan'),
     CampNavItem(icon: Icons.navigation_rounded, label: 'Navigation'),
-    CampNavItem(icon: Icons.build_rounded, label: 'Maintenance'),
+    CampNavItem(icon: Icons.handyman_rounded, label: 'Mechanic'),
     CampNavItem(icon: Icons.tune_rounded, label: 'Settings'),
   ];
+
+  /// Standard tab navigation helper across all screens
+  static void navigateToTab(BuildContext context, int targetIndex, {int? currentIndex}) {
+    if (currentIndex == targetIndex) return;
+
+    switch (targetIndex) {
+      case 0:
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        } else {
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        }
+        break;
+      case 1:
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/add-bike',
+          (route) => route.settings.name == '/',
+        );
+        break;
+      case 2:
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/mechanics/map',
+          (route) => route.settings.name == '/',
+        );
+        break;
+      case 3:
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/mechanics',
+          (route) => route.settings.name == '/',
+        );
+        break;
+      case 4:
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/profile',
+          (route) => route.settings.name == '/',
+        );
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +96,13 @@ class CampBottomNav extends StatelessWidget {
               message: item.label,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () => onIndexChanged(index),
+                onTap: () {
+                  if (onIndexChanged != null) {
+                    onIndexChanged!(index);
+                  } else {
+                    navigateToTab(context, index, currentIndex: selectedIndex);
+                  }
+                },
                 child: isActive
                     ? Container(
                         width: 48,

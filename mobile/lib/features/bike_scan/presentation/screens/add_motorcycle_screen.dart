@@ -184,24 +184,7 @@ class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
                 child: TacticalBottomDockWidget(
                   selectedIndex: 1, // Scan tab active
                   onIndexChanged: (index) {
-                    if (index == 0) {
-                      if (Navigator.of(context).canPop()) {
-                        Navigator.of(context).pop();
-                      } else {
-                        Navigator.of(context).pushReplacementNamed('/');
-                      }
-                    } else if (index == 1) {
-                      // Already on Add Motorcycle registration flow
-                    } else {
-                      final tabNames = [
-                        'Explore Home',
-                        'Bike Scan',
-                        'Navigation',
-                        'Maintenance Tools',
-                        'Settings & Filters',
-                      ];
-                      _showNotification('Switched to ${tabNames[index]}');
-                    }
+                    CampBottomNav.navigateToTab(context, index, currentIndex: 1);
                   },
                 ),
               ),

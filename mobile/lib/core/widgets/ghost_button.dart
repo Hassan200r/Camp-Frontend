@@ -38,15 +38,17 @@ class GhostButton extends StatelessWidget {
               Icon(icon, color: effectiveColor, size: 16),
               const SizedBox(width: 6),
             ],
-            Text(
-              label,
-              maxLines: 1,
-              softWrap: false,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.manrope(
-                color: effectiveColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.manrope(
+                  color: effectiveColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],

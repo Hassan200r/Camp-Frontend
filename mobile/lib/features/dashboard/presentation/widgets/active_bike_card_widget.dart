@@ -49,11 +49,40 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
                 'ACTIVE MOTORCYCLE',
                 style: AppTextStyles.overlineTerracotta,
               ),
-              IconTile(
-                icon: Icons.two_wheeler_rounded,
-                size: 40,
-                isInset: false,
-                onTap: widget.onDetailsPressed,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => Navigator.of(context).pushNamed('/add-bike'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.clay,
+                        borderRadius: BorderRadius.circular(AppColors.radiusPill),
+                        boxShadow: AppColors.skeuRaisedSmall,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.add_rounded, size: 14, color: AppColors.tacticalOrange),
+                          const SizedBox(width: 4),
+                          Text(
+                            'ADD BIKE',
+                            style: AppTextStyles.overlineTerracotta.copyWith(fontSize: 10, letterSpacing: 0.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconTile(
+                    icon: Icons.two_wheeler_rounded,
+                    size: 40,
+                    isInset: false,
+                    onTap: widget.onDetailsPressed,
+                  ),
+                ],
               ),
             ],
           ),

@@ -31,23 +31,29 @@ class SectionHeader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                style: GoogleFonts.manrope(
-                  color: AppColors.darkCharcoal,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.2,
+          Expanded(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.manrope(
+                      color: AppColors.darkCharcoal,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
                 ),
-              ),
-              if (badge != null) ...[
-                const SizedBox(width: 8),
-                badge!,
+                if (badge != null) ...[
+                  const SizedBox(width: 8),
+                  badge!,
+                ],
               ],
-            ],
+            ),
           ),
           if (actionWidget != null)
             actionWidget!

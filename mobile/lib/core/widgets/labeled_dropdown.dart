@@ -63,6 +63,7 @@ class LabeledDropdown<T> extends StatelessWidget {
                             ? itemLabelBuilder!(item)
                             : item.toString(),
                         style: AppTextStyles.body,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   )

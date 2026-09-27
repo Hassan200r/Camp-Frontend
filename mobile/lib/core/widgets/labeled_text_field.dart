@@ -127,11 +127,13 @@ class LabeledTextField extends StatelessWidget {
                 color: AppColors.alertRed,
               ),
               const SizedBox(width: 4),
-              Text(
-                errorText!,
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.alertRed,
-                  fontSize: 11,
+              Expanded(
+                child: Text(
+                  errorText!,
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.alertRed,
+                    fontSize: 11,
+                  ),
                 ),
               ),
             ],

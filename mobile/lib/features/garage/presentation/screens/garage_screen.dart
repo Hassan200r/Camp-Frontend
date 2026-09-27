@@ -29,20 +29,24 @@ class GarageScreen extends StatelessWidget {
                   CampAppBar(
                     leading: CampAppBarLeading.back,
                     titleText: 'MY GARAGE',
-                    actionWidget: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppColors.clay,
-                        borderRadius: BorderRadius.circular(AppColors.radiusPill),
-                        boxShadow: AppColors.skeuRaisedSmall,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.directions_bike_rounded, size: 16, color: AppColors.tacticalOrange),
-                          const SizedBox(width: 6),
-                          Text('1 ACTIVE', style: AppTextStyles.overlineTerracotta.copyWith(letterSpacing: 0.6)),
-                        ],
+                    actionWidget: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => Navigator.of(context).pushNamed('/add-bike'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.clay,
+                          borderRadius: BorderRadius.circular(AppColors.radiusPill),
+                          boxShadow: AppColors.skeuRaisedSmall,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.add_circle_outline_rounded, size: 16, color: AppColors.tacticalOrange),
+                            const SizedBox(width: 6),
+                            Text('ADD BIKE', style: AppTextStyles.overlineTerracotta.copyWith(letterSpacing: 0.6)),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -136,6 +140,12 @@ class GarageScreen extends StatelessWidget {
                           onTap: () => Navigator.of(context).pushNamed('/bike-scan'),
                           isFullWidth: true,
                         ),
+                        const SizedBox(height: 10),
+                        GhostButton(
+                          label: 'Add a Motorcycle',
+                          icon: Icons.two_wheeler_rounded,
+                          onTap: () => Navigator.of(context).pushNamed('/add-bike'),
+                        ),
                       ],
                     ),
                   ),
@@ -152,8 +162,7 @@ class GarageScreen extends StatelessWidget {
                 child: TacticalBottomDockWidget(
                   selectedIndex: 0,
                   onIndexChanged: (idx) {
-                    if (idx == 0) Navigator.of(context).pushReplacementNamed('/');
-                    if (idx == 1) Navigator.of(context).pushReplacementNamed('/add-bike');
+                    CampBottomNav.navigateToTab(context, idx, currentIndex: null);
                   },
                 ),
               ),
