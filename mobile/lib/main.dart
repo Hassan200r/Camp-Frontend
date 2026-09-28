@@ -6,10 +6,16 @@ import 'features/bike_scan/presentation/screens/bike_scan_screen.dart';
 import 'features/dashboard/presentation/screens/edit_profile_screen.dart';
 import 'features/dashboard/presentation/screens/home_screen.dart';
 import 'features/dashboard/presentation/screens/profile_screen.dart';
+import 'features/emergency_sos/presentation/screens/emergency_sos_screen.dart';
 import 'features/garage/presentation/screens/garage_screen.dart';
+import 'features/maintenance/presentation/screens/carburetor_tuning_screen.dart';
+import 'features/maintenance/presentation/screens/predictive_maintenance_screen.dart';
 import 'features/mechanics/presentation/screens/add_mechanic_screen.dart';
 import 'features/mechanics/presentation/screens/mechanics_home_screen.dart';
 import 'features/navigation/presentation/screens/navigation_map_screen.dart';
+import 'features/navigation/presentation/screens/route_packs_screen.dart';
+import 'features/ride_history/presentation/screens/ride_history_screen.dart';
+import 'features/settings/presentation/screens/settings_screen.dart';
 import 'features/voice_copilot/presentation/screens/voice_assistant_screen.dart';
 
 void main() {
@@ -47,12 +53,14 @@ class CampApp extends StatelessWidget {
         '/voice-copilot': (context) => const VoiceAssistantScreen(),
         '/voice-assistant': (context) => const VoiceAssistantScreen(),
         '/mechanics/voice-assistant': (context) => const VoiceAssistantScreen(),
-        '/route-packs': (context) => const HomeScreen(),
-        '/ride-history': (context) => const ProfileScreen(),
-        '/predictive-maintenance': (context) => const MechanicsHomeScreen(),
-        '/carburetor-tuning': (context) => const MechanicsHomeScreen(),
-        '/settings': (context) => const ProfileScreen(),
-        '/emergency-sos': (context) => const HomeScreen(),
+        '/route-packs': (context) => const RoutePacksScreen(),
+        '/ride-history': (context) => const RideHistoryScreen(),
+        '/predictive-maintenance': (context) => const PredictiveMaintenanceScreen(),
+        '/carburetor-tuning': (context) => const CarburetorTuningScreen(),
+        '/settings': (context) => const SettingsScreen(),
+        '/emergency-sos': (context) => const EmergencySosScreen(),
+        // TODO: Pending merge from teammate's Finances & Rig Health work — update route to point to FinancesRigHealthScreen once merged.
+        '/finances-rig-health': (context) => const HomeScreen(),
       },
       onUnknownRoute: (settings) => MaterialPageRoute<void>(
         settings: settings,

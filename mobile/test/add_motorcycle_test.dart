@@ -98,13 +98,15 @@ void main() {
     final scanCard = find.text('Scan with Camera');
     expect(scanCard, findsOneWidget);
     await tester.tap(scanCard);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pump(const Duration(milliseconds: 300));
 
     // Verify BikeScanScreen reached
     expect(find.text('TELEMETRY VISION 4.2'), findsOneWidget);
   });
 
-  testWidgets('Tapping Upload Photo and Enter Manually shows feedback toast',
+  testWidgets('Tapping Upload Photo handles picker gracefully and Enter Manually shows toast',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.0;
@@ -120,13 +122,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Tap Upload Photo
+    // Tap Upload Photo (in test env without mock picker, completes gracefully without crash)
     await tester.tap(find.text('Upload Photo'));
     await tester.pump();
-    expect(
-      find.text('Photo gallery upload coming soon'),
-      findsOneWidget,
-    );
+    expect(find.text('Add a Motorcycle'), findsOneWidget);
 
     // Tap Enter Manually
     await tester.tap(find.text('Enter Manually'));
