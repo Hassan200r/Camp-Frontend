@@ -9,7 +9,7 @@ import '../widgets/custom_app_bar.dart';
 import '../widgets/filter_chips_widget.dart';
 import '../widgets/mechanic_card.dart';
 import '../widgets/search_bar_widget.dart';
-import '../widgets/topographic_map_canvas.dart';
+import '../../../navigation/presentation/widgets/topographic_map_canvas.dart';
 import '../widgets/view_toggle_widget.dart';
 
 class MechanicsHomeScreen extends StatefulWidget {
