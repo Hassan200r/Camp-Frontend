@@ -5,6 +5,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/utils/skeuomorphic_container.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../auth/controllers/auth_controller.dart';
 
 /// CAMP's soft-tactile side navigation overlay.
 class AppDrawerWidget extends StatelessWidget {
@@ -61,6 +62,16 @@ class AppDrawerWidget extends StatelessWidget {
                     title: 'Emergency SOS & Telematics',
                     route: '/emergency-sos',
                   ),
+                  _menuItem(
+                    context,
+                    icon: Icons.vpn_key_rounded,
+                    iconColor: _orange,
+                    title: 'Rider Sign In / Register',
+                    subtitle: 'Telemetry & Route Sync',
+                    badge: 'Auth',
+                    orangeBadge: true,
+                    route: '/sign-in',
+                  ),
                 ],
               ),
             ),
@@ -96,39 +107,43 @@ class AppDrawerWidget extends StatelessWidget {
         ),
       ]);
 
-  Widget _riderSummary(BuildContext context) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          Navigator.of(context).pop();
-          Navigator.of(context).pushNamed('/profile');
-        },
-        child: SkeuomorphicContainer(
-          borderRadius: AppColors.radiusTile,
-          color: Colors.white.withValues(alpha: .88),
-          padding: const EdgeInsets.all(14),
-          child: Column(children: [
-            Row(children: [
-              Stack(clipBehavior: Clip.none, children: [
-                Container(
-                  width: 54,
-                  height: 54,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.clay,
-                    border: Border.all(color: _orange, width: 2),
-                  ),
-                  child: const Icon(Icons.person_rounded, color: AppColors.terracotta, size: 29),
-                ),
-                const Positioned(right: -1, bottom: 1, child: _StatusDot(color: AppColors.statusGreen)),
-              ]),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Alex Henderson', style: AppTextStyles.cardTitle),
-                const SizedBox(height: 3),
-                Text('BMW R 1250 GS Adventure', style: AppTextStyles.caption),
-              ])),
-            ]),
+  Widget _riderSummary(BuildContext context) => ListenableBuilder(
+        listenable: AuthController.instance,
+        builder: (context, _) {
+          final riderName = AuthController.instance.riderDisplayName;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pushNamed('/profile');
+            },
+            child: SkeuomorphicContainer(
+              borderRadius: AppColors.radiusTile,
+              color: Colors.white.withValues(alpha: .88),
+              padding: const EdgeInsets.all(14),
+              child: Column(children: [
+                Row(children: [
+                  Stack(clipBehavior: Clip.none, children: [
+                    Container(
+                      width: 54,
+                      height: 54,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.clay,
+                        border: Border.all(color: _orange, width: 2),
+                      ),
+                      child: const Icon(Icons.person_rounded, color: AppColors.terracotta, size: 29),
+                    ),
+                    const Positioned(right: -1, bottom: 1, child: _StatusDot(color: AppColors.statusGreen)),
+                  ]),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(riderName, style: AppTextStyles.cardTitle),
+                    const SizedBox(height: 3),
+                    Text('BMW R 1250 GS Adventure', style: AppTextStyles.caption),
+                  ])),
+                ]),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
               child: Divider(height: 1, color: Color(0x11000000)),
@@ -141,6 +156,8 @@ class AppDrawerWidget extends StatelessWidget {
           ]),
         ),
       );
+    },
+  );
 
   Widget _menuItem(
     BuildContext context, {
@@ -257,6 +274,7 @@ class AppDrawerWidget extends StatelessWidget {
               duration: const Duration(milliseconds: 2000),
             ),
           );
+          Navigator.of(context).pushNamed('/sign-in');
         },
         child: SkeuomorphicContainer(
           borderRadius: AppColors.radiusTile,

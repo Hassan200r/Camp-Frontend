@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'app/theme/app_theme.dart';
+import 'features/auth/presentation/screens/forgot_password_screen.dart';
+import 'features/auth/presentation/screens/sign_in_screen.dart';
+import 'features/auth/presentation/screens/sign_up_screen.dart';
 import 'features/bike_scan/presentation/screens/add_motorcycle_screen.dart';
 import 'features/bike_scan/presentation/screens/bike_scan_screen.dart';
 import 'features/dashboard/presentation/screens/edit_profile_screen.dart';
@@ -32,9 +35,15 @@ class CampApp extends StatelessWidget {
       title: 'CAMP',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      initialRoute: '/',
+      initialRoute: '/sign-in',
       routes: {
         '/': (context) => const HomeScreen(),
+        '/sign-in': (context) => const SignInScreen(),
+        '/login': (context) => const SignInScreen(),
+        '/auth': (context) => const SignInScreen(),
+        '/sign-up': (context) => const SignUpScreen(),
+        '/register': (context) => const SignUpScreen(),
+        '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/add-bike': (context) => const AddMotorcycleScreen(),
         '/add-motorcycle': (context) => const AddMotorcycleScreen(),
         '/add_bike': (context) => const AddMotorcycleScreen(),
