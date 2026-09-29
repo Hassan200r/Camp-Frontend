@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -49,7 +51,9 @@ class BikeScanData {
 /// Provides live camera feed, scan laser animation, mock telemetry randomization,
 /// and full skeuomorphic clay tactile UI.
 class BikeScanScreen extends StatefulWidget {
-  const BikeScanScreen({super.key});
+  const BikeScanScreen({super.key, this.imagePath});
+
+  final String? imagePath;
 
   @override
   State<BikeScanScreen> createState() => _BikeScanScreenState();
@@ -128,7 +132,46 @@ class _BikeScanScreenState extends State<BikeScanScreen>
     ),
   ];
 
-  BikeScanData get _currentData => _mockVariants[_variantIndex];
+  static const BikeScanData _unpopulatedData = BikeScanData(
+    model: 'Manual Vehicle Entry',
+    matchRate: '0%',
+    vin: 'Unfilled',
+    vinSnippet: 'Unfilled',
+    mileage: 'Unfilled',
+    mileageSnippet: 'Unfilled',
+    displacement: 'Unfilled',
+    powerplantType: 'Unfilled',
+    powerplantTech: 'Unfilled',
+    frontPsi: 0,
+    frontOk: true,
+    rearPsi: 0,
+    rearOk: true,
+    nextMaintenance: 'Unfilled',
+    heading: 'N/A',
+  );
+
+  // True once didChangeDependencies has run for the first time.
+  bool _cameraDepsInitialized = false;
+
+  /// Checks whether an image path was supplied via constructor or route args.
+  /// SAFE to call from build() / didChangeDependencies() — uses ModalRoute.
+  String? get _effectiveImagePath {
+    if (widget.imagePath != null && widget.imagePath!.isNotEmpty) {
+      return widget.imagePath;
+    }
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is String && args.isNotEmpty) {
+      return args;
+    }
+    return null;
+  }
+
+  BikeScanData get _currentData {
+    if (_effectiveImagePath != null) {
+      return _unpopulatedData;
+    }
+    return _mockVariants[_variantIndex];
+  }
 
   @override
   void initState() {
@@ -143,8 +186,19 @@ class _BikeScanScreenState extends State<BikeScanScreen>
     _scanProgress = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _scanAnimController, curve: Curves.easeInOut),
     );
+    // NOTE: camera is initialized in didChangeDependencies (safe to use
+    // ModalRoute.of(context) there, unlike initState).
+  }
 
-    _initializeCamera();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_cameraDepsInitialized) {
+      _cameraDepsInitialized = true;
+      // widget.imagePath is sufficient here; full ModalRoute check happens in
+      // _effectiveImagePath during _initializeCamera's first async frame.
+      _initializeCamera();
+    }
   }
 
   @override
@@ -177,7 +231,15 @@ class _BikeScanScreenState extends State<BikeScanScreen>
 
   // ── Camera Initialization & Graceful Fallback ─────────────────────────────
   Future<void> _initializeCamera() async {
-    if (!mounted) return;
+    if (!mounted || _effectiveImagePath != null) {
+      if (mounted) {
+        setState(() {
+          _isCameraLoading = false;
+          _isCameraInitialized = false;
+        });
+      }
+      return;
+    }
     setState(() {
       _isCameraLoading = true;
       _isCameraInitialized = false;
@@ -185,9 +247,14 @@ class _BikeScanScreenState extends State<BikeScanScreen>
     });
 
     try {
-      final cameras = await availableCameras().timeout(
-        const Duration(milliseconds: 600),
-      );
+      List<CameraDescription> cameras;
+      try {
+        cameras = await availableCameras().timeout(
+          const Duration(milliseconds: 600),
+        );
+      } on MissingPluginException {
+        throw Exception('Camera plugin unavailable');
+      }
       if (cameras.isEmpty) {
         throw Exception('No camera devices available');
       }
@@ -208,9 +275,13 @@ class _BikeScanScreenState extends State<BikeScanScreen>
       );
 
       _cameraController = controller;
-      await controller.initialize().timeout(
-        const Duration(milliseconds: 800),
-      );
+      try {
+        await controller.initialize().timeout(
+          const Duration(milliseconds: 800),
+        );
+      } on MissingPluginException {
+        throw Exception('Camera plugin unavailable');
+      }
 
       if (!mounted) {
         await controller.dispose();
@@ -1010,6 +1081,20 @@ class _BikeScanScreenState extends State<BikeScanScreen>
 
   // ── Viewport Background (Camera feed vs High-Res Placeholder) ──────────────
   Widget _buildViewportBackground() {
+    final imagePath = _effectiveImagePath;
+    if (imagePath != null) {
+      return Image.file(
+        File(imagePath),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(
+          color: const Color(0xFF222222),
+          child: const Center(
+            child: Icon(Icons.broken_image_rounded, color: Colors.white38, size: 54),
+          ),
+        ),
+      );
+    }
+
     if (_isCameraInitialized &&
         _cameraController != null &&
         _cameraController!.value.isInitialized &&

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
 import '../../../dashboard/presentation/widgets/tactical_bottom_dock_widget.dart';
+import 'bike_scan_screen.dart';
 
 /// CAMP Add Motorcycle Screen (Step 1 of 4 in the Add Bike flow).
 /// Allows the rider to choose their onboarding route: Camera Scan,
@@ -343,6 +345,26 @@ class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
     );
   }
 
+  Future<void> _handleUploadPhoto() async {
+    HapticFeedback.lightImpact();
+    try {
+      final picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      if (image == null || !mounted) {
+        // User cancelled photo selection or denied permission gracefully
+        return;
+      }
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => BikeScanScreen(imagePath: image.path),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showNotification('Unable to access photo gallery. Please check permissions.');
+    }
+  }
+
   // ── Option 2: Upload Photo ────────────────────────────────────────────────
   Widget _buildUploadPhotoCard() {
     return CampCard(
@@ -350,11 +372,7 @@ class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
       borderRadius: AppColors.radiusCard,
       color: AppColors.clay,
       shadows: AppColors.skeuRaised,
-      onTap: () {
-        HapticFeedback.lightImpact();
-        // TODO: Implement upload photo gallery / image-picker flow once available.
-        _showNotification('Photo gallery upload coming soon');
-      },
+      onTap: _handleUploadPhoto,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [

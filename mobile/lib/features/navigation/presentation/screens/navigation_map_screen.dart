@@ -78,8 +78,8 @@ const List<LocationPreset> kLocationPresets = [
   ),
 ];
 
-class MechanicsMapScreen extends StatefulWidget {
-  const MechanicsMapScreen({
+class NavigationMapScreen extends StatefulWidget {
+  const NavigationMapScreen({
     super.key,
     this.onNavigateToHome,
   });
@@ -87,10 +87,10 @@ class MechanicsMapScreen extends StatefulWidget {
   final VoidCallback? onNavigateToHome;
 
   @override
-  State<MechanicsMapScreen> createState() => _MechanicsMapScreenState();
+  State<NavigationMapScreen> createState() => _NavigationMapScreenState();
 }
 
-class _MechanicsMapScreenState extends State<MechanicsMapScreen> {
+class _NavigationMapScreenState extends State<NavigationMapScreen> {
   static const Color _mapDarkBg = Color(0xFF141210);
 
   String _selectedFilter = 'all';

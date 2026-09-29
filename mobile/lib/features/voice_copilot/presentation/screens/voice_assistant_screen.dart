@@ -939,7 +939,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
   /// 1. Top App Bar
   Widget _buildTopAppBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
       child: Row(
         children: [
           // Left: Logo badge + "CAMP" + "COPILOT" badge
@@ -948,11 +948,11 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
             children: [
               // CAMP Square Icon
               Container(
-                width: 34,
-                height: 34,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(9),
+                  borderRadius: BorderRadius.circular(8),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.3),
@@ -965,28 +965,28 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
                 child: Text(
                   'CAMP',
                   style: GoogleFonts.manrope(
-                    fontSize: 8,
+                    fontSize: 7.5,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.4,
                     color: const Color(0xFF1E293B),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               // CAMP bold text
               const Text(
                 'CAMP',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: 0.6,
+                  letterSpacing: 0.5,
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               // COPILOT Pill Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
                   color: const Color(0xFF3B2314),
                   borderRadius: BorderRadius.circular(10),
@@ -998,9 +998,9 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
                 child: const Text(
                   'COPILOT',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 9.5,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8,
+                    letterSpacing: 0.6,
                     color: Color(0xFFF59E0B),
                   ),
                 ),
@@ -1018,7 +1018,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
               });
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4.5),
               decoration: BoxDecoration(
                 color: _isOfflineMode
                     ? const Color(0xFF261908)
@@ -1053,13 +1053,13 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
                       ],
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 5),
                   Text(
                     _isOfflineMode ? 'OFFLINE CACHE' : 'MESH 5.3 ACTIVE',
                     style: TextStyle(
-                      fontSize: 10.5,
+                      fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
+                      letterSpacing: 0.4,
                       color: _isOfflineMode
                           ? const Color(0xFFFBBF24)
                           : const Color(0xFF5EEAD4),
@@ -1070,14 +1070,14 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
             ),
           ),
 
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
 
           // Free-Form Keyboard Fallback Input Button
           GestureDetector(
             onTap: _showTextInputModal,
             child: Container(
-              width: 36,
-              height: 36,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: const Color(0xFF1A222E),
@@ -1096,19 +1096,19 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
               child: const Icon(
                 Icons.keyboard_alt_outlined,
                 color: Color(0xFFCBD5E1),
-                size: 19,
+                size: 17,
               ),
             ),
           ),
 
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
 
           // Right: Tactile Circular Close Button
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
             child: Container(
-              width: 36,
-              height: 36,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: const Color(0xFF1A222E),
@@ -1127,7 +1127,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
               child: const Icon(
                 Icons.close_rounded,
                 color: Color(0xFFCBD5E1),
-                size: 19,
+                size: 17,
               ),
             ),
           ),

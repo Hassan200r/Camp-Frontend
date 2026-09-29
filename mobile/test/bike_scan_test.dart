@@ -15,7 +15,6 @@ void main() {
         home: BikeScanScreen(),
       ),
     );
-    // Allow camera initialization timeout to complete
     await tester.pump(const Duration(milliseconds: 700));
     await tester.pump(const Duration(milliseconds: 300));
 

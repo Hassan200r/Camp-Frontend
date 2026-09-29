@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../auth/controllers/auth_controller.dart';
 
 /// Dark Rider Banner wrapped in a soft tactile bezel ring — Cockpit Hero Card
 class CockpitStatusCardWidget extends StatelessWidget {
@@ -19,45 +20,51 @@ class CockpitStatusCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CockpitHeroCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Top Section: Avatar + Rider Info + ONLINE pill ───────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Avatar
-                GestureDetector(
-                  onTap: onProfilePressed,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.statusYellow, width: 2.5),
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF4A3223), Color(0xFF2B1A10)],
+    return ListenableBuilder(
+      listenable: AuthController.instance,
+      builder: (context, _) {
+        final riderName = AuthController.instance.riderDisplayName;
+        final riderFirstName = AuthController.instance.riderFirstName;
+
+        return CockpitHeroCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Top Section: Avatar + Rider Info + ONLINE pill ───────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Avatar
+                    GestureDetector(
+                      onTap: onProfilePressed,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppColors.statusYellow, width: 2.5),
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF4A3223), Color(0xFF2B1A10)],
+                              ),
+                            ),
+                            child: Center(
+                              child: avatarUrl != null
+                                  ? CircleAvatar(radius: 26, backgroundImage: NetworkImage(avatarUrl!))
+                                  : Text(
+                                      riderFirstName,
+                                      style: GoogleFonts.manrope(
+                                        color: const Color(0xFFFDE68A),
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                            ),
                           ),
-                        ),
-                        child: Center(
-                          child: avatarUrl != null
-                              ? CircleAvatar(radius: 26, backgroundImage: NetworkImage(avatarUrl!))
-                              : Text(
-                                  'Elena',
-                                  style: GoogleFonts.manrope(
-                                    color: const Color(0xFFFDE68A),
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                        ),
-                      ),
                       Positioned(
                         bottom: -1,
                         right: -1,
@@ -82,7 +89,7 @@ class CockpitStatusCardWidget extends StatelessWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              'Elena Vance',
+                              riderName,
                               style: GoogleFonts.manrope(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -212,6 +219,8 @@ class CockpitStatusCardWidget extends StatelessWidget {
         ],
       ),
     );
+  },
+);
   }
 
   Widget _darkPill(IconData icon, String label) => Container(

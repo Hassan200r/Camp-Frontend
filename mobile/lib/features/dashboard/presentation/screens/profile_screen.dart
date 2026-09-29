@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../auth/controllers/auth_controller.dart';
 import '../widgets/app_drawer_widget.dart';
 import '../widgets/tactical_bottom_dock_widget.dart';
 
@@ -280,7 +281,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           Flexible(
                             child: Text(
-                              'Elena Vance',
+                              AuthController.instance.riderDisplayName,
                               style: GoogleFonts.manrope(
                                 color: Colors.white,
                                 fontSize: 17,
