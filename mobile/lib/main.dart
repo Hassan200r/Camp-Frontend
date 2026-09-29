@@ -5,6 +5,7 @@ import 'features/auth/presentation/screens/forgot_password_screen.dart';
 import 'features/auth/presentation/screens/sign_in_screen.dart';
 import 'features/auth/presentation/screens/sign_up_screen.dart';
 import 'features/bike_scan/presentation/screens/add_motorcycle_screen.dart';
+import 'features/bike_scan/presentation/screens/bike_details_screen.dart';
 import 'features/bike_scan/presentation/screens/bike_scan_screen.dart';
 import 'features/dashboard/presentation/screens/edit_profile_screen.dart';
 import 'features/dashboard/presentation/screens/home_screen.dart';
@@ -49,6 +50,7 @@ class CampApp extends StatelessWidget {
         '/add-motorcycle': (context) => const AddMotorcycleScreen(),
         '/add_bike': (context) => const AddMotorcycleScreen(),
         '/add_motorcycle': (context) => const AddMotorcycleScreen(),
+        '/bike-details': (context) => const BikeDetailsScreen(),
         '/bike-scan': (context) => const BikeScanScreen(),
         '/bike-profile': (context) => const GarageScreen(),
         '/garage': (context) => const GarageScreen(),

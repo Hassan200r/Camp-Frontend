@@ -422,8 +422,7 @@ class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
       shadows: AppColors.skeuRaised,
       onTap: () {
         HapticFeedback.lightImpact();
-        // TODO: Navigate to manual vehicle entry screen once created (e.g. /manual-bike-entry).
-        _showNotification('Manual vehicle entry wizard coming soon');
+        Navigator.of(context).pushNamed('/bike-details');
       },
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
