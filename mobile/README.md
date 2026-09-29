@@ -40,25 +40,42 @@ The app currently follows this flow:
 The current feature folders in `lib/features` reflect the active app flow:
 
 - `dashboard/`
-  - `presentation/screens/home_screen.dart`
-  - `presentation/screens/profile_screen.dart`
-  - `presentation/screens/edit_profile_screen.dart`
-  - Dashboard widgets for the cockpit, alerts, feed, drawer, and bottom navigation
+  - Core landing and rider profile screens.
+  - Widgets for cockpit, alerts, activity feed, drawer, and bottom navigation.
 
 - `bike_scan/`
-  - `presentation/screens/add_motorcycle_screen.dart`
-  - `presentation/screens/bike_scan_screen.dart`
-  - Motorcycle registration and scan flow
+  - Screens for adding a motorcycle, camera‑based VIN scan, photo upload, and manual entry.
+  - Handles the full registration flow.
 
 - `garage/`
-  - `presentation/screens/garage_screen.dart`
-  - Active bike inventory and synced vehicle details
+  - Overview of the rider’s active bike, synced telemetry, and diagnostic launch.
 
 - `auth/`
-  - Placeholder scaffolding for authentication-related work
+  - Scaffold for future authentication (login, signup, password reset).
 
-- `navigation/`, `maintenance/`, `mechanics/`, `settings/`, `voice_copilot/`, `emergency_sos/`, `ride_history/`, `presentation/`
-  - These folders exist as part of the larger app architecture and are not yet fully wired into the primary app flow
+- `navigation/`
+  - Map and route planning utilities for ride navigation.
+
+- `maintenance/`
+  - Schedule, track, and record bike maintenance tasks and service history.
+
+- `mechanics/`
+  - Discover nearby mechanics, view service centre details, and request assistance.
+
+- `settings/`
+  - User preferences, theme selection, notification toggles, and app configuration.
+
+- `voice_copilot/`
+  - AI‑driven voice assistant for hands‑free commands and queries.
+
+- `emergency_sos/`
+  - One‑tap SOS button that shares location with emergency contacts.
+
+- `ride_history/`
+  - Log of past rides with telemetry, distance, and performance metrics.
+
+- `presentation/`
+  - Shared UI components and base screen scaffolding used across features.
 
 ## App entry and routing
 
