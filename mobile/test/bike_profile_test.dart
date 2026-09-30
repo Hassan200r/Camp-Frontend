@@ -204,10 +204,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('2023 BMW R 1250 GS Adventure'), findsOneWidget);
+      expect(find.text('BMW R 1250 GS Adventure'), findsOneWidget);
 
       // Tap on the bike title / card area
-      await tester.tap(find.text('2023 BMW R 1250 GS Adventure'));
+      await tester.tap(find.text('BMW R 1250 GS Adventure'));
       await tester.pumpAndSettle();
 
       // Should now be on BikeProfileScreen
@@ -215,7 +215,7 @@ void main() {
       expect(find.text('As Entered'), findsOneWidget);
     });
 
-    testWidgets('Tapping Edit Specs directly opens BikeDetailsScreen',
+    testWidgets('Tapping Edit directly opens BikeDetailsScreen',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 2.0;
@@ -228,11 +228,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap the "Edit Specs" button on the first card
-      final editSpecsFinder = find.text('Edit Specs');
-      expect(editSpecsFinder, findsWidgets);
+      // Tap the "Edit" button on the first card
+      final editFinder = find.text('Edit');
+      expect(editFinder, findsWidgets);
 
-      await tester.tap(editSpecsFinder.first);
+      await tester.tap(editFinder.first);
       await tester.pumpAndSettle();
 
       // Should have navigated straight to BikeDetailsScreen, bypassing BikeProfileScreen
