@@ -4,12 +4,12 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/camp_bottom_nav.dart';
 import '../../../dashboard/presentation/widgets/tactical_bottom_dock_widget.dart';
+import '../../../navigation/presentation/widgets/topographic_map_canvas.dart';
 import '../../domain/mechanic_model.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/filter_chips_widget.dart';
 import '../widgets/mechanic_card.dart';
 import '../widgets/search_bar_widget.dart';
-import '../../../navigation/presentation/widgets/topographic_map_canvas.dart';
 import '../widgets/view_toggle_widget.dart';
 
 class MechanicsHomeScreen extends StatefulWidget {

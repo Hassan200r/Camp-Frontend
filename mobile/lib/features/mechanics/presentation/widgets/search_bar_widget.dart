@@ -3,9 +3,6 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 
 class SearchBarWidget extends StatelessWidget {
-  final TextEditingController? controller;
-  final ValueChanged<String>? onChanged;
-  final VoidCallback? onMicTap;
 
   const SearchBarWidget({
     super.key,
@@ -13,6 +10,9 @@ class SearchBarWidget extends StatelessWidget {
     this.onChanged,
     this.onMicTap,
   });
+  final TextEditingController? controller;
+  final ValueChanged<String>? onChanged;
+  final VoidCallback? onMicTap;
 
   static const LinearGradient _orangeGradient = LinearGradient(
     begin: Alignment.topLeft,

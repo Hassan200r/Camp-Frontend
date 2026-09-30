@@ -17,18 +17,6 @@ enum BreakdownCategory {
 }
 
 class StrandedIncident {
-  final String id;
-  final String driverName;
-  final String vehicleModel;
-  final BreakdownCategory category;
-  final BreakdownSeverity severity;
-  final String issueDescription;
-  final LatLng location;
-  final String distance;
-  final String eta;
-  final String phone;
-  final String timeReported;
-  final bool isUserReported;
 
   const StrandedIncident({
     required this.id,
@@ -44,6 +32,18 @@ class StrandedIncident {
     required this.timeReported,
     this.isUserReported = false,
   });
+  final String id;
+  final String driverName;
+  final String vehicleModel;
+  final BreakdownCategory category;
+  final BreakdownSeverity severity;
+  final String issueDescription;
+  final LatLng location;
+  final String distance;
+  final String eta;
+  final String phone;
+  final String timeReported;
+  final bool isUserReported;
 
   String get categoryLabel {
     switch (category) {
@@ -92,20 +92,6 @@ class StrandedIncident {
 }
 
 class RoadsideMechanic {
-  final String id;
-  final String name;
-  final String vehicleType;
-  final String distance;
-  final String eta;
-  final double rating;
-  final int reviews;
-  final String phone;
-  final LatLng location;
-  final bool isMobileVan;
-  final bool isEmergencyVerified;
-  final List<String> capabilities;
-  final List<String> supportedBikes;
-  final String openHours;
 
   const RoadsideMechanic({
     required this.id,
@@ -123,16 +109,23 @@ class RoadsideMechanic {
     required this.supportedBikes,
     required this.openHours,
   });
+  final String id;
+  final String name;
+  final String vehicleType;
+  final String distance;
+  final String eta;
+  final double rating;
+  final int reviews;
+  final String phone;
+  final LatLng location;
+  final bool isMobileVan;
+  final bool isEmergencyVerified;
+  final List<String> capabilities;
+  final List<String> supportedBikes;
+  final String openHours;
 }
 
 class RoadsideSupplyCache {
-  final String id;
-  final String name;
-  final String subtitle;
-  final LatLng location;
-  final String fuelTypes;
-  final List<String> availableTools;
-  final bool hasCompressor;
 
   const RoadsideSupplyCache({
     required this.id,
@@ -143,13 +136,16 @@ class RoadsideSupplyCache {
     required this.availableTools,
     this.hasCompressor = true,
   });
+  final String id;
+  final String name;
+  final String subtitle;
+  final LatLng location;
+  final String fuelTypes;
+  final List<String> availableTools;
+  final bool hasCompressor;
 }
 
 class RoadsideSectorDataset {
-  final List<RoadsideMechanic> mechanics;
-  final List<StrandedIncident> strandedIncidents;
-  final List<RoadsideSupplyCache> supplyCaches;
-  final List<LatLng> primaryRescueRoute;
 
   const RoadsideSectorDataset({
     required this.mechanics,
@@ -157,6 +153,10 @@ class RoadsideSectorDataset {
     required this.supplyCaches,
     required this.primaryRescueRoute,
   });
+  final List<RoadsideMechanic> mechanics;
+  final List<StrandedIncident> strandedIncidents;
+  final List<RoadsideSupplyCache> supplyCaches;
+  final List<LatLng> primaryRescueRoute;
 
   /// Dynamically computes realistic mechanics, stranded vehicles, and emergency rescue routes around ANY target coordinate!
   static RoadsideSectorDataset generate(LatLng center, String sectorName) {

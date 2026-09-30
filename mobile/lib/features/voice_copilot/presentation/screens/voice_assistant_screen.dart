@@ -1607,8 +1607,8 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
                     ],
                   )
                 else
-                  Row(
-                    children: const [
+                  const Row(
+                    children: [
                       Icon(
                         Icons.edit_note_rounded,
                         size: 15,
@@ -1663,9 +1663,9 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
 
   /// 2.4 Quick Commands Section Header
   Widget _buildCommandsHeader() {
-    return Row(
+    return const Row(
       children: [
-        const Text(
+        Text(
           'QUICK RIDER COMMANDS',
           style: TextStyle(
             fontSize: 12,
@@ -1674,10 +1674,10 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
             color: Color(0xFF94A3B8),
           ),
         ),
-        const Spacer(),
+        Spacer(),
         Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             Icon(
               Icons.bolt_rounded,
               color: Color(0xFFFBBF24),
@@ -1848,9 +1848,9 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
               ),
             ],
           ),
-          child: Row(
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               Icon(
                 Icons.stop_circle_outlined,
                 color: Color(0xFFEF4444),
@@ -1912,10 +1912,10 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
             ),
           ),
           const SizedBox(width: 11),
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'OFFLINE EXPEDITION MODE ACTIVE',
                   style: TextStyle(
@@ -2039,9 +2039,9 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
           const Spacer(),
 
           // Right: Altitude Metric
-          Row(
+          const Row(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               Icon(
                 Icons.north_east_rounded,
                 color: Color(0xFF64748B),
@@ -2073,12 +2073,6 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
 }
 
 class _QuickCommand {
-  final IconData icon;
-  final String title;
-  final Color accentColor;
-  final Color badgeBg;
-  final Color badgeBorder;
-  final String responseMessage;
 
   const _QuickCommand({
     required this.icon,
@@ -2088,4 +2082,10 @@ class _QuickCommand {
     required this.badgeBorder,
     required this.responseMessage,
   });
+  final IconData icon;
+  final String title;
+  final Color accentColor;
+  final Color badgeBg;
+  final Color badgeBorder;
+  final String responseMessage;
 }

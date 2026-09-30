@@ -5,16 +5,15 @@ import '../../../../app/theme/app_theme.dart';
 import '../../domain/mechanic_model.dart';
 
 class MechanicCard extends StatelessWidget {
-  final Mechanic mechanic;
-  final VoidCallback? onCallShop;
-  final VoidCallback? onRouteGps;
 
   const MechanicCard({
-    super.key,
-    required this.mechanic,
+    required this.mechanic, super.key,
     this.onCallShop,
     this.onRouteGps,
   });
+  final Mechanic mechanic;
+  final VoidCallback? onCallShop;
+  final VoidCallback? onRouteGps;
 
   static const LinearGradient _orangeGradient = LinearGradient(
     begin: Alignment.topLeft,

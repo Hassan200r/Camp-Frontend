@@ -7,25 +7,6 @@ import '../../../../app/theme/app_theme.dart';
 import '../../domain/roadside_map_models.dart';
 
 class TopographicMapCanvas extends StatefulWidget {
-  final VoidCallback? onOpenGoogleMaps;
-  final VoidCallback? onToggle3D;
-  final VoidCallback? onToggleLayers;
-  final VoidCallback? onRecenter;
-  final String? selectedFilter;
-  final String userRole; // 'driver' or 'mechanic'
-  final LatLng? initialCenter;
-  final String? locationName;
-  final List<RoadsideMechanic> mechanics;
-  final List<StrandedIncident> strandedIncidents;
-  final List<RoadsideSupplyCache> supplyCaches;
-  final List<LatLng> activeRescueRoute;
-  final RoadsideMechanic? selectedMechanic;
-  final StrandedIncident? selectedIncident;
-  final ValueChanged<RoadsideMechanic>? onMechanicTapped;
-  final ValueChanged<StrandedIncident>? onIncidentTapped;
-  final ValueChanged<RoadsideSupplyCache>? onSupplyCacheTapped;
-  final ValueChanged<LatLng>? onLocationChanged;
-  final ValueChanged<String>? onLocationNameChanged;
 
   const TopographicMapCanvas({
     super.key,
@@ -49,6 +30,25 @@ class TopographicMapCanvas extends StatefulWidget {
     this.onLocationChanged,
     this.onLocationNameChanged,
   });
+  final VoidCallback? onOpenGoogleMaps;
+  final VoidCallback? onToggle3D;
+  final VoidCallback? onToggleLayers;
+  final VoidCallback? onRecenter;
+  final String? selectedFilter;
+  final String userRole; // 'driver' or 'mechanic'
+  final LatLng? initialCenter;
+  final String? locationName;
+  final List<RoadsideMechanic> mechanics;
+  final List<StrandedIncident> strandedIncidents;
+  final List<RoadsideSupplyCache> supplyCaches;
+  final List<LatLng> activeRescueRoute;
+  final RoadsideMechanic? selectedMechanic;
+  final StrandedIncident? selectedIncident;
+  final ValueChanged<RoadsideMechanic>? onMechanicTapped;
+  final ValueChanged<StrandedIncident>? onIncidentTapped;
+  final ValueChanged<RoadsideSupplyCache>? onSupplyCacheTapped;
+  final ValueChanged<LatLng>? onLocationChanged;
+  final ValueChanged<String>? onLocationNameChanged;
 
   @override
   State<TopographicMapCanvas> createState() => _TopographicMapCanvasState();

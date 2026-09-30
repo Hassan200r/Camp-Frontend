@@ -3,14 +3,12 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 
 class FilterChipsWidget extends StatelessWidget {
-  final String selectedFilter;
-  final ValueChanged<String> onFilterSelected;
 
   const FilterChipsWidget({
-    super.key,
-    required this.selectedFilter,
-    required this.onFilterSelected,
+    required this.selectedFilter, required this.onFilterSelected, super.key,
   });
+  final String selectedFilter;
+  final ValueChanged<String> onFilterSelected;
 
   static const LinearGradient _orangeGradient = LinearGradient(
     begin: Alignment.topLeft,

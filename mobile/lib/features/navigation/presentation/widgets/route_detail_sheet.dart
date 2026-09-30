@@ -5,23 +5,6 @@ import '../../../../app/theme/app_theme.dart';
 import '../../domain/roadside_map_models.dart';
 
 class RouteDetailSheet extends StatelessWidget {
-  final bool isExpanded;
-  final String title;
-  final String userRole; // 'driver' or 'mechanic'
-  final RoadsideMechanic? selectedMechanic;
-  final StrandedIncident? selectedIncident;
-  final RoadsideSupplyCache? selectedSupplyCache;
-  final VoidCallback? onStartTurnByTurn;
-  final VoidCallback? onBrowseOfflinePacks;
-  final VoidCallback? onCompassTap;
-  final VoidCallback? onToggleExpand;
-  final VoidCallback? onExpand;
-  final VoidCallback? onCollapse;
-  final VoidCallback? onCall;
-  final VoidCallback? onAcceptRescue;
-  final VoidCallback? onRequestDispatch;
-  final VoidCallback? onClearSelection;
-  final ScrollController? scrollController;
 
   const RouteDetailSheet({
     super.key,
@@ -43,6 +26,23 @@ class RouteDetailSheet extends StatelessWidget {
     this.onClearSelection,
     this.scrollController,
   });
+  final bool isExpanded;
+  final String title;
+  final String userRole; // 'driver' or 'mechanic'
+  final RoadsideMechanic? selectedMechanic;
+  final StrandedIncident? selectedIncident;
+  final RoadsideSupplyCache? selectedSupplyCache;
+  final VoidCallback? onStartTurnByTurn;
+  final VoidCallback? onBrowseOfflinePacks;
+  final VoidCallback? onCompassTap;
+  final VoidCallback? onToggleExpand;
+  final VoidCallback? onExpand;
+  final VoidCallback? onCollapse;
+  final VoidCallback? onCall;
+  final VoidCallback? onAcceptRescue;
+  final VoidCallback? onRequestDispatch;
+  final VoidCallback? onClearSelection;
+  final ScrollController? scrollController;
 
   @override
   Widget build(BuildContext context) {

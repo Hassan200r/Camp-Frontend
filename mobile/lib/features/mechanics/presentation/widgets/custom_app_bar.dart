@@ -3,14 +3,14 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 
 class CustomAppBar extends StatefulWidget {
-  final VoidCallback? onBackTap;
-  final VoidCallback? onGpsTap;
 
   const CustomAppBar({
     super.key,
     this.onBackTap,
     this.onGpsTap,
   });
+  final VoidCallback? onBackTap;
+  final VoidCallback? onGpsTap;
 
   @override
   State<CustomAppBar> createState() => _CustomAppBarState();

@@ -7,22 +7,6 @@ enum BadgeType {
 }
 
 class Mechanic {
-  final String id;
-  final String name;
-  final String distance;
-  final String durationOrLocation;
-  final BadgeType badgeType;
-  final String badgeLabel;
-  final String beaconStatus;
-  final Color beaconColor;
-  final String categoryTitle1;
-  final List<String> tags1;
-  final String categoryTitle2;
-  final List<String> tags2;
-  final double rating;
-  final int reviewCount;
-  final String openStatus;
-  final String phone;
 
   const Mechanic({
     required this.id,
@@ -42,6 +26,22 @@ class Mechanic {
     required this.openStatus,
     required this.phone,
   });
+  final String id;
+  final String name;
+  final String distance;
+  final String durationOrLocation;
+  final BadgeType badgeType;
+  final String badgeLabel;
+  final String beaconStatus;
+  final Color beaconColor;
+  final String categoryTitle1;
+  final List<String> tags1;
+  final String categoryTitle2;
+  final List<String> tags2;
+  final double rating;
+  final int reviewCount;
+  final String openStatus;
+  final String phone;
 
   static List<Mechanic> get sampleMechanics => [
         const Mechanic(
