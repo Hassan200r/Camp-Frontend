@@ -22,8 +22,8 @@ class IceContact {
     IceContact(
       id: 'ice-1',
       name: 'Sarah Henderson',
-      relationship: 'Spouse',
-      phone: '+1 (555) 019-4821',
+      relationship: 'Spouse / Partner',
+      phone: '+1 (555) 942-8819',
       dispatchBadge: 'SMS + Sat',
       initials: 'SH',
       isVhf: false,
@@ -45,7 +45,7 @@ class MedicalProfile {
   const MedicalProfile({
     this.bloodType = 'O+ POS',
     this.allergies = 'Penicillin / Amoxicillin',
-    this.touringNotes = 'Adventure Enduro Rider • Organ Donor • Titanium Rod in Left Tibia (2021).',
+    this.touringNotes = 'Adventure Enduro Rider • Organ Donor • Titanium Rod in Left Tibia (2021)',
     this.donorStatus = 'Organ Donor',
   });
 
@@ -58,10 +58,10 @@ class MedicalProfile {
 /// Telemetry Fix & Stream Snapshot
 class TelemetrySnapshot {
   const TelemetrySnapshot({
-    this.coordinates = '35°21\'44.2"N 74°05\'12.8"E',
-    this.locationName = 'Babusar Pass Summit',
+    this.coordinates = '35°21\'44"N 74°05\'12"E',
+    this.locationName = 'Babusar Pass Summit, Karakoram Hwy',
     this.elevation = '4,173m',
-    this.accuracy = '±1.2m',
+    this.accuracy = '±8m',
     this.imuStatus = 'ARMED',
     this.gForce = '0.02G',
     this.leanAngle = '0°',

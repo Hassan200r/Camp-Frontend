@@ -1,338 +1,216 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../app/theme/app_colors.dart';
 import '../../controllers/emergency_sos_controller.dart';
 
-/// Card 2: Telemetry Stream Snapshot with live GPS fix, IMU & bio-link
+/// Card 2: Current Location Card with Accuracy Badge & Topographic Radar Preview
 class TelemetryStreamCard extends StatelessWidget {
   const TelemetryStreamCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final telemetry = EmergencySosController.instance.telemetry;
+    return ListenableBuilder(
+      listenable: EmergencySosController.instance,
+      builder: (context, _) {
+        final telemetry = EmergencySosController.instance.telemetry;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: AppColors.skeuRaised,
-      ),
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Header Row ─────────────────────────────────────────────────────
-          Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFEF3C7),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFFDE68A), width: 1),
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.bolt_rounded,
-                    color: AppColors.tacticalOrange,
-                    size: 20,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Telemetry Stream Snapshot',
-                  style: GoogleFonts.manrope(
-                    color: AppColors.darkCharcoal,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(AppColors.radiusPill),
-                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
-                ),
-                child: Text(
-                  'AUTO-TRANSMITTING',
-                  style: GoogleFonts.manrope(
-                    color: const Color(0xFF64748B),
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.4,
-                  ),
-                ),
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-
-          const SizedBox(height: 16),
-
-          // ── 1. Current GPS Fix Tile ─────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.location_on_rounded,
-                          color: AppColors.tacticalOrange,
-                          size: 15,
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          'CURRENT FIX',
-                          style: GoogleFonts.manrope(
-                            color: const Color(0xFF64748B),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ],
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Header Row ─────────────────────────────────────────────────
+              Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF3E8),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFECFDF5),
-                        borderRadius: BorderRadius.circular(AppColors.radiusPill),
-                        border: Border.all(color: const Color(0xFFA7F3D0), width: 1),
+                    child: const Center(
+                      child: Icon(
+                        Icons.location_on_rounded,
+                        color: Color(0xFFFF8A00),
+                        size: 16,
                       ),
-                      child: Text(
-                        'Accuracy ${telemetry.accuracy}',
-                        style: GoogleFonts.manrope(
-                          color: const Color(0xFF059669),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Current Location',
+                      style: GoogleFonts.manrope(
+                        color: const Color(0xFF1E293B),
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD4F7E6),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${telemetry.accuracy} accuracy (Cellular/GPS)',
+                      style: GoogleFonts.manrope(
+                        color: const Color(0xFF059669),
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 14),
+
+              // ── Location & Coordinates ─────────────────────────────────────
+              Text(
+                telemetry.locationName,
+                style: GoogleFonts.manrope(
+                  color: const Color(0xFF1E293B),
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                telemetry.coordinates,
+                style: GoogleFonts.manrope(
+                  color: const Color(0xFF64748B),
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // ── Topographic Elevation Radar Box ────────────────────────────
+              Container(
+                height: 76,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F4F8),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Topographic subtle wave curves
+                    CustomPaint(
+                      size: const Size(double.infinity, 76),
+                      painter: _TopographicCurvesPainter(),
+                    ),
+
+                    // Centered Red Radar Pin
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFFE53935).withValues(alpha: 0.18),
+                      ),
+                      child: Center(
+                        child: Container(
+                          width: 22,
+                          height: 22,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFFE53935),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.gps_fixed_rounded,
+                              color: Colors.white,
+                              size: 13,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  telemetry.coordinates,
-                  style: GoogleFonts.manrope(
-                    color: AppColors.darkCharcoal,
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '${telemetry.locationName} • Elev. ${telemetry.elevation}',
-                  style: GoogleFonts.manrope(
-                    color: const Color(0xFF64748B),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // ── 2. Side-by-side Tiles: 6-Axis IMU & Bike Rig Telemetry ────────
-          Row(
-            children: [
-              // Left: 6-Axis IMU
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '6-AXIS IMU & INCLINE',
-                        style: GoogleFonts.manrope(
-                          color: const Color(0xFF64748B),
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF10B981),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            telemetry.imuStatus,
-                            style: GoogleFonts.manrope(
-                              color: AppColors.darkCharcoal,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '${telemetry.gForce} Impact • ${telemetry.leanAngle} Lean',
-                        style: GoogleFonts.manrope(
-                          color: const Color(0xFF64748B),
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(width: 10),
-
-              // Right: Bike Rig Telemetry
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'BIKE RIG TELEMETRY',
-                        style: GoogleFonts.manrope(
-                          color: const Color(0xFF64748B),
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        telemetry.bikeModel,
-                        style: GoogleFonts.manrope(
-                          color: AppColors.darkCharcoal,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'Ignition ${telemetry.ignitionState} • ${telemetry.speed}',
-                        style: GoogleFonts.manrope(
-                          color: const Color(0xFF64748B),
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ],
           ),
-
-          const SizedBox(height: 12),
-
-          // ── 3. Rider Smart Bio-Link Tile ──────────────────────────────────
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFEE2E2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.favorite_rounded,
-                      color: Color(0xFFE53935),
-                      size: 16,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'RIDER SMART BIO-LINK',
-                        style: GoogleFonts.manrope(
-                          color: const Color(0xFF64748B),
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Heart Rate: ${telemetry.heartRateBpm} BPM • Temp: ${telemetry.bodyTempCelsius}°C',
-                        style: GoogleFonts.manrope(
-                          color: AppColors.darkCharcoal,
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
-                  ),
-                  child: Text(
-                    'SYNCED',
-                    style: GoogleFonts.manrope(
-                      color: const Color(0xFF475569),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
+}
+
+/// Painter for subtle topographical curves in location card
+class _TopographicCurvesPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final wave1Paint = Paint()
+      ..color = const Color(0xFFE5EAF0)
+      ..style = PaintingStyle.fill;
+
+    final path1 = Path()
+      ..moveTo(0, size.height * 0.75)
+      ..quadraticBezierTo(
+        size.width * 0.25,
+        size.height * 0.55,
+        size.width * 0.5,
+        size.height * 0.65,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.75,
+        size.height * 0.75,
+        size.width,
+        size.height * 0.55,
+      )
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+
+    canvas.drawPath(path1, wave1Paint);
+
+    final wave2Paint = Paint()
+      ..color = const Color(0xFFDBE2EA)
+      ..style = PaintingStyle.fill;
+
+    final path2 = Path()
+      ..moveTo(0, size.height * 0.88)
+      ..quadraticBezierTo(
+        size.width * 0.3,
+        size.height * 0.7,
+        size.width * 0.6,
+        size.height * 0.8,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.85,
+        size.height * 0.9,
+        size.width,
+        size.height * 0.75,
+      )
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+
+    canvas.drawPath(path2, wave2Paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

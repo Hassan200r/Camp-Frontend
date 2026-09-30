@@ -18,22 +18,28 @@ class SosHeaderBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Left: Skeuomorphic Back Button
+          // Left: Circular Back Button with soft shadow
           GestureDetector(
             onTap: onBackPressed ?? () => Navigator.of(context).maybePop(),
             child: Container(
-              width: 42,
-              height: 42,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: AppColors.skeuRaisedSmall,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
               child: const Center(
                 child: Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  color: AppColors.darkCharcoal,
-                  size: 18,
+                  Icons.arrow_back_rounded,
+                  color: Color(0xFF1E293B),
+                  size: 20,
                 ),
               ),
             ),
@@ -46,43 +52,39 @@ class SosHeaderBar extends StatelessWidget {
               Text(
                 'CAMP',
                 style: GoogleFonts.manrope(
-                  color: AppColors.darkCharcoal,
-                  fontSize: 22,
+                  color: const Color(0xFF1E293B),
+                  fontSize: 21,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: 1.5,
+                  letterSpacing: 1.2,
                 ),
               ),
               Container(
                 width: 7,
                 height: 7,
-                margin: const EdgeInsets.only(left: 4, top: 4),
+                margin: const EdgeInsets.only(left: 4, top: 2),
                 decoration: const BoxDecoration(
-                  color: AppColors.tacticalOrange,
+                  color: Color(0xFFFF8A00),
                   shape: BoxShape.circle,
                 ),
               ),
             ],
           ),
 
-          // Right: SOS READY Pill Badge
+          // Right: SOS READY Pill Badge (Cool slate tone matching screenshot)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6.5),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFEBEE),
+              color: const Color(0xFFEAEFF5),
               borderRadius: BorderRadius.circular(AppColors.radiusPill),
-              border: Border.all(
-                color: const Color(0xFFFFCDD2),
-                width: 1,
-              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 8,
-                  height: 8,
+                  width: 7,
+                  height: 7,
                   decoration: const BoxDecoration(
-                    color: Color(0xFFE53935),
+                    color: Color(0xFF7F8EA3),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -90,9 +92,9 @@ class SosHeaderBar extends StatelessWidget {
                 Text(
                   'SOS READY',
                   style: GoogleFonts.manrope(
-                    color: const Color(0xFFD32F2F),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF5A6B82),
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
                     letterSpacing: 0.8,
                   ),
                 ),

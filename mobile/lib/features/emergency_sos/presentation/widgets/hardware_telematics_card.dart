@@ -166,254 +166,188 @@ class _HardwareTelematicsCardState extends State<HardwareTelematicsCard>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: AppColors.skeuRaised,
-      ),
-      child: Stack(
-        children: [
-          // Background Radar Watermark Arcs
-          Positioned(
-            top: -20,
-            right: -20,
-            child: CustomPaint(
-              size: const Size(140, 140),
-              painter: _RadarArcsPainter(),
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
-
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                // Top Header Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'HARDWARE TELEMATICS HUB',
-                      style: GoogleFonts.manrope(
-                        color: const Color(0xFF64748B),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.1,
-                      ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+      child: Column(
+        children: [
+          // Concentric 3D Red SOS Button with Hold Detection
+          GestureDetector(
+            onTapDown: (_) => _startHolding(),
+            onTapUp: (_) => _cancelHolding(),
+            onTapCancel: () => _cancelHolding(),
+            child: Center(
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Animated holding progress indicator ring
+                  SizedBox(
+                    width: 188,
+                    height: 188,
+                    child: AnimatedBuilder(
+                      animation: _progressController,
+                      builder: (context, child) {
+                        return CircularProgressIndicator(
+                          value: _progressController.value,
+                          strokeWidth: 4,
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Color(0xFFE53935),
+                          ),
+                          backgroundColor: Colors.transparent,
+                        );
+                      },
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFECFDF5),
-                        borderRadius: BorderRadius.circular(AppColors.radiusPill),
-                        border: Border.all(color: const Color(0xFFA7F3D0), width: 1),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF059669),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            'SAT-LINK 100%',
-                            style: GoogleFonts.manrope(
-                              color: const Color(0xFF059669),
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.4,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
 
-                const SizedBox(height: 24),
-
-                // Concentric 3D Red SOS Button with Hold Detection
-                GestureDetector(
-                  onTapDown: (_) => _startHolding(),
-                  onTapUp: (_) => _cancelHolding(),
-                  onTapCancel: () => _cancelHolding(),
-                  child: Center(
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Animated holding progress indicator ring
-                        SizedBox(
-                          width: 176,
-                          height: 176,
-                          child: AnimatedBuilder(
-                            animation: _progressController,
-                            builder: (context, child) {
-                              return CircularProgressIndicator(
-                                value: _progressController.value,
-                                strokeWidth: 4,
-                                valueColor: const AlwaysStoppedAnimation<Color>(
-                                  Color(0xFFE53935),
-                                ),
-                                backgroundColor: const Color(0xFFE2E8F0),
-                              );
-                            },
-                          ),
+                  // Outermost Concentric Halo / Bezel
+                  Container(
+                    width: 174,
+                    height: 174,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFFF1F4F8), Color(0xFFE2E7EE)],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFDC2626).withValues(alpha: 0.12),
+                          blurRadius: 28,
+                          spreadRadius: 4,
+                          offset: const Offset(0, 4),
                         ),
-
-                        // Outermost Concentric Halo / Bezel
-                        Container(
-                          width: 160,
-                          height: 160,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [Color(0xFFF1F5F9), Color(0xFFCBD5E1)],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 18,
-                                spreadRadius: 1,
-                                offset: const Offset(0, 6),
-                              ),
-                              const BoxShadow(
-                                color: Colors.white,
-                                blurRadius: 10,
-                                offset: Offset(-4, -4),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            // Red 3D SOS Dome
-                            child: AnimatedScale(
-                              scale: _isHolding ? 0.94 : 1.0,
-                              duration: const Duration(milliseconds: 120),
-                              child: Container(
-                                width: 136,
-                                height: 136,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: const RadialGradient(
-                                    center: Alignment(-0.2, -0.3),
-                                    radius: 0.85,
-                                    colors: [
-                                      Color(0xFFFF4D4D),
-                                      Color(0xFFE02424),
-                                      Color(0xFF991B1B),
-                                    ],
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFFDC2626).withValues(alpha: 0.5),
-                                      blurRadius: 22,
-                                      spreadRadius: 2,
-                                      offset: const Offset(0, 8),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    // Exclamation circle badge
-                                    Container(
-                                      width: 24,
-                                      height: 24,
-                                      decoration: const BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Center(
-                                        child: Text(
-                                          '!',
-                                          style: TextStyle(
-                                            color: Color(0xFFDC2626),
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    // "S O S" text
-                                    Text(
-                                      'S O S',
-                                      style: GoogleFonts.manrope(
-                                        color: Colors.white,
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 4.5,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    // "EMERGENCY PUSH" text
-                                    Text(
-                                      _isHolding ? 'HOLD ($_secondsLeft s)' : 'EMERGENCY PUSH',
-                                      style: GoogleFonts.manrope(
-                                        color: Colors.white.withValues(alpha: 0.9),
-                                        fontSize: 8.5,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 0.8,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                        const BoxShadow(
+                          color: Colors.white,
+                          blurRadius: 8,
+                          offset: Offset(-3, -3),
                         ),
                       ],
                     ),
+                    child: Center(
+                      // Red 3D SOS Dome
+                      child: AnimatedScale(
+                        scale: _isHolding ? 0.94 : 1.0,
+                        duration: const Duration(milliseconds: 120),
+                        child: Container(
+                          width: 140,
+                          height: 140,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const RadialGradient(
+                              center: Alignment(-0.1, -0.35),
+                              radius: 0.85,
+                              colors: [
+                                Color(0xFFFF3B50),
+                                Color(0xFFE51D33),
+                                Color(0xFFC71024),
+                              ],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFE51D33).withValues(alpha: 0.45),
+                                blurRadius: 22,
+                                spreadRadius: 2,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Asterisk / Star icon
+                              const Text(
+                                '*',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w900,
+                                  height: 0.8,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              // "SOS" text
+                              Text(
+                                'SOS',
+                                style: GoogleFonts.manrope(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              // "EMERGENCY" text
+                              Text(
+                                _isHolding ? 'HOLD ($_secondsLeft s)' : 'EMERGENCY',
+                                style: GoogleFonts.manrope(
+                                  color: Colors.white.withValues(alpha: 0.95),
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 22),
+
+          // Subtitle Instruction
+          Text(
+            'Hold 3 seconds to alert your emergency\ncontact',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.manrope(
+              color: const Color(0xFF1E293B),
+              fontSize: 15.5,
+              fontWeight: FontWeight.w800,
+              height: 1.35,
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // Recessed GPS & Cellular signal pill
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(AppColors.radiusPill),
+              border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.sensors_rounded,
+                  color: Color(0xFF64748B),
+                  size: 14,
                 ),
-
-                const SizedBox(height: 22),
-
-                // Subtitle Instruction
+                const SizedBox(width: 6),
                 Text(
-                  'HOLD 3 SECONDS FOR SATELLITE BEACON',
-                  textAlign: TextAlign.center,
+                  "Uses your phone's GPS and cellular signal",
                   style: GoogleFonts.manrope(
-                    color: AppColors.darkCharcoal,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Recessed Iridium Constellation Pill
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(AppColors.radiusPill),
-                    border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF10B981),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 7),
-                      Text(
-                        'Iridium 66 Constellation • 0 Latency',
-                        style: GoogleFonts.manrope(
-                          color: const Color(0xFF475569),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+                    color: const Color(0xFF64748B),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -423,25 +357,4 @@ class _HardwareTelematicsCardState extends State<HardwareTelematicsCard>
       ),
     );
   }
-}
-
-/// Concentric Radar Arcs Watermark Painter
-class _RadarArcsPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFFE2E8F0)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-
-    final center = Offset(size.width, 0);
-
-    canvas.drawCircle(center, 40, paint);
-    canvas.drawCircle(center, 70, paint);
-    canvas.drawCircle(center, 100, paint);
-    canvas.drawCircle(center, 130, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

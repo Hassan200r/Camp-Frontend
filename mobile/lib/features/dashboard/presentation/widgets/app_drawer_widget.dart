@@ -53,7 +53,6 @@ class AppDrawerWidget extends StatelessWidget {
                   _menuItem(context, icon: Icons.compass_calibration_rounded, title: 'Predictive Maintenance', notification: '1', route: '/predictive-maintenance'),
                   _menuItem(context, icon: Icons.handyman_rounded, iconColor: _orange, title: 'Find a Mechanic', subtitle: 'Community Pitstops & Roadside', badge: 'Active', orangeBadge: true, route: '/mechanics'),
                   _menuItem(context, icon: Icons.build_outlined, iconColor: _orange, title: 'Add a Mechanic', subtitle: 'Community Pitstops', badge: '+ Contributor', orangeBadge: true, route: '/add-mechanic'),
-                  _menuItem(context, icon: Icons.settings_suggest_rounded, title: 'Carburetor Tuning', subtitle: 'High Altitude Jetting', badge: 'Tuning Req.', orangeBadge: true, route: '/carburetor-tuning'),
                   _menuItem(context, icon: Icons.settings_outlined, title: 'Settings', route: '/settings'),
                   _menuItem(
                     context,
