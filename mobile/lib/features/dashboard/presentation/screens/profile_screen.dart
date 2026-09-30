@@ -6,6 +6,8 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../auth/controllers/auth_controller.dart';
+import '../../../settings/controllers/settings_controller.dart';
+import '../../../settings/domain/units_system.dart';
 import '../widgets/app_drawer_widget.dart';
 import '../widgets/tactical_bottom_dock_widget.dart';
 
@@ -1730,127 +1732,165 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ── 10. Settings Section ───────────────────────────────────────────────────
   Widget _buildSettingsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'SETTINGS',
-          style: AppTextStyles.overline,
-        ),
-        const SizedBox(height: 10),
-        CampCard(
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
-          borderRadius: AppColors.radiusCard,
-          color: AppColors.clay,
-          shadows: AppColors.skeuRaised,
-          child: Column(
-            children: [
-              _buildSettingsRow(
-                icon: Icons.person_outline_rounded,
-                title: 'Edit Personal Info',
-                trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
-                onTap: () => Navigator.of(context).pushNamed('/edit-profile'),
-              ),
-              const Divider(height: 1, color: Color(0x12000000)),
-              _buildSettingsRow(
-                icon: Icons.straighten_rounded,
-                title: 'Units',
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.clayDark,
-                    borderRadius: BorderRadius.circular(AppColors.radiusPill),
+    return ListenableBuilder(
+      listenable: SettingsController.instance,
+      builder: (context, _) {
+        final settings = SettingsController.instance;
+        final unitsLabel = settings.units.label;
+        final notificationsLabel = settings.notificationsEnabled ? 'Enabled' : 'Disabled';
+        final privacyLabel = settings.privacySharingEnabled ? 'Enabled' : 'Disabled';
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'SETTINGS',
+              style: AppTextStyles.overline,
+            ),
+            const SizedBox(height: 10),
+            CampCard(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+              borderRadius: AppColors.radiusCard,
+              color: AppColors.clay,
+              shadows: AppColors.skeuRaised,
+              child: Column(
+                children: [
+                  _buildSettingsRow(
+                    icon: Icons.person_outline_rounded,
+                    title: 'Edit Personal Info',
+                    trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
+                    onTap: () => Navigator.of(context).pushNamed('/edit-profile'),
                   ),
-                  child: Text(
-                    'Metric (KM, °C)',
-                    style: GoogleFonts.manrope(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.darkCharcoal,
+                  const Divider(height: 1, color: Color(0x12000000)),
+                  _buildSettingsRow(
+                    icon: Icons.straighten_rounded,
+                    title: 'Units',
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.clayDark,
+                            borderRadius: BorderRadius.circular(AppColors.radiusPill),
+                          ),
+                          child: Text(
+                            unitsLabel,
+                            style: GoogleFonts.manrope(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.darkCharcoal,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
+                      ],
                     ),
+                    onTap: () => Navigator.of(context).pushNamed('/settings'),
                   ),
-                ),
-                onTap: () => _showNotification('Units Configuration'),
-              ),
-              const Divider(height: 1, color: Color(0x12000000)),
-              _buildSettingsRow(
-                icon: Icons.notifications_none_rounded,
-                title: 'Notifications',
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Enabled',
-                      style: GoogleFonts.manrope(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.statusGreen,
+                  const Divider(height: 1, color: Color(0x12000000)),
+                  _buildSettingsRow(
+                    icon: Icons.notifications_none_rounded,
+                    title: 'Notifications',
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          notificationsLabel,
+                          style: GoogleFonts.manrope(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: settings.notificationsEnabled ? AppColors.statusGreen : AppColors.mutedText,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
+                      ],
+                    ),
+                    onTap: () => Navigator.of(context).pushNamed('/settings'),
+                  ),
+                  const Divider(height: 1, color: Color(0x12000000)),
+                  _buildSettingsRow(
+                    icon: Icons.cloud_download_outlined,
+                    title: 'Offline Maps',
+                    subtitle: '${settings.cachedPacksSizeGb.toStringAsFixed(1)} GB used • ${settings.cachedPacksSubtitle}',
+                    trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
+                    onTap: () => Navigator.of(context).pushNamed('/settings'),
+                  ),
+                  const Divider(height: 1, color: Color(0x12000000)),
+                  _buildSettingsRow(
+                    icon: Icons.security_rounded,
+                    title: 'Privacy & Telemetry Sharing',
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          privacyLabel,
+                          style: GoogleFonts.manrope(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: settings.privacySharingEnabled ? AppColors.statusGreen : AppColors.mutedText,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
+                      ],
+                    ),
+                    onTap: () => Navigator.of(context).pushNamed('/settings'),
+                  ),
+                  const Divider(height: 1, color: Color(0x12000000)),
+                  _buildSettingsRow(
+                    icon: Icons.help_outline_rounded,
+                    title: 'Help & Support',
+                    trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
+                    onTap: () => Navigator.of(context).pushNamed('/settings'),
+                  ),
+                  const Divider(height: 1, color: Color(0x12000000)),
+                  _buildSettingsRow(
+                    customLeading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.clayDark,
+                        borderRadius: BorderRadius.circular(AppColors.radiusTile),
+                        boxShadow: AppColors.skeuRecessed,
+                      ),
+                      child: Center(
+                        child: Text(
+                          'CAMP',
+                          style: GoogleFonts.manrope(
+                            color: AppColors.tacticalOrange,
+                            fontSize: 8.5,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
-                  ],
-                ),
-                onTap: () => _showNotification('Notifications Config'),
-              ),
-              const Divider(height: 1, color: Color(0x12000000)),
-              _buildSettingsRow(
-                icon: Icons.cloud_download_outlined,
-                title: 'Offline Maps',
-                subtitle: '1.4 GB / 8.2 GB cached',
-                trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
-                onTap: () => _showNotification('Offline Maps: 1.4 GB / 8.2 GB cached across 5 route packs'),
-              ),
-              const Divider(height: 1, color: Color(0x12000000)),
-              _buildSettingsRow(
-                icon: Icons.security_rounded,
-                title: 'Privacy & Telemetry Sharing',
-                trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
-                onTap: () => _showNotification('Privacy & Telemetry'),
-              ),
-              const Divider(height: 1, color: Color(0x12000000)),
-              _buildSettingsRow(
-                icon: Icons.help_outline_rounded,
-                title: 'Help & Support',
-                trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
-                onTap: () => _showNotification('Help & Support'),
-              ),
-              const Divider(height: 1, color: Color(0x12000000)),
-              _buildSettingsRow(
-                customLeading: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.clayDark,
-                    borderRadius: BorderRadius.circular(AppColors.radiusTile),
-                    boxShadow: AppColors.skeuRecessed,
-                  ),
-                  child: Center(
-                    child: Text(
-                      'CAMP',
-                      style: GoogleFonts.manrope(
-                        color: AppColors.tacticalOrange,
-                        fontSize: 8.5,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    title: 'About CAMP',
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'v1.0.0 (Build 890-GS)',
+                          style: GoogleFonts.manrope(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.mutedText,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
+                      ],
                     ),
+                    onTap: () => Navigator.of(context).pushNamed('/settings'),
                   ),
-                ),
-                title: 'About CAMP',
-                trailing: Text(
-                  'v1.0.0 (Build 890-GS)',
-                  style: GoogleFonts.manrope(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.mutedText,
-                  ),
-                ),
-                onTap: () => _showNotification('CAMP Mobility Suite v1.0.0'),
+                ],
               ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 
