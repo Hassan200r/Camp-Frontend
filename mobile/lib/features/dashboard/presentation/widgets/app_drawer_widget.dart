@@ -66,8 +66,6 @@ class AppDrawerWidget extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            _obdStatus(),
-            const SizedBox(height: 12),
             _logout(context),
           ]),
         ),
@@ -234,16 +232,6 @@ class AppDrawerWidget extends StatelessWidget {
         child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900)),
       );
 
-  Widget _obdStatus() => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Row(children: [
-          const _StatusDot(color: Color(0xFF65D4AD), size: 8),
-          const SizedBox(width: 8),
-          Expanded(child: Text('OBD-II Bluetooth 5.3', style: AppTextStyles.caption.copyWith(color: AppColors.charcoalLight, fontWeight: FontWeight.w700))),
-          Text('v3.4.1', style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w700)),
-        ]),
-      );
-
   Widget _logout(BuildContext context) => GestureDetector(
         onTap: () {
           Navigator.of(context).pop();
@@ -282,15 +270,14 @@ class AppDrawerWidget extends StatelessWidget {
 }
 
 class _StatusDot extends StatelessWidget {
-  const _StatusDot({required this.color, this.size = 12});
+  const _StatusDot({required this.color});
 
   final Color color;
-  final double size;
 
   @override
   Widget build(BuildContext context) => Container(
-        width: size,
-        height: size,
+        width: 12,
+        height: 12,
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
