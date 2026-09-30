@@ -31,24 +31,35 @@ class MaintenanceListWidget extends StatelessWidget {
         const SizedBox(height: 4),
 
         // ── Section Header with Wrench IconTile ────────────────────────────
-        SectionHeader(
-          title: 'Upcoming & Required\nMaintenance',
-          maxLines: 2,
-          padding: const EdgeInsets.only(bottom: 14),
-          badge: IconTile(
-            icon: Icons.build_rounded,
-            size: 32,
-            iconSize: 16,
-            isInset: false,
-            iconColor: AppColors.tacticalOrangeDark,
-            onTap: onAddMaintenanceItem,
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Row(
+            children: [
+              const Expanded(
+                child: SectionHeader(
+                  title: 'Upcoming & Required\nMaintenance',
+                  maxLines: 2,
+                  padding: EdgeInsets.zero,
+                ),
+              ),
+              IconTile(
+                icon: Icons.build_rounded,
+                size: 32,
+                iconSize: 16,
+                isInset: false,
+                iconColor: AppColors.tacticalOrangeDark,
+                onTap: onAddMaintenanceItem,
+              ),
+            ],
           ),
         ),
 
         // ── Maintenance Item Cards ─────────────────────────────────────────
+
+        // ── Maintenance Item Cards ─────────────────────────────────────────
         ...items.map((item) {
           return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: 16),
             child: MaintenanceItemCardWidget(
               item: item,
               onActionPressed: () => onItemGuidePressed?.call(item),
@@ -57,7 +68,7 @@ class MaintenanceListWidget extends StatelessWidget {
           );
         }),
 
-        const SizedBox(height: 4),
+        const SizedBox(height: 0),
 
         // ── "+ Add Maintenance Item" with Trailing Chevron ──────────────────
         GestureDetector(
@@ -65,7 +76,7 @@ class MaintenanceListWidget extends StatelessWidget {
           onTap: onAddMaintenanceItem,
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
               color: AppColors.clay,
               borderRadius: BorderRadius.circular(AppColors.radiusTile),
