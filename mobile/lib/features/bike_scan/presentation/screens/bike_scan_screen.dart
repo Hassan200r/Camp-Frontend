@@ -9,6 +9,7 @@ import '../../../../core/utils/skeuomorphic_container.dart';
 import '../../../../core/widgets/camp_bottom_nav.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
 import '../../../dashboard/presentation/widgets/tactical_bottom_dock_widget.dart';
+import '../../controllers/bike_onboarding_controller.dart';
 
 /// Strongly typed motorcycle telemetry record for scan results.
 class BikeScanData {
@@ -364,8 +365,14 @@ class _BikeScanScreenState extends State<BikeScanScreen>
   // ── Save & Sync to Garage ─────────────────────────────────────────────────
   void _saveAndSyncToGarage() {
     HapticFeedback.lightImpact();
-    _showNotification('Syncing ${_currentData.model} to Garage...');
-    Navigator.of(context).pushNamed('/garage');
+    BikeOnboardingController.instance.populateFromScan(
+      rawModel: _currentData.model,
+      rawVin: _currentData.vin,
+      rawMileage: _currentData.mileage,
+      rawDisplacement: _currentData.displacement,
+    );
+    _showNotification('Optical telemetry locked. Reviewing bike details...');
+    Navigator.of(context).pushNamed('/bike-details');
   }
 
   void _showNotification(String message) {
@@ -443,11 +450,17 @@ class _BikeScanScreenState extends State<BikeScanScreen>
               ),
               const SizedBox(height: 20),
               SkeuomorphicOrangeButton(
-                label: 'Confirm Overrides',
-                icon: Icons.check_circle_outline_rounded,
+                label: 'Edit in Bike Details (Step 2)',
+                icon: Icons.edit_note_rounded,
                 onTap: () {
                   Navigator.of(ctx).pop();
-                  _showNotification('Manual calibration applied');
+                  BikeOnboardingController.instance.populateFromScan(
+                    rawModel: _currentData.model,
+                    rawVin: _currentData.vin,
+                    rawMileage: _currentData.mileage,
+                    rawDisplacement: _currentData.displacement,
+                  );
+                  Navigator.of(context).pushNamed('/bike-details');
                 },
               ),
             ],

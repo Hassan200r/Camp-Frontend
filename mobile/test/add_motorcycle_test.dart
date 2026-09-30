@@ -106,7 +106,7 @@ void main() {
     expect(find.text('TELEMETRY VISION 4.2'), findsOneWidget);
   });
 
-  testWidgets('Tapping Upload Photo handles picker gracefully and Enter Manually shows toast',
+  testWidgets('Tapping Upload Photo handles picker gracefully and Enter Manually navigates to details',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.0;
@@ -117,6 +117,7 @@ void main() {
         initialRoute: '/add-bike',
         routes: {
           '/add-bike': (context) => const AddMotorcycleScreen(),
+          '/bike-details': (context) => const Scaffold(body: Text('Bike Details Screen Mock')),
         },
       ),
     );
@@ -129,10 +130,7 @@ void main() {
 
     // Tap Enter Manually
     await tester.tap(find.text('Enter Manually'));
-    await tester.pump();
-    expect(
-      find.text('Manual vehicle entry wizard coming soon'),
-      findsOneWidget,
-    );
+    await tester.pumpAndSettle();
+    expect(find.text('Bike Details Screen Mock'), findsOneWidget);
   });
 }
