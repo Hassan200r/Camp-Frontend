@@ -67,6 +67,10 @@ class Bike {
     this.fuelSystem = FuelSystem.carburetor,
     this.carburetorType,
     this.fuelTankCapacityLiters,
+    this.fuelAverageKmPerLiter,
+    this.ridingTerrain,
+    this.edition,
+    this.imagePath,
     this.currentFuelLiters,
     this.lastOilChange,
     this.lastTuneUp,
@@ -101,6 +105,18 @@ class Bike {
   /// Total fuel tank capacity in liters.
   final double? fuelTankCapacityLiters;
 
+  /// User reported average fuel consumption in km per liter.
+  final double? fuelAverageKmPerLiter;
+
+  /// Configured primary riding terrain types (e.g. City, Highway, Off-road, Mountain).
+  final List<String>? ridingTerrain;
+
+  /// Special trim or edition name (e.g. Edition Triple Black).
+  final String? edition;
+
+  /// Local asset image path or remote URL for bike photograph.
+  final String? imagePath;
+
   /// Mandatory operational field: current total odometer reading in km.
   final int odometerKm;
 
@@ -129,6 +145,10 @@ class Bike {
     FuelSystem? fuelSystem,
     String? carburetorType,
     double? fuelTankCapacityLiters,
+    double? fuelAverageKmPerLiter,
+    List<String>? ridingTerrain,
+    String? edition,
+    String? imagePath,
     int? odometerKm,
     double? currentFuelLiters,
     ServiceRecord? lastOilChange,
@@ -147,6 +167,11 @@ class Bike {
       carburetorType: carburetorType ?? this.carburetorType,
       fuelTankCapacityLiters:
           fuelTankCapacityLiters ?? this.fuelTankCapacityLiters,
+      fuelAverageKmPerLiter:
+          fuelAverageKmPerLiter ?? this.fuelAverageKmPerLiter,
+      ridingTerrain: ridingTerrain ?? this.ridingTerrain,
+      edition: edition ?? this.edition,
+      imagePath: imagePath ?? this.imagePath,
       odometerKm: odometerKm ?? this.odometerKm,
       currentFuelLiters: currentFuelLiters ?? this.currentFuelLiters,
       lastOilChange: lastOilChange ?? this.lastOilChange,

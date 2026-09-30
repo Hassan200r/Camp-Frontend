@@ -11,6 +11,7 @@ import 'features/dashboard/presentation/screens/edit_profile_screen.dart';
 import 'features/dashboard/presentation/screens/home_screen.dart';
 import 'features/dashboard/presentation/screens/profile_screen.dart';
 import 'features/emergency_sos/presentation/screens/emergency_sos_screen.dart';
+import 'features/garage/presentation/screens/bike_profile_screen.dart';
 import 'features/garage/presentation/screens/garage_screen.dart';
 import 'features/maintenance/presentation/screens/carburetor_tuning_screen.dart';
 import 'features/maintenance/presentation/screens/finance_rig_health_screen.dart';
@@ -52,7 +53,7 @@ class CampApp extends StatelessWidget {
         '/add_motorcycle': (context) => const AddMotorcycleScreen(),
         '/bike-details': (context) => const BikeDetailsScreen(),
         '/bike-scan': (context) => const BikeScanScreen(),
-        '/bike-profile': (context) => const GarageScreen(),
+        '/bike-profile': (context) => const BikeProfileScreen(),
         '/garage': (context) => const GarageScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/edit-profile': (context) => const EditProfileScreen(),
