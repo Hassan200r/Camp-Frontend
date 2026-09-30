@@ -38,8 +38,8 @@ class AppDrawerWidget extends StatelessWidget {
                 physics: const BouncingScrollPhysics(),
                 children: [
                   _menuItem(context, icon: Icons.person_outline_rounded, title: 'User Profile', route: '/profile'),
+                  _menuItem(context, icon: Icons.garage_rounded, iconColor: _orange, title: 'My Garage', subtitle: 'Manage Fleet & Active Rig', badge: 'Garage', orangeBadge: true, route: '/garage'),
                   _menuItem(context, icon: Icons.directions_bike_rounded, title: 'Bike Profile', badge: 'Active', route: '/bike-profile'),
-                  _menuItem(context, icon: Icons.two_wheeler_rounded, iconColor: _orange, title: 'Add a Motorcycle', subtitle: 'Vision & Telemetry Onboarding', badge: 'Step 1 of 4', orangeBadge: true, route: '/add-bike'),
                   _menuItem(
                     context,
                     icon: Icons.cloud_download_outlined,
@@ -61,16 +61,6 @@ class AppDrawerWidget extends StatelessWidget {
                     iconColor: AppColors.alertRed,
                     title: 'Emergency SOS & Telematics',
                     route: '/emergency-sos',
-                  ),
-                  _menuItem(
-                    context,
-                    icon: Icons.vpn_key_rounded,
-                    iconColor: _orange,
-                    title: 'Rider Sign In / Register',
-                    subtitle: 'Telemetry & Route Sync',
-                    badge: 'Auth',
-                    orangeBadge: true,
-                    route: '/sign-in',
                   ),
                 ],
               ),

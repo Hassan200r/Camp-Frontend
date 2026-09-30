@@ -118,10 +118,10 @@ class ActiveBikeController extends ChangeNotifier {
         lastTuneUp: ServiceRecord(
           mode: TrackingMode.byDistance,
           km: 5000,
-          date: DateTime(2026, 4, 1),
+          date: DateTime(2026, 6, 4),
         ),
         vin: 'WB10J9309PZE84102',
-        nickname: 'Black Beast',
+        nickname: 'GS #441',
       ),
       Bike(
         id: 'bike-rebel-500',
