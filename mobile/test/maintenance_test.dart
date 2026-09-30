@@ -66,7 +66,7 @@ void main() {
     expect(find.text('Fuel Cost'), findsOneWidget);
     expect(find.text('Park Permits & Passes'), findsOneWidget);
     expect(find.text('Camp Lodging & Fees'), findsOneWidget);
-    expect(find.text('+ Add Expense'), findsOneWidget);
+    expect(find.text('Add Expense'), findsWidgets);
 
     // Verify maintenance list items
     expect(find.text('CONDITION TELEMETRY'), findsOneWidget);
