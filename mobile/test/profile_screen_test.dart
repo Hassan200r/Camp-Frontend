@@ -1,8 +1,13 @@
 import 'package:camp/features/dashboard/presentation/screens/profile_screen.dart';
+import 'package:camp/features/settings/controllers/settings_controller.dart';
+import 'package:camp/features/settings/domain/units_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  setUp(() {
+    SettingsController.instance.reset();
+  });
   testWidgets('ProfileScreen renders all sections matching reference screenshots in order',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
@@ -110,4 +115,115 @@ void main() {
     expect(find.text('Log Out'), findsOneWidget);
     expect(find.byIcon(Icons.logout_rounded), findsOneWidget);
   });
+
+  testWidgets('ProfileScreen Settings card updates reactively when SettingsController changes',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 4000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ProfileScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Initial state check
+    expect(find.text('Metric (km, °C)'), findsOneWidget);
+    expect(find.text('Enabled'), findsNWidgets(2)); // Notifications and Privacy
+
+    // Update settings in SettingsController
+    final settings = SettingsController.instance;
+    settings.setUnits(UnitsSystem.imperial);
+    settings.setNotificationsEnabled(false);
+    settings.setPrivacySharingEnabled(false);
+    await tester.pumpAndSettle();
+
+    // Verify values updated reactively without rebuilding/restarting screen
+    expect(find.text('Imperial (mi, °F)'), findsOneWidget);
+    expect(find.text('Disabled'), findsNWidgets(2));
+  });
+
+  testWidgets('ProfileScreen Settings rows navigate to /settings and /edit-profile',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 4000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    var lastPushedRoute = '';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: const ProfileScreen(),
+        onGenerateRoute: (settings) {
+          lastPushedRoute = settings.name ?? '';
+          return MaterialPageRoute(
+            builder: (context) => Scaffold(body: Text('Destination: ${settings.name}')),
+          );
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap Units -> should navigate to /settings
+    await tester.tap(find.text('Units'));
+    await tester.pumpAndSettle();
+    expect(lastPushedRoute, '/settings');
+
+    // Pop back
+    Navigator.of(tester.element(find.text('Destination: /settings'))).pop();
+    await tester.pumpAndSettle();
+
+    // Tap Notifications -> should navigate to /settings
+    await tester.tap(find.text('Notifications'));
+    await tester.pumpAndSettle();
+    expect(lastPushedRoute, '/settings');
+
+    // Pop back
+    Navigator.of(tester.element(find.text('Destination: /settings'))).pop();
+    await tester.pumpAndSettle();
+
+    // Tap Offline Maps -> should navigate to /settings
+    await tester.tap(find.text('Offline Maps'));
+    await tester.pumpAndSettle();
+    expect(lastPushedRoute, '/settings');
+
+    // Pop back
+    Navigator.of(tester.element(find.text('Destination: /settings'))).pop();
+    await tester.pumpAndSettle();
+
+    // Tap Privacy & Telemetry Sharing -> should navigate to /settings
+    await tester.tap(find.text('Privacy & Telemetry Sharing'));
+    await tester.pumpAndSettle();
+    expect(lastPushedRoute, '/settings');
+
+    // Pop back
+    Navigator.of(tester.element(find.text('Destination: /settings'))).pop();
+    await tester.pumpAndSettle();
+
+    // Tap Help & Support -> should navigate to /settings
+    await tester.tap(find.text('Help & Support'));
+    await tester.pumpAndSettle();
+    expect(lastPushedRoute, '/settings');
+
+    // Pop back
+    Navigator.of(tester.element(find.text('Destination: /settings'))).pop();
+    await tester.pumpAndSettle();
+
+    // Tap About CAMP -> should navigate to /settings
+    await tester.tap(find.text('About CAMP'));
+    await tester.pumpAndSettle();
+    expect(lastPushedRoute, '/settings');
+
+    // Pop back
+    Navigator.of(tester.element(find.text('Destination: /settings'))).pop();
+    await tester.pumpAndSettle();
+
+    // Tap Edit Personal Info -> should navigate to /edit-profile
+    await tester.tap(find.text('Edit Personal Info'));
+    await tester.pumpAndSettle();
+    expect(lastPushedRoute, '/edit-profile');
+  });
 }
+
