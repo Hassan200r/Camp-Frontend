@@ -85,10 +85,10 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
           // ── Left: Circular Back / Menu Button ─────────────────────────────
           _buildLeading(context),
 
-          // ── Center: Custom Widget, Title or CAMP Mountain Logo ────────────
+          // ── Center: Custom Widget, Title or CAMP Dot Logo ────────────────
           if (titleWidget != null)
             titleWidget!
-          else if (titleText != null)
+          else if (titleText != null && titleText != 'CAMP')
             Text(
               titleText!,
               style: GoogleFonts.manrope(
@@ -99,25 +99,7 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             )
           else
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CustomPaint(
-                  size: Size(22, 18),
-                  painter: CampMountainLogoPainter(),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'CAMP',
-                  style: GoogleFonts.manrope(
-                    color: AppColors.darkCharcoal,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 2.0,
-                  ),
-                ),
-              ],
-            ),
+            const CampLogo(),
 
           // ── Right: Optional Action Pill or Widget ─────────────────────────
           Flexible(
@@ -251,3 +233,43 @@ class CampBackButton extends StatelessWidget {
     );
   }
 }
+
+/// Standard CAMP Logo: bold "CAMP" text with tactical orange dot mark.
+class CampLogo extends StatelessWidget {
+  const CampLogo({
+    super.key,
+    this.fontSize = 20,
+    this.dotSize = 7,
+  });
+
+  final double fontSize;
+  final double dotSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'CAMP',
+          style: GoogleFonts.manrope(
+            color: AppColors.darkCharcoal,
+            fontSize: fontSize,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(width: 5),
+        Container(
+          width: dotSize,
+          height: dotSize,
+          decoration: const BoxDecoration(
+            color: AppColors.tacticalOrange,
+            shape: BoxShape.circle,
+          ),
+        ),
+      ],
+    );
+  }
+}
+

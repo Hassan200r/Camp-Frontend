@@ -220,99 +220,143 @@ class TripBudgetCardWidget extends StatelessWidget {
           // ── Expense Line Items ────────────────────────────────────────────
           ...expenses.map((expense) {
             return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 7),
+              padding: const EdgeInsets.only(bottom: 10),
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => onExpenseTapped?.call(expense),
-                child: Row(
-                  children: [
-                    // Category icon tile
-                    IconTile(
-                      icon: expense.category.icon,
-                      size: 38,
-                      iconSize: 18,
-                      isInset: true,
-                    ),
-                    const SizedBox(width: 12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.clay,
+                    borderRadius: BorderRadius.circular(AppColors.radiusTile),
+                    boxShadow: AppColors.skeuRaisedSmall,
+                  ),
+                  child: Row(
+                    children: [
+                      // Category icon tile
+                      IconTile(
+                        icon: expense.category.icon,
+                        size: 38,
+                        iconSize: 18,
+                        isInset: true,
+                      ),
+                      const SizedBox(width: 12),
 
-                    // Title, Mode chip & Subtitle
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  expense.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTextStyles.itemTitle.copyWith(
-                                    fontSize: 13.5,
+                      // Title, Mode chip & Subtitle
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    expense.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTextStyles.itemTitle.copyWith(
+                                      fontSize: 13.5,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 6),
-                              StatusChip(
-                                label: expense.trackingMode.label,
-                                variant: expense.trackingMode ==
-                                        ExpenseTrackingMode.manualEntry
-                                    ? StatusChipVariant.gold
-                                    : StatusChipVariant.neutral,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
+                                const SizedBox(width: 6),
+                                StatusChip(
+                                  label: expense.trackingMode.label,
+                                  variant:
+                                      expense.trackingMode ==
+                                          ExpenseTrackingMode.manualEntry
+                                      ? StatusChipVariant.gold
+                                      : StatusChipVariant.neutral,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (expense.subtitle != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                expense.subtitle!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.caption.copyWith(
+                                  fontSize: 11.5,
                                 ),
                               ),
                             ],
-                          ),
-                          if (expense.subtitle != null) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              expense.subtitle!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.caption.copyWith(
-                                fontSize: 11.5,
-                              ),
-                            ),
                           ],
-                        ],
+                        ),
                       ),
-                    ),
 
-                    const SizedBox(width: 8),
+                      const SizedBox(width: 8),
 
-                    // Amount
-                    Text(
-                      '\$${expense.amount.toStringAsFixed(2)}',
-                      style: GoogleFonts.manrope(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.darkCharcoal,
+                      // Amount
+                      Text(
+                        '\$${expense.amount.toStringAsFixed(2)}',
+                        style: GoogleFonts.manrope(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.darkCharcoal,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      size: 18,
-                      color: AppColors.mutedLight,
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18,
+                        color: AppColors.mutedLight,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
           }),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 0),
 
-          // ── "+ Add Expense" Ghost Button Row ──────────────────────────────
-          Center(
-            child: GhostButton(
-              label: '+ Add Expense',
-              icon: Icons.add_rounded,
-              color: AppColors.tacticalOrangeDark,
-              onTap: onAddExpense,
+          // ── "Add Expense" tile ────────────────────────────────────────────
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onAddExpense,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.clay,
+                borderRadius: BorderRadius.circular(AppColors.radiusTile),
+                boxShadow: AppColors.skeuRaisedSmall,
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.add_rounded,
+                    size: 18,
+                    color: AppColors.tacticalOrangeDark,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Add Expense',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppColors.tacticalOrangeDark,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 20,
+                    color: AppColors.mutedText,
+                  ),
+                ],
+              ),
             ),
           ),
 

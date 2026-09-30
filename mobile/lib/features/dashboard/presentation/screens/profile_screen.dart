@@ -79,29 +79,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     // 1. Top Header Bar (Circular Back, CAMP with orange dot, PROFILE pill)
                     CampAppBar(
                       leading: CampAppBarLeading.back,
-                      titleWidget: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'CAMP',
-                            style: GoogleFonts.manrope(
-                              color: AppColors.darkCharcoal,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          Container(
-                            width: 7,
-                            height: 7,
-                            decoration: const BoxDecoration(
-                              color: AppColors.tacticalOrange,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ],
-                      ),
                       actionWidget: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                         decoration: BoxDecoration(

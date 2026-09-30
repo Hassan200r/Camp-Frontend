@@ -65,9 +65,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
   Future<void> _pushEditTripBudget() async {
     final result = await Navigator.of(context).push<TripBudget>(
       MaterialPageRoute(
-        builder: (context) => EditTripBudgetScreen(
-          initialBudget: _tripBudget,
-        ),
+        builder: (context) => EditTripBudgetScreen(initialBudget: _tripBudget),
       ),
     );
     if (result != null && mounted) {
@@ -80,9 +78,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
 
   Future<void> _pushAddExpense() async {
     final result = await Navigator.of(context).push<Expense>(
-      MaterialPageRoute(
-        builder: (context) => const AddExpenseScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const AddExpenseScreen()),
     );
     if (result != null && mounted) {
       setState(() {
@@ -91,15 +87,15 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
           allocatedSoFar: _tripBudget.allocatedSoFar + result.amount,
         );
       });
-      _showNotification('Added ${result.title} (\$${result.amount.toStringAsFixed(2)})');
+      _showNotification(
+        'Added ${result.title} (\$${result.amount.toStringAsFixed(2)})',
+      );
     }
   }
 
   Future<void> _pushAddMaintenanceItem() async {
     final result = await Navigator.of(context).push<MaintenanceItem>(
-      MaterialPageRoute(
-        builder: (context) => const AddMaintenanceItemScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const AddMaintenanceItemScreen()),
     );
     if (result != null && mounted) {
       setState(() {
@@ -156,8 +152,9 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                       onLeadingPressed: () =>
                           _scaffoldKey.currentState?.openDrawer(),
                       actionText: 'FINANCES & RIG HEALTH',
-                      onActionPressed: () =>
-                          _showNotification('Finances & Rig Health telemetry active'),
+                      onActionPressed: () => _showNotification(
+                        'Finances & Rig Health telemetry active',
+                      ),
                     ),
 
                     const SizedBox(height: 14),
@@ -166,7 +163,10 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('EXPEDITION TELEMETRY', style: AppTextStyles.overline),
+                        Text(
+                          'EXPEDITION TELEMETRY',
+                          style: AppTextStyles.overline,
+                        ),
                         const SizedBox(height: 4),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -175,8 +175,6 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                             Flexible(
                               child: Text(
                                 'Finances & Rig Health',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                                 style: AppTextStyles.title,
                               ),
                             ),
@@ -189,8 +187,9 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color: AppColors.clayDark,
-                                borderRadius:
-                                    BorderRadius.circular(AppColors.radiusPill),
+                                borderRadius: BorderRadius.circular(
+                                  AppColors.radiusPill,
+                                ),
                                 boxShadow: AppColors.skeuRaisedSmall,
                               ),
                               child: Row(
@@ -238,55 +237,26 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                       onDeleteTrip: _handleDeleteTrip,
                       onAddExpense: _pushAddExpense,
                       onExpenseTapped: (exp) {
-                        _showNotification('${exp.title}: \$${exp.amount.toStringAsFixed(2)}');
+                        _showNotification(
+                          '${exp.title}: \$${exp.amount.toStringAsFixed(2)}',
+                        );
                       },
                     ),
 
                     const SizedBox(height: AppColors.cardGap),
-
-                    // 5. Second Card: "⚙ Add or Adjust Trip Budget"
-                    CampCard(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      onTap: _pushEditTripBudget,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.settings_outlined,
-                            size: 16,
-                            color: AppColors.tacticalOrangeDark,
-                          ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              'Add or Adjust Trip Budget',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.manrope(
-                                color: AppColors.tacticalOrangeDark,
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: AppColors.cardGap),
-
                     // 6. Maintenance List Widget (Condition Telemetry + 5 items + Add button)
                     MaintenanceListWidget(
                       items: _maintenanceItems,
                       onAddMaintenanceItem: _pushAddMaintenanceItem,
                       onItemGuidePressed: (item) {
-                        _showNotification('Opening service guide for ${item.name}...');
+                        _showNotification(
+                          'Opening service guide for ${item.name}...',
+                        );
                       },
                       onItemTapped: (item) {
-                        _showNotification('${item.name}: ${item.statusValueDisplay ?? ''}');
+                        _showNotification(
+                          '${item.name}: ${item.statusValueDisplay ?? ''}',
+                        );
                       },
                     ),
 
