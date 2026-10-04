@@ -19,6 +19,7 @@ class AppHeaderWidget extends StatelessWidget {
     return CampAppBar(
       leading: CampAppBarLeading.menu,
       onLeadingPressed: onMenuPressed,
+      showLogo: true,
       actionText: 'EXPLORE HOME',
       onActionPressed: onBadgePressed,
     );

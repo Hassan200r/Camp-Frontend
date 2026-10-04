@@ -586,26 +586,7 @@ class _BikeScanScreenState extends State<BikeScanScreen>
             ),
           ),
 
-          // Center: CAMP Mountain Logo + Wordmark
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CustomPaint(
-                size: const Size(20, 16),
-                painter: _CampMountainLogoPainter(),
-              ),
-              const SizedBox(width: 6),
-              const Text(
-                'CAMP',
-                style: TextStyle(
-                  color: AppColors.darkCharcoal,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ],
-          ),
+          const SizedBox.shrink(),
 
           // Right: Skeuomorphic Pill Badge ("• BIKE SCAN")
           SkeuomorphicContainer(
@@ -1788,37 +1769,3 @@ class _ReticleCornerPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// Geometric CAMP Mountain Logo Painter
-class _CampMountainLogoPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFFF56500)
-      ..style = PaintingStyle.fill;
-
-    // Peak 1
-    final path1 = Path()
-      ..moveTo(0, size.height)
-      ..lineTo(size.width * 0.42, 0)
-      ..lineTo(size.width * 0.72, size.height)
-      ..close();
-
-    // Peak 2
-    final path2 = Path()
-      ..moveTo(size.width * 0.45, size.height)
-      ..lineTo(size.width * 0.75, size.height * 0.3)
-      ..lineTo(size.width, size.height)
-      ..close();
-
-    canvas.drawPath(path1, paint);
-    canvas.drawPath(
-      path2,
-      Paint()
-        ..color = const Color(0xFFE25300)
-        ..style = PaintingStyle.fill,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}

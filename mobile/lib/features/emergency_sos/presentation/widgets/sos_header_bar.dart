@@ -45,30 +45,7 @@ class SosHeaderBar extends StatelessWidget {
             ),
           ),
 
-          // Center: CAMP •
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'CAMP',
-                style: GoogleFonts.manrope(
-                  color: const Color(0xFF1E293B),
-                  fontSize: 21,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              Container(
-                width: 7,
-                height: 7,
-                margin: const EdgeInsets.only(left: 4, top: 2),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFF8A00),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ],
-          ),
+          const SizedBox.shrink(),
 
           // Right: SOS READY Pill Badge (Cool slate tone matching screenshot)
           Container(

@@ -942,48 +942,10 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
       child: Row(
         children: [
-          // Left: Logo badge + "CAMP" + "COPILOT" badge
+          // Left: COPILOT badge
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // CAMP Square Icon
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  'CAMP',
-                  style: GoogleFonts.manrope(
-                    fontSize: 7.5,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.4,
-                    color: const Color(0xFF1E293B),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              // CAMP bold text
-              const Text(
-                'CAMP',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.5,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(width: 6),
               // COPILOT Pill Badge
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),

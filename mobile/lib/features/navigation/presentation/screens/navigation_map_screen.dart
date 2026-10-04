@@ -1741,49 +1741,7 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
             ),
           ),
 
-          // Center CAMP Brand Logo Badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.clay,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: AppColors.clayDark,
-                width: 1.2,
-              ),
-              boxShadow: AppColors.skeuRaisedSmall,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 18,
-                  height: 18,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0xFFFFF0DB),
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.terrain_rounded,
-                      color: AppColors.tacticalOrange,
-                      size: 13,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'CAMP',
-                  style: AppTextStyles.cardTitle.copyWith(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.2,
-                    color: AppColors.darkCharcoal,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox.shrink(),
 
           // Right "ROADSIDE RESCUE" Pill Badge
           Container(

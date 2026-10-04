@@ -221,30 +221,7 @@ class AuthBrandHeader extends StatelessWidget {
             ),
           ),
 
-          // Center: CAMP •
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'CAMP',
-                style: GoogleFonts.manrope(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              Container(
-                width: 7,
-                height: 7,
-                margin: const EdgeInsets.only(left: 4, top: 4),
-                decoration: const BoxDecoration(
-                  color: AuthColors.orangePrimary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ],
-          ),
+          const SizedBox.shrink(),
 
           // Right: 🛜 SYNC pill
           GestureDetector(

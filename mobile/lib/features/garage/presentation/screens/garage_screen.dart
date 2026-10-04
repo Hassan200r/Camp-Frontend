@@ -113,34 +113,6 @@ class GarageScreen extends StatelessWidget {
     return CampAppBar(
       leading: CampAppBarLeading.back,
       onLeadingPressed: () => Navigator.of(context).maybePop(),
-      titleWidget: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CustomPaint(
-            size: Size(22, 18),
-            painter: CampMountainLogoPainter(),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'CAMP',
-            style: GoogleFonts.manrope(
-              color: AppColors.darkCharcoal,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2.0,
-            ),
-          ),
-          Container(
-            width: 6,
-            height: 6,
-            margin: const EdgeInsets.only(left: 4, top: 2),
-            decoration: const BoxDecoration(
-              color: AppColors.tacticalOrange,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ],
-      ),
       actionWidget: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(

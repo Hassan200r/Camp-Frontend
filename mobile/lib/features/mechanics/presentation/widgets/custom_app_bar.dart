@@ -69,28 +69,7 @@ class _CustomAppBarState extends State<CustomAppBar>
             ),
           ),
 
-          // CAMP Brand Title with Orange Dot
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'CAMP',
-                style: AppTextStyles.title.copyWith(
-                  fontSize: 18,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const SizedBox(width: 5),
-              Container(
-                width: 10,
-                height: 10,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.tacticalOrangeLight,
-                ),
-              ),
-            ],
-          ),
+          const SizedBox.shrink(),
 
           // Status Badge with Pulsing Dot
           GestureDetector(

@@ -366,33 +366,6 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
   Widget _buildTopAppBar() {
     return CampAppBar(
       leading: CampAppBarLeading.back,
-      titleWidget: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: AppColors.clay,
-          borderRadius: BorderRadius.circular(AppColors.radiusPill),
-          boxShadow: AppColors.skeuRaisedSmall,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CustomPaint(
-              size: Size(18, 14),
-              painter: CampMountainLogoPainter(),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              'CAMP',
-              style: GoogleFonts.manrope(
-                color: AppColors.darkCharcoal,
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.5,
-              ),
-            ),
-          ],
-        ),
-      ),
       actionWidget: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(

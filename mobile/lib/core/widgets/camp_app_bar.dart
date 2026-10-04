@@ -54,6 +54,7 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.onLeadingPressed,
     this.titleText,
     this.titleWidget,
+    this.showLogo = false,
     this.actionText,
     this.actionIcon,
     this.actionWidget,
@@ -65,6 +66,7 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onLeadingPressed;
   final String? titleText;
   final Widget? titleWidget;
+  final bool showLogo;
   final String? actionText;
   final IconData? actionIcon;
   final Widget? actionWidget;
@@ -98,8 +100,10 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
                 letterSpacing: 0.5,
               ),
             )
+          else if (showLogo)
+            const CampLogo()
           else
-            const CampLogo(),
+            const SizedBox.shrink(),
 
           // ── Right: Optional Action Pill or Widget ─────────────────────────
           Flexible(

@@ -298,28 +298,7 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
           ),
         ),
 
-        // CAMP Brand Title with Orange Dot
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'CAMP',
-              style: AppTextStyles.title.copyWith(
-                fontSize: 18,
-                letterSpacing: 1.2,
-              ),
-            ),
-            const SizedBox(width: 5),
-            Container(
-              width: 10,
-              height: 10,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.tacticalOrangeLight,
-              ),
-            ),
-          ],
-        ),
+        const SizedBox.shrink(),
 
         // PITSTOP Pill Badge with Tactile Relief
         Container(

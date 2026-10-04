@@ -392,37 +392,6 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
     return CampAppBar(
       leading: CampAppBarLeading.back,
       onLeadingPressed: () => Navigator.of(context).pop(),
-      titleWidget: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: AppColors.clay,
-          borderRadius: BorderRadius.circular(AppColors.radiusPill),
-          boxShadow: AppColors.skeuRaisedSmall,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'CAMP',
-              style: GoogleFonts.manrope(
-                color: AppColors.darkCharcoal,
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.0,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Container(
-              width: 8,
-              height: 8,
-              decoration: const BoxDecoration(
-                color: AppColors.tacticalOrange,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ],
-        ),
-      ),
       actionWidget: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6.5),
         decoration: BoxDecoration(
