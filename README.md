@@ -1,6 +1,14 @@
-# CAMP Workspace
-
 A comprehensive full-stack monorepo for the **CAMP** smart mobility, navigation, and vehicle care platform.
+Monorepo for CAMP (Context-Aware Predictive Maintenance): a Flutter app for motorcyclists with vision-based bike scanning, offline navigation, predictive maintenance, crash SOS, and a voice copilot. Firebase + Node.js backend.
+flutter dart firebase predictive-maintenance motorcycle mobile-app offline-first computer-vision voice-assistant monorepo final-year-project
+
+
+# CAMP Workspace
+![Flutter](https://img.shields.io/badge/Flutter-02569B?logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-0175C2?logo=dart&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?logo=firebase&logoColor=black)
+![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
 
 ---
 
@@ -134,4 +142,8 @@ Each mobile feature under `mobile/lib/features/` follows a strict three-tier sep
 - **`domain/`**: Pure Dart models, entities, and business logic / repository interfaces. Independent of Flutter UI.
 - **`controllers/`**: State management (BLoC, Riverpod, or Cubits) mediating between domain logic and views.
 - **`presentation/`**: Flutter widgets, screens, custom painters, and user interaction layers.
+
+
+## License
+![License](https://img.shields.io/github/license/Hassan200r/Camp-Frontend)
 
