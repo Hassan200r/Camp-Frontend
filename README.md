@@ -31,19 +31,18 @@ CAMP/
 │   │   │   ├── services/    # Location, Bluetooth, Sensor & Background services
 │   │   │   └── utils/       # Formatters, loggers, validation helpers
 │   │   ├── features/        # Feature-first modular domain slices
-│   │   │   ├── auth/            # Authentication & Onboarding
-│   │   │   ├── dashboard/       # Central status, telemetrics & summary
-│   │   │   ├── bike_scan/       # Vision AI vehicle scanner & diagnostics
-│   │   │   ├── garage/          # Vehicle inventory & parts registry
-│   │   │   ├── navigation/      # Turn-by-turn routing & offline maps
-│   │   │   ├── mechanics/       # Nearby workshops & specialist finder
-│   │   │   ├── maintenance/     # Wear-and-tear tracking & service schedules
-│   │   │   ├── ride_history/    # Trip telemetry, routes & stats
-│   │   │   ├── emergency_sos/   # Crash detection & emergency dispatches
-│   │   │   ├── voice_copilot/   # Hands-free audio assistant & feedback
-│   │   │   └── settings/        # Preferences & profile configuration
-│   │   │   # (Each feature includes: controllers/, domain/, presentation/)
-│   │   └── main.dart        # Flutter entrypoint
+│   │   │   ├── auth/            # Sign In, Sign Up, Forgot Password
+│   │   │   ├── dashboard/       # Cockpit landing, user profile, profile editor
+│   │   │   ├── bike_scan/       # Vision AI vehicle scanner & spec details
+│   │   │   ├── garage/          # Fleet manager, active bike controller, bike profile
+│   │   │   ├── navigation/      # Navigation map & offline route packs
+│   │   │   ├── mechanics/       # Workshop finder & add mechanic directory
+│   │   │   ├── maintenance/     # Rig health, predictive maintenance & carburetor tuning
+│   │   │   ├── ride_history/    # Trip history, telemetry logs & rider stats
+│   │   │   ├── emergency_sos/   # Crash detection, medical ID & SOS dispatch
+│   │   │   ├── voice_copilot/   # Hands-free AI audio copilot & voice queries
+│   │   │   └── settings/        # Units, notifications, cache & settings screen
+│   │   └── main.dart        # Flutter entrypoint & app router
 │   ├── test/                # Unit, widget, and integration tests
 │   ├── pubspec.yaml         # Flutter dependencies
 │   └── analysis_options.yaml# Dart static analysis configuration
@@ -63,6 +62,24 @@ CAMP/
 ├── .gitignore               # Root monorepo Git exclusion rules
 └── README.md                # Project documentation
 ```
+
+---
+
+## 🚀 Key Modules & Implemented Features
+
+| Feature Module | Key Screens & Capabilities |
+| :--- | :--- |
+| **Authentication** | Sign In, Sign Up, Forgot Password screens with field validation |
+| **Dashboard & Profile** | Tactical cockpit homepage, live telemetry widgets, user profile & profile editing |
+| **Bike Scanner & Specs** | Vision AI motorcycle camera scanner, bike details spec editor, manual entry |
+| **Garage & Fleet** | Active fleet management, bike profile sheet, single-tap active bike switcher |
+| **Navigation & Maps** | Interactive map screen (`NavigationMapScreen`) & off-grid route packs (`RoutePacksScreen`) |
+| **Mechanics Finder** | Workshop directory, nearby specialist locator, add mechanic submission screen |
+| **Maintenance Suite** | Trip budget & component health, predictive maintenance engine, carburetor tuning guide |
+| **Ride History** | Ride telemetry tracking, trip statistics, and historical logs |
+| **Emergency SOS** | Crash detection simulation, medical ID, and emergency contact dispatch |
+| **Voice Copilot** | Hands-free tactical audio assistant for rider voice queries |
+| **Settings** | Units toggle (Metric/Imperial), notification preferences, storage/cache manager |
 
 ---
 
@@ -117,3 +134,4 @@ Each mobile feature under `mobile/lib/features/` follows a strict three-tier sep
 - **`domain/`**: Pure Dart models, entities, and business logic / repository interfaces. Independent of Flutter UI.
 - **`controllers/`**: State management (BLoC, Riverpod, or Cubits) mediating between domain logic and views.
 - **`presentation/`**: Flutter widgets, screens, custom painters, and user interaction layers.
+
