@@ -1,41 +1,88 @@
 # CAMP Mobile
 
-CAMP Mobile is a Flutter rider cockpit for managing a motorcycle, checking live telemetry-style status, registering a new bike, managing garage fleets, navigating off-grid route packs, tracking maintenance & trip finances, and managing rider settings. The current implementation features a tactical skeuomorphic theme with clay-style card containers, dynamic active bike synchronization, and reactive settings architecture.
+CAMP Mobile is a Flutter rider cockpit for managing a motorcycle, checking live telemetry-style status, registering a new bike, managing garage fleets, navigating off-grid route packs, tracking predictive maintenance & trip finances, finding mechanics, hands-free voice assistance, emergency SOS dispatches, and managing rider settings. The current implementation features a tactical skeuomorphic theme with clay-style card containers, dynamic active bike synchronization, and reactive settings architecture.
 
 ## App Workflow & Feature Matrix
 
-1. **Launch & Navigation (`lib/main.dart`)**
-   - Main entry point initializing global singletons (`ActiveBikeController`, `SettingsController`) and registered routes.
-   - Dynamic named routing including `/`, `/add-bike`, `/bike-scan`, `/garage`, `/bike-profile`, `/bike-details`, `/profile`, `/edit-profile`, `/settings`, and `/route-packs`.
+1. **Authentication & Access (`lib/features/auth/`)**
+   - `SignInScreen` (`/sign-in`, `/login`, `/auth`): Secure rider authentication landing with field validation.
+   - `SignUpScreen` (`/sign-up`, `/register`): New rider account creation.
+   - `ForgotPasswordScreen` (`/forgot-password`): Password reset recovery flow.
 
-2. **Explore Dashboard (`lib/features/dashboard/`)**
-   - `HomeScreen`: Tactical cockpit landing page with live telemetry stats, AI voice copilot bar, active bike status, quick alerts, and bottom navigation dock (`CampBottomNav`).
-   - `ProfileScreen`: Rider account overview with cockpit hero card, touring tier progress, earned trail badges, garage quick view, maintenance health summaries, recent trips, rider medical SOS ID, and a reactive **Settings card** linked directly to `SettingsController.instance`.
+2. **Launch & Navigation Dock (`lib/main.dart`)**
+   - Main entry point initializing global singletons (`ActiveBikeController`, `SettingsController`) and registered application routes.
+   - Central routing system with full support for legacy aliases.
 
-3. **Dedicated Settings Management (`lib/features/settings/`)**
-   - **`SettingsScreen`**: Single source of truth for all rider preferences and storage management:
-     - **Hero Rider Bar**: Dynamic rider avatar with active bike name read directly from `ActiveBikeController`.
-     - **Account Card**: Personal Info shortcut, Change Password, and Linked Accounts (`Connected as alex@bmwmoto.com`).
-     - **Preferences Card**: Segmented Control unit switcher (`Metric (km, °C)` vs `Imperial (mi, °F)`), Notifications toggle (`Maintenance alerts, trip reminders`), and Language selector.
-     - **Storage & Data Card**: Offline Maps status navigation shortcut (`Cascades & Alps Route Packs`), Privacy & Telemetry sharing toggle, and Clear Local Cache action with confirmation dialog.
-     - **Support & Danger Zone**: Help & Support, About CAMP (`v1.0.0`), and Log Out danger button.
-   - **`SettingsController`**: Singleton `ChangeNotifier` managing units, notifications state, privacy telemetry toggles, and cache size state.
+3. **Explore Dashboard & Profile (`lib/features/dashboard/`)**
+   - `HomeScreen` (`/`): Tactical cockpit landing page with live telemetry stats, AI voice copilot bar, active bike status, quick alerts, and bottom navigation dock (`CampBottomNav`).
+   - `ProfileScreen` (`/profile`): Rider account overview with cockpit hero card, touring tier progress, earned trail badges, garage quick view, maintenance health summaries, recent trips, rider medical SOS ID, and a reactive **Settings card**.
+   - `EditProfileScreen` (`/edit-profile`): Form for editing rider personal information and preferences.
 
-4. **Add Motorcycle & Scanner Flow (`lib/features/bike_scan/`)**
-   - `AddMotorcycleScreen`: Registration hub with camera scanning, photo upload, and manual entry.
-   - `BikeScanScreen`: Camera VIN scanning sequence with HUD graphics, audio/flash controls, and simulated bike detection (BMW, Ducati, KTM).
-   - `BikeDetailsScreen`: Full multi-step bike spec editor with validation gating.
+4. **Add Motorcycle & Vision AI Scanner (`lib/features/bike_scan/`)**
+   - `AddMotorcycleScreen` (`/add-bike`, `/add-motorcycle`): Registration hub with camera scanning, photo upload, and manual entry.
+   - `BikeScanScreen` (`/bike-scan`): Camera VIN scanning sequence with HUD graphics, audio/flash controls, and simulated bike detection (BMW, Ducati, KTM).
+   - `BikeDetailsScreen` (`/bike-details`): Multi-step bike spec editor with validation gating.
 
 5. **Garage Fleet & Bike Profile (`lib/features/garage/`)**
-   - `GarageScreen`: Active fleet manager with telemetry status, sync controls, and bike card list.
-   - `BikeProfileScreen`: Detailed motorcycle spec sheet, service history, and active bike selection controller (`ActiveBikeController`).
+   - `GarageScreen` (`/garage`): Active fleet manager with telemetry status, sync controls, and bike card list.
+   - `BikeProfileScreen` (`/bike-profile`): Detailed motorcycle spec sheet, service history, and active bike selection controller (`ActiveBikeController`).
 
-6. **Expedition Maintenance & Finances (`lib/features/maintenance/`)**
-   - `FinanceRigHealthScreen`: Combined trip budget calculator (`TripBudgetCardWidget`) and component health telemetry tracker (`MaintenanceListWidget`).
-   - Dialogs and secondary screens for adding expenses, editing trip budgets, managing maintenance items, and confirming trip deletions.
+6. **Expedition Maintenance, Diagnostics & Finances (`lib/features/maintenance/`)**
+   - `FinanceRigHealthScreen` (`/finance-rig-health`): Combined trip budget calculator (`TripBudgetCardWidget`) and component health telemetry tracker (`MaintenanceListWidget`).
+   - `PredictiveMaintenanceScreen` (`/predictive-maintenance`): AI wear-and-tear tracking, service interval forecasting, and part replacement alerts.
+   - `CarburetorTuningScreen` (`/carburetor-tuning`): Interactive diagnostic guide for jetting, mixture adjustment, and carb synchronization.
 
-7. **Off-Grid Maps & Route Packs (`lib/features/navigation/`)**
-   - Offline route packs management (`RoutePacksScreen`), trail telemetry, and map rendering components.
+7. **Mechanics & Workshop Directory (`lib/features/mechanics/`)**
+   - `MechanicsHomeScreen` (`/mechanics`): Directory and locator for nearby verified motorcycle workshops and mechanics.
+   - `AddMechanicScreen` (`/mechanics/add`, `/add-mechanic`): Registration portal for workshop owners and specialist mechanics.
+
+8. **Off-Grid Navigation & Route Packs (`lib/features/navigation/`)**
+   - `NavigationMapScreen` (`/navigation/map`): Interactive turn-by-turn navigation map interface.
+   - `RoutePacksScreen` (`/route-packs`): Offline route pack discovery, trail telemetry, and map pack manager.
+
+9. **Trip History & Telemetry Logs (`lib/features/ride_history/`)**
+   - `RideHistoryScreen` (`/ride-history`): Comprehensive log of past rides, trip telemetry, elevation metrics, and speed profiles.
+
+10. **Voice Copilot AI Assistant (`lib/features/voice_copilot/`)**
+    - `VoiceAssistantScreen` (`/voice-copilot`, `/voice-assistant`): Hands-free audio assistant for real-time rider voice queries, route inquiries, and system checks.
+
+11. **Emergency SOS & Safety (`lib/features/emergency_sos/`)**
+    - `EmergencySosScreen` (`/emergency-sos`): Rapid-response emergency dispatch UI with live location payload, emergency contact notifications, and medical profile details.
+
+12. **Dedicated Settings Management (`lib/features/settings/`)**
+    - `SettingsScreen` (`/settings`): Centralized hub for unit preference (Metric vs Imperial), notification alerts, cache clearing, and telemetry sharing.
+    - `SettingsController`: Reactive singleton state manager for app preferences.
+
+---
+
+## 🗺️ Registered Routes Matrix (`lib/main.dart`)
+
+| Route Path | Screen Component | Feature Area |
+| :--- | :--- | :--- |
+| `/` | `HomeScreen` | Dashboard / Cockpit |
+| `/sign-in`, `/login`, `/auth` | `SignInScreen` | Authentication |
+| `/sign-up`, `/register` | `SignUpScreen` | Authentication |
+| `/forgot-password` | `ForgotPasswordScreen` | Authentication |
+| `/profile` | `ProfileScreen` | User Profile |
+| `/edit-profile` | `EditProfileScreen` | User Profile |
+| `/add-bike`, `/add-motorcycle` | `AddMotorcycleScreen` | Bike Scanner |
+| `/bike-scan` | `BikeScanScreen` | Bike Scanner |
+| `/bike-details` | `BikeDetailsScreen` | Bike Scanner |
+| `/garage` | `GarageScreen` | Garage Fleet |
+| `/bike-profile` | `BikeProfileScreen` | Garage Fleet |
+| `/mechanics` | `MechanicsHomeScreen` | Workshop Directory |
+| `/mechanics/add`, `/add-mechanic` | `AddMechanicScreen` | Workshop Directory |
+| `/navigation/map` | `NavigationMapScreen` | Navigation |
+| `/route-packs` | `RoutePacksScreen` | Navigation |
+| `/finance-rig-health` | `FinanceRigHealthScreen` | Maintenance & Budget |
+| `/predictive-maintenance` | `PredictiveMaintenanceScreen` | Maintenance |
+| `/carburetor-tuning` | `CarburetorTuningScreen` | Diagnostics |
+| `/ride-history` | `RideHistoryScreen` | Trip Logs |
+| `/voice-copilot`, `/voice-assistant` | `VoiceAssistantScreen` | Voice Assistant |
+| `/emergency-sos` | `EmergencySosScreen` | Emergency SOS |
+| `/settings` | `SettingsScreen` | Settings |
+
+---
 
 ## Feature Architecture
 
@@ -46,10 +93,10 @@ lib/features/
 ├── auth/           # Login, registration, and credential recovery scaffolds
 ├── bike_scan/      # Motorcycle onboarding, camera VIN scanner, and spec details
 ├── dashboard/      # Cockpit landing screen, profile overview, navigation dock
-├── emergency_sos/  # One-tap emergency contact location dispatch
+├── emergency_sos/  # Rapid-response emergency dispatch & medical SOS ID
 ├── garage/         # Fleet management, active bike state controller, bike profile
-├── maintenance/    # Service history, rig health monitoring, trip expense budget
-├── mechanics/      # Nearby motorcycle service center finder
+├── maintenance/    # Service history, predictive maintenance, carburetor tuning, expense budget
+├── mechanics/      # Nearby motorcycle service center finder & workshop registry
 ├── navigation/     # Offline maps, route packs, GPX trail tracking
 ├── ride_history/   # Log of past rides, telemetry logs, performance metrics
 ├── settings/       # Shared SettingsController & dedicated SettingsScreen
@@ -78,11 +125,10 @@ flutter run
 flutter analyze
 flutter test
 ```
-*Both commands must run with 0 errors/warnings.*
 
 ## Stack Highlights
 
 - **Framework**: Flutter (Dart `^3.13.4`)
 - **State Management**: Reactive Singleton `ChangeNotifier` controllers (`ActiveBikeController`, `SettingsController`)
-- **UI Design System**: Skeuomorphic clay-style design system with Google Fonts (`Manrope`, `Teko`, `Share Tech Mono`)
+- **UI Design System**: Tactical skeuomorphic clay-style design system with Google Fonts (`Manrope`, `Teko`, `Share Tech Mono`)
 - **Plugins**: `camera`, `flutter_map`, `google_fonts`, `latlong2`, `proj4dart`
