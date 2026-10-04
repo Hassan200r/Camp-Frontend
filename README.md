@@ -1,3 +1,5 @@
+# About CAMP
+
 A comprehensive full-stack monorepo for the **CAMP** smart mobility, navigation, and vehicle care platform.
 Monorepo for CAMP (Context-Aware Predictive Maintenance): a Flutter app for motorcyclists with vision-based bike scanning, offline navigation, predictive maintenance, crash SOS, and a voice copilot. Firebase + Node.js backend.
 flutter dart firebase predictive-maintenance motorcycle mobile-app offline-first computer-vision voice-assistant monorepo final-year-project
