@@ -1,8 +1,7 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme/auth_colors.dart';
 
-/// Glassmorphism frosted dark card container matching the screenshots
+/// Dark card container matching the screenshots
 class AuthCard extends StatelessWidget {
   const AuthCard({
     required this.child,
@@ -27,12 +26,9 @@ class AuthCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
-          child: Padding(
-            padding: padding,
-            child: child,
-          ),
+        child: Padding(
+          padding: padding,
+          child: child,
         ),
       ),
     );
