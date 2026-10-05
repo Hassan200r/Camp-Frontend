@@ -238,22 +238,54 @@ class CampBackButton extends StatelessWidget {
   }
 }
 
-/// Standard CAMP Logo: bold "CAMP" text with tactical orange dot mark.
+/// Standard CAMP Logo: app icon mark with bold "CAMP" text and tactical orange dot mark.
 class CampLogo extends StatelessWidget {
   const CampLogo({
     super.key,
     this.fontSize = 20,
     this.dotSize = 7,
+    this.iconSize = 28,
+    this.showIcon = true,
   });
 
   final double fontSize;
   final double dotSize;
+  final double iconSize;
+  final bool showIcon;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        if (showIcon) ...[
+          Container(
+            width: iconSize,
+            height: iconSize,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(iconSize * 0.25),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1.5),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(iconSize * 0.25),
+              child: Image.asset(
+                'assets/icons/app_icon.png',
+                width: iconSize,
+                height: iconSize,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
         Text(
           'CAMP',
           style: GoogleFonts.manrope(

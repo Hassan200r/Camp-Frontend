@@ -93,7 +93,7 @@ class AuthBrandHeader extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // White rounded square badge with animal emblem and CAMP
+                // White rounded square badge with CAMP app icon
                 Container(
                   width: 44,
                   height: 44,
@@ -108,24 +108,14 @@ class AuthBrandHeader extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.pets_rounded,
-                        color: Color(0xFFD95200),
-                        size: 16,
-                      ),
-                      Text(
-                        'CAMP',
-                        style: GoogleFonts.manrope(
-                          color: const Color(0xFF14171A),
-                          fontSize: 8.5,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      'assets/icons/app_icon.png',
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
