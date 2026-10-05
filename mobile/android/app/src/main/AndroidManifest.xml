@@ -4,6 +4,8 @@
          No tracking, background location, or persistent storage of location data. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Camera permission required for the Bike Scan screen photo capture. -->
+    <uses-permission android:name="android.permission.CAMERA" />
     <application
         android:label="Camp"
         android:name="${applicationName}"

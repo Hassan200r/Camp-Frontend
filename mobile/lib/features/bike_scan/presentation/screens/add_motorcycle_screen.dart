@@ -1,46 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
-import '../../../dashboard/presentation/widgets/tactical_bottom_dock_widget.dart';
-import 'bike_scan_screen.dart';
 
-/// CAMP Add Motorcycle Screen (Step 1 of 4 in the Add Bike flow).
-/// Allows the rider to choose their onboarding route: Camera Scan,
-/// Photo Upload, or Manual Telemetry Entry.
-class AddMotorcycleScreen extends StatefulWidget {
+/// CAMP Add Motorcycle Screen.
+/// Allows riders to quickly scan their motorcycle with the camera or view their garage.
+class AddMotorcycleScreen extends StatelessWidget {
   const AddMotorcycleScreen({super.key});
-
-  @override
-  State<AddMotorcycleScreen> createState() => _AddMotorcycleScreenState();
-}
-
-class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  void _showNotification(String message) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: AppColors.darkCharcoal,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(milliseconds: 2200),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +22,6 @@ class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        key: _scaffoldKey,
         drawer: const AppDrawerWidget(),
         backgroundColor: AppColors.clay,
         body: Stack(
@@ -66,101 +35,59 @@ class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
                   AppColors.screenPadding,
                   8.0,
                   AppColors.screenPadding,
-                  115.0,
+                  120.0,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // 1. Top Header Bar (Back Button, CAMP Pill, ADD BIKE Pill)
-                    CampAppBar(
+                    // 1. Top Header Bar (Back Button, CAMP Logo with Dot, ADD BIKE Pill)
+                    const CampAppBar(
                       leading: CampAppBarLeading.back,
-                      actionWidget: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: AppColors.clay,
-                          borderRadius: BorderRadius.circular(AppColors.radiusPill),
-                          boxShadow: AppColors.skeuRaisedSmall,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 7,
-                              height: 7,
-                              margin: const EdgeInsets.only(right: 6),
-                              decoration: const BoxDecoration(
-                                color: AppColors.tacticalOrange,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            Text(
-                              'ADD BIKE',
-                              style: GoogleFonts.manrope(
-                                color: AppColors.terracotta,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.8,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      titleWidget: CampLogo(showIcon: false),
+                      actionText: 'ADD BIKE',
+                      padding: EdgeInsets.zero,
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
-                    // 2. Progress Row: Step Indicator & 4-Segment Progress Bar
-                    _buildProgressRow(),
-
-                    const SizedBox(height: 18),
-
-                    // 3. Title & Subtitle
+                    // 2. Title & Subtitle
                     Text(
                       'Add a Motorcycle',
                       style: AppTextStyles.title,
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Choose how you would like to register your bike into the telemetry system.',
+                      'Scan your bike or open your garage.',
                       style: AppTextStyles.bodySecondary,
                     ),
 
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 24),
 
-                    // 4. Three Option Cards
-                    // Option 1: Scan with Camera (Highlighted with RECOMMENDED badge)
-                    _buildScanWithCameraCard(),
-
-                    const SizedBox(height: AppColors.cardGap),
-
-                    // Option 2: Upload Photo
-                    _buildUploadPhotoCard(),
+                    // 3. "Scan Bike" Card
+                    _buildScanBikeCard(context),
 
                     const SizedBox(height: AppColors.cardGap),
 
-                    // Option 3: Enter Manually
-                    _buildEnterManuallyCard(),
+                    // 4. "View Garage" Card
+                    _buildViewGarageCard(context),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: AppColors.cardGap),
 
-                    // 5. Info Banner
-                    _buildInfoBanner(),
+                    // 5. Tip Card
+                    _buildTipCard(),
                   ],
                 ),
               ),
             ),
 
             // ── Floating Bottom Dock (Index 1: Bike Scan Active) ─────────────
-            Positioned(
+            const Positioned(
               left: 0,
               right: 0,
               bottom: 24,
               child: Center(
-                child: TacticalBottomDockWidget(
-                  selectedIndex: 1, // Scan tab active
-                  onIndexChanged: (index) {
-                    CampBottomNav.navigateToTab(context, index, currentIndex: 1);
-                  },
+                child: CampBottomNav(
+                  selectedIndex: 1,
                 ),
               ),
             ),
@@ -170,243 +97,111 @@ class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
     );
   }
 
-  // ── Progress Row (Step 1 of 4) ─────────────────────────────────────────────
-  Widget _buildProgressRow() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'STEP 1 OF 4',
-          style: AppTextStyles.overlineOrange,
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            // Segment 1 (Filled - Tactical Orange)
-            Expanded(
-              child: Container(
-                height: 4.5,
-                decoration: BoxDecoration(
-                  color: AppColors.tacticalOrange,
-                  borderRadius: BorderRadius.circular(AppColors.radiusPill),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            // Segment 2 (Unfilled - Clay Deep)
-            Expanded(
-              child: Container(
-                height: 4.5,
-                decoration: BoxDecoration(
-                  color: AppColors.clayDeep,
-                  borderRadius: BorderRadius.circular(AppColors.radiusPill),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            // Segment 3 (Unfilled - Clay Deep)
-            Expanded(
-              child: Container(
-                height: 4.5,
-                decoration: BoxDecoration(
-                  color: AppColors.clayDeep,
-                  borderRadius: BorderRadius.circular(AppColors.radiusPill),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            // Segment 4 (Unfilled - Clay Deep)
-            Expanded(
-              child: Container(
-                height: 4.5,
-                decoration: BoxDecoration(
-                  color: AppColors.clayDeep,
-                  borderRadius: BorderRadius.circular(AppColors.radiusPill),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // ── Option 1: Scan with Camera (Recommended) ──────────────────────────────
-  Widget _buildScanWithCameraCard() {
+  // ── Option 1: Scan Bike Card ──────────────────────────────────────────────
+  Widget _buildScanBikeCard(BuildContext context) {
     return CampCard(
-      padding: const EdgeInsets.all(AppColors.cardPadding),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
       borderRadius: AppColors.radiusCard,
-      color: AppColors.clay,
-      border: Border.all(
-        color: AppColors.tacticalOrange.withValues(alpha: 0.35),
-        width: 1.5,
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          AppColors.tacticalOrangeLight,
+          AppColors.tacticalOrangeDark,
+        ],
       ),
-      shadows: [
-        ...AppColors.skeuRaised,
-        ...AppColors.orangeGlow,
-      ],
+      shadows: AppColors.orangeGlow,
       onTap: () {
         HapticFeedback.lightImpact();
+        // TODO: Point to the new camera screen when it exists.
         Navigator.of(context).pushNamed('/bike-scan');
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Top row with "RECOMMENDED" badge aligned right
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
-                decoration: BoxDecoration(
-                  color: AppColors.tacticalOrange,
-                  borderRadius: BorderRadius.circular(AppColors.radiusPill),
-                ),
-                child: Text(
-                  'RECOMMENDED',
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.22),
+              borderRadius: BorderRadius.circular(AppColors.radiusTile),
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.camera_alt_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Scan Bike',
                   style: GoogleFonts.manrope(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8,
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          // Content row with IconTile, Title, Subtitle, Chevron
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const IconTile(
-                icon: Icons.camera_alt_rounded,
-                size: 48,
-                iconSize: 24,
-                borderRadius: AppColors.radiusTile,
-                isInset: false,
-                backgroundColor: Colors.white,
-                iconColor: AppColors.tacticalOrange,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Scan with Camera',
-                      style: AppTextStyles.itemTitle,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Instant VIN, ODO & telemetry recognition via CAMP AI Vision.',
-                      style: AppTextStyles.bodySecondary,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.mutedLight,
-                size: 24,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _handleUploadPhoto() async {
-    HapticFeedback.lightImpact();
-    try {
-      final picker = ImagePicker();
-      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-      if (image == null || !mounted) {
-        // User cancelled photo selection or denied permission gracefully
-        return;
-      }
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (context) => BikeScanScreen(imagePath: image.path),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      _showNotification('Unable to access photo gallery. Please check permissions.');
-    }
-  }
-
-  // ── Option 2: Upload Photo ────────────────────────────────────────────────
-  Widget _buildUploadPhotoCard() {
-    return CampCard(
-      padding: const EdgeInsets.all(AppColors.cardPadding),
-      borderRadius: AppColors.radiusCard,
-      color: AppColors.clay,
-      shadows: AppColors.skeuRaised,
-      onTap: _handleUploadPhoto,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const IconTile(
-            icon: Icons.photo_library_rounded,
-            size: 48,
-            iconSize: 24,
-            borderRadius: AppColors.radiusTile,
-            isInset: false,
-            backgroundColor: Colors.white,
-            iconColor: AppColors.darkCharcoal,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Upload Photo',
-                  style: AppTextStyles.itemTitle,
-                ),
                 const SizedBox(height: 4),
                 Text(
-                  'Analyze an existing photo or registration document from your mobile device gallery.',
-                  style: AppTextStyles.bodySecondary,
+                  'Take a photo and we\'ll fill in the details',
+                  style: GoogleFonts.manrope(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white.withValues(alpha: 0.92),
+                    height: 1.3,
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: AppColors.mutedLight,
-            size: 24,
+          const SizedBox(width: 10),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.22),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  // ── Option 3: Enter Manually ──────────────────────────────────────────────
-  Widget _buildEnterManuallyCard() {
+  // ── Option 2: View Garage Card ────────────────────────────────────────────
+  Widget _buildViewGarageCard(BuildContext context) {
     return CampCard(
-      padding: const EdgeInsets.all(AppColors.cardPadding),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
       borderRadius: AppColors.radiusCard,
-      color: AppColors.clay,
+      color: Colors.white,
       shadows: AppColors.skeuRaised,
       onTap: () {
         HapticFeedback.lightImpact();
-        Navigator.of(context).pushNamed('/bike-details');
+        Navigator.of(context).pushNamed('/garage');
       },
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const IconTile(
-            icon: Icons.edit_note_rounded,
+            icon: Icons.garage_rounded,
             size: 48,
-            iconSize: 26,
+            iconSize: 24,
             borderRadius: AppColors.radiusTile,
-            isInset: false,
-            backgroundColor: Colors.white,
+            isInset: true,
+            backgroundColor: AppColors.clayDark,
             iconColor: AppColors.darkCharcoal,
           ),
           const SizedBox(width: 14),
@@ -415,48 +210,67 @@ class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Enter Manually',
-                  style: AppTextStyles.itemTitle,
+                  'View Garage',
+                  style: AppTextStyles.cardTitle,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Fill in make, model, displacement, specs, and maintenance logs step-by-step.',
+                  'See your registered bikes',
                   style: AppTextStyles.bodySecondary,
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: AppColors.mutedLight,
-            size: 24,
+          const SizedBox(width: 10),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.clay,
+              shape: BoxShape.circle,
+              boxShadow: AppColors.skeuRaisedSmall,
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.mutedText,
+                size: 22,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  // ── Info Banner ───────────────────────────────────────────────────────────
-  Widget _buildInfoBanner() {
-    return CampCard(
-      padding: const EdgeInsets.all(AppColors.cardPadding),
+  // ── Tip Card ──────────────────────────────────────────────────────────────
+  Widget _buildTipCard() {
+    return InsetTile(
       borderRadius: AppColors.radiusCard,
-      color: AppColors.clay,
-      shadows: AppColors.skeuRaised,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.info_outline_rounded,
-            color: AppColors.tacticalOrangeDark,
-            size: 22,
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppColors.tacticalOrange.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.lightbulb_rounded,
+                color: AppColors.tacticalOrange,
+                size: 18,
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Have your steering stem VIN plate or registration card accessible for 1-tap recognition.',
-              style: AppTextStyles.body,
+              'Tip: a clear side-view photo works best.',
+              style: AppTextStyles.bodySecondary,
             ),
           ),
         ],

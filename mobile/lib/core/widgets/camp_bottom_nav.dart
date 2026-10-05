@@ -30,7 +30,7 @@ class CampBottomNav extends StatelessWidget {
 
   static const List<CampNavItem> defaultItems = [
     CampNavItem(icon: Icons.explore_rounded, label: 'Explore Home'),
-    CampNavItem(icon: Icons.qr_code_scanner_rounded, label: 'Bike Scan'),
+    CampNavItem(icon: Icons.two_wheeler_rounded, label: 'Bike Scan'),
     CampNavItem(icon: Icons.navigation_rounded, label: 'Navigation'),
     CampNavItem(icon: Icons.handyman_rounded, label: 'Mechanic'),
     CampNavItem(icon: Icons.account_balance_wallet_rounded, label: 'Finances & Rig Health'),

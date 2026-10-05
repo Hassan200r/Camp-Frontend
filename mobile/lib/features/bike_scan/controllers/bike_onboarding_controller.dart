@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../garage/domain/bike_model.dart';
+import '../domain/bike_recognition_service.dart';
 
 /// Controller that preserves motorcycle onboarding form state across screens
 /// (e.g. when backing out to registration options or arriving from optical AI scan).
@@ -30,6 +31,7 @@ class BikeOnboardingController extends ChangeNotifier {
   );
   String? _vin;
   String? _nickname;
+  String? _imagePath;
 
   // ── Getters ────────────────────────────────────────────────────────────────
   String get make => _make;
@@ -46,6 +48,7 @@ class BikeOnboardingController extends ChangeNotifier {
   ServiceRecord get lastTuneUp => _lastTuneUp;
   String? get vin => _vin;
   String? get nickname => _nickname;
+  String? get imagePath => _imagePath;
 
   /// Whether the 4 mandatory gating fields are populated and valid:
   /// 1. Make
@@ -146,6 +149,28 @@ class BikeOnboardingController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setImagePath(String? value) {
+    if (_imagePath == value) return;
+    _imagePath = value;
+    notifyListeners();
+  }
+
+  /// Populate fields from a typed [BikeRecognitionResult].
+  /// Only pre-fills what the recognition service provided; leaves
+  /// odometer, fuel level, service history, terrain, VIN and nickname blank.
+  void populateFromRecognition(BikeRecognitionResult result) {
+    _make = result.make;
+    _modelName = result.model;
+    if (result.year != null) _modelYear = result.year!;
+    if (result.displacementCc != null) _displacement = result.displacementCc;
+    if (result.bikeType != null) _bikeType = result.bikeType!;
+    if (result.fuelTankLiters != null) {
+      _fuelTankCapacityLiters = result.fuelTankLiters;
+    }
+    // Leave odometer, currentFuel, service records, VIN, nickname blank.
+    notifyListeners();
+  }
+
   /// Populate fields from an optical scan or photo analysis result.
   void populateFromScan({
     required String rawModel,
@@ -219,6 +244,7 @@ class BikeOnboardingController extends ChangeNotifier {
       lastTuneUp: _lastTuneUp,
       vin: _vin,
       nickname: _nickname,
+      imagePath: _imagePath,
     );
   }
 
@@ -244,6 +270,7 @@ class BikeOnboardingController extends ChangeNotifier {
     );
     _vin = null;
     _nickname = null;
+    _imagePath = null;
     notifyListeners();
   }
 }

@@ -10,12 +10,19 @@ import '../../../dashboard/presentation/widgets/tactical_bottom_dock_widget.dart
 import '../../../garage/domain/bike_model.dart';
 import '../../controllers/bike_onboarding_controller.dart';
 
-/// CAMP Bike Details Screen (Step 2 of 4 in the Add Bike onboarding journey).
+/// CAMP Bike Details Screen (Step 2 of the Add Bike onboarding journey).
 /// Captures core mechanical specs, telemetry baseline, and fuel system configuration.
 class BikeDetailsScreen extends StatefulWidget {
-  const BikeDetailsScreen({super.key, this.initialBike});
+  const BikeDetailsScreen({
+    super.key,
+    this.initialBike,
+    /// Set to true when the controller was pre-populated from a photo scan so
+    /// the screen shows the "Auto-filled" banner and per-field tags.
+    this.prefilled = false,
+  });
 
   final Bike? initialBike;
+  final bool prefilled;
 
   @override
   State<BikeDetailsScreen> createState() => _BikeDetailsScreenState();
@@ -35,6 +42,11 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
   late TextEditingController _nicknameController;
 
   bool _submittedOnce = false;
+
+  // ── Auto-fill tracking ────────────────────────────────────────────────────
+  // Tracks which fields were pre-filled from the recognition result.
+  // A field is removed from the set the first time the user edits it.
+  final Set<String> _autoFilledFields = {};
 
   static const List<String> _makes = [
     'Honda',
@@ -69,7 +81,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
   void initState() {
     super.initState();
 
-    // If an initialBike was passed into this screen, populate the controller
+    // If a Bike was passed in (e.g. editing an existing profile), populate the controller.
     if (widget.initialBike != null) {
       final b = widget.initialBike!;
       _controller.setMake(b.make);
@@ -82,14 +94,19 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
       _controller.setFuelTankCapacity(b.fuelTankCapacityLiters);
       _controller.setOdometerKm(b.odometerKm);
       _controller.setCurrentFuelLiters(b.currentFuelLiters);
-      if (b.lastOilChange != null) {
-        _controller.setLastOilChange(b.lastOilChange!);
-      }
-      if (b.lastTuneUp != null) {
-        _controller.setLastTuneUp(b.lastTuneUp!);
-      }
+      if (b.lastOilChange != null) _controller.setLastOilChange(b.lastOilChange!);
+      if (b.lastTuneUp != null) _controller.setLastTuneUp(b.lastTuneUp!);
       _controller.setVin(b.vin);
       _controller.setNickname(b.nickname);
+    }
+
+    // Track which fields came from the recognition result so we can show tags.
+    if (widget.prefilled) {
+      if (_controller.make.isNotEmpty) _autoFilledFields.add('make');
+      if (_controller.modelName.isNotEmpty) _autoFilledFields.add('modelName');
+      if (_controller.displacement != null) _autoFilledFields.add('displacement');
+      if (_controller.bikeType.isNotEmpty) _autoFilledFields.add('bikeType');
+      if (_controller.fuelTankCapacityLiters != null) _autoFilledFields.add('fuelTank');
     }
 
     _modelNameController =
@@ -224,17 +241,24 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // 1. Top Header Bar (Back Button, CAMP Pill, ADD BIKE Pill)
+                    // 1. Top Header Bar
                     _buildTopAppBar(),
 
                     const SizedBox(height: 18),
 
-                    // 2. Progress Row: Step Indicator & 4-Segment Progress Bar (Step 2 Filled)
+                    // 2. Auto-filled banner (only when coming from photo scan)
+                    if (widget.prefilled && _autoFilledFields.isNotEmpty)
+                      _buildAutoFilledBanner(),
+
+                    if (widget.prefilled && _autoFilledFields.isNotEmpty)
+                      const SizedBox(height: 14),
+
+                    // 3. Progress Row
                     _buildProgressRow(),
 
                     const SizedBox(height: 18),
 
-                    // 3. Title & Subtitle
+                    // 4. Title & Subtitle
                     Text(
                       'Bike Details',
                       style: AppTextStyles.title,
@@ -362,6 +386,64 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
     );
   }
 
+  // ── Auto-filled banner ────────────────────────────────────────────────────
+  Widget _buildAutoFilledBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.tacticalOrange.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppColors.radiusCard),
+        border: Border.all(
+          color: AppColors.tacticalOrange.withValues(alpha: 0.30),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.auto_awesome_rounded,
+              color: AppColors.tacticalOrange, size: 16),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              'We filled in what we could from your photo. Please check the details.',
+              style: AppTextStyles.bodySecondary.copyWith(
+                color: AppColors.terracotta,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// A small "Auto-filled" tag shown next to pre-populated fields.
+  /// Disappears once the user edits that field ([fieldKey] removed from [_autoFilledFields]).
+  Widget _autoFilledTag(String fieldKey) {
+    if (!_autoFilledFields.contains(fieldKey)) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.tacticalOrange.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppColors.radiusPill),
+        border: Border.all(
+          color: AppColors.tacticalOrange.withValues(alpha: 0.28),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        'Auto-filled',
+        style: GoogleFonts.manrope(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: AppColors.terracotta,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
+
   // ── Top Navigation Bar ────────────────────────────────────────────────────
   Widget _buildTopAppBar() {
     return CampAppBar(
@@ -399,6 +481,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
       ),
     );
   }
+
 
   // ── Progress Row: Step 2 of 4 ─────────────────────────────────────────────
   Widget _buildProgressRow() {
@@ -501,9 +584,13 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
             value: _makes.contains(_controller.make) ? _controller.make : _makes.first,
             items: _makes,
             onChanged: (val) {
-              if (val != null) _controller.setMake(val);
+              if (val != null) {
+                _controller.setMake(val);
+                setState(() => _autoFilledFields.remove('make'));
+              }
             },
           ),
+          _autoFilledTag('make'),
           const SizedBox(height: 14),
 
           // Model Name
@@ -514,8 +601,14 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
             isError: isModelNameEmpty,
             errorText: isModelNameEmpty ? 'Model is required' : null,
             errorLabel: isModelNameEmpty ? '!' : null,
-            onChanged: (val) => _controller.setModelName(val),
+            onChanged: (val) {
+              _controller.setModelName(val);
+              if (_autoFilledFields.contains('modelName')) {
+                setState(() => _autoFilledFields.remove('modelName'));
+              }
+            },
           ),
+          _autoFilledTag('modelName'),
           const SizedBox(height: 14),
 
           // Row: Model Year + Displacement
@@ -536,16 +629,25 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: LabeledTextField(
-                  label: 'Displacement',
-                  controller: _displacementController,
-                  placeholder: '1100',
-                  suffixText: 'cc',
-                  keyboardType: TextInputType.number,
-                  onChanged: (val) {
-                    final parsed = int.tryParse(val.trim());
-                    _controller.setDisplacement(parsed);
-                  },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    LabeledTextField(
+                      label: 'Displacement',
+                      controller: _displacementController,
+                      placeholder: '1100',
+                      suffixText: 'cc',
+                      keyboardType: TextInputType.number,
+                      onChanged: (val) {
+                        final parsed = int.tryParse(val.trim());
+                        _controller.setDisplacement(parsed);
+                        if (_autoFilledFields.contains('displacement')) {
+                          setState(() => _autoFilledFields.remove('displacement'));
+                        }
+                      },
+                    ),
+                    _autoFilledTag('displacement'),
+                  ],
                 ),
               ),
             ],
@@ -609,6 +711,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
               _buildTypeChip(_bikeTypes[5]),
             ],
           ),
+          _autoFilledTag('bikeType'),
         ],
       ),
     );
@@ -625,6 +728,9 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
         onTap: () {
           HapticFeedback.selectionClick();
           _controller.setBikeType(name);
+          if (_autoFilledFields.contains('bikeType')) {
+            setState(() => _autoFilledFields.remove('bikeType'));
+          }
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
