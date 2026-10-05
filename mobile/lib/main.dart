@@ -70,8 +70,7 @@ class CampApp extends StatelessWidget {
         '/ride-history': (context) => const RideHistoryScreen(),
         '/finance-rig-health': (context) => const FinanceRigHealthScreen(),
         '/finances-rig-health': (context) => const FinanceRigHealthScreen(),
-        '/predictive-maintenance': (context) =>
-            const PredictiveMaintenanceScreen(),
+        '/predictive-maintenance': (context) => const PredictiveMaintenanceScreen(),
         '/carburetor-tuning': (context) => const CarburetorTuningScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/emergency-sos': (context) => const EmergencySosScreen(),
