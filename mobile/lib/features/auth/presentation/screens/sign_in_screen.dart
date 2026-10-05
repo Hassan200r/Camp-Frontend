@@ -300,66 +300,6 @@ class _SignInScreenState extends State<SignInScreen> {
               ),
             ],
           ),
-
-          const SizedBox(height: 12),
-
-          // Telemetry Status Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Glowing Green Dot
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: AuthColors.statusGreen,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AuthColors.statusGreen.withValues(alpha: 0.7),
-                      blurRadius: 6,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'CAMP Network v4.2',
-                style: GoogleFonts.manrope(
-                  color: AuthColors.textMuted,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  '•',
-                  style: TextStyle(
-                    color: AuthColors.textMuted.withValues(alpha: 0.6),
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-              const Icon(
-                Icons.cloud_outlined,
-                color: AuthColors.textMuted,
-                size: 14,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Telemetry Active',
-                style: GoogleFonts.manrope(
-                  color: AuthColors.textMuted,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );

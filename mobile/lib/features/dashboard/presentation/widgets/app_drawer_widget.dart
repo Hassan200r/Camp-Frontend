@@ -73,11 +73,7 @@ class AppDrawerWidget extends StatelessWidget {
   }
 
   Widget _topBar(BuildContext context) => Row(children: [
-        Text(
-          'CAMP',
-          style: GoogleFonts.manrope(color: AppColors.darkCharcoal, fontSize: 23, fontWeight: FontWeight.w900, letterSpacing: .2),
-        ),
-        Container(width: 8, height: 8, margin: const EdgeInsets.only(left: 3, top: 8), decoration: const BoxDecoration(color: _orange, shape: BoxShape.circle)),
+        const CampLogo(fontSize: 22, dotSize: 7, iconSize: 28),
         const Spacer(),
         GestureDetector(
           onTap: () => Navigator.of(context).pop(),
