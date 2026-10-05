@@ -100,10 +100,8 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
                 letterSpacing: 0.5,
               ),
             )
-          else if (showLogo)
-            const CampLogo()
           else
-            const SizedBox.shrink(),
+            const CampLogo(),
 
           // ── Right: Optional Action Pill or Widget ─────────────────────────
           Flexible(

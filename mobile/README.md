@@ -1,6 +1,8 @@
 # CAMP Mobile
 
-CAMP Mobile is a Flutter rider cockpit for managing a motorcycle, checking live telemetry-style status, registering a new bike, managing garage fleets, navigating off-grid route packs, tracking predictive maintenance & trip finances, finding mechanics, hands-free voice assistance, emergency SOS dispatches, and managing rider settings. The current implementation features a tactical skeuomorphic theme with clay-style card containers, dynamic active bike synchronization, and reactive settings architecture.
+CAMP Mobile is a Flutter rider cockpit for managing a motorcycle, tracking predictive maintenance & trip finances, registering a new bike, managing garage fleets, navigating off-grid route packs, finding mechanics, hands-free voice assistance, emergency SOS dispatches, and managing rider settings. The implementation features a tactical skeuomorphic theme with clay-style card containers, dynamic active bike synchronization, and reactive settings architecture.
+
+> **100% Software-Based Architecture**: CAMP operates strictly on rider-logged data (odometer logs, service records, riding terrain tags) and standard smartphone services (GPS altitude via `geolocator`). There is **no OBD-II connection, no ECU polling, no hardware sensors, and no live telemetry hardware pairing**. All wear indicators, service warnings, and carburetor guidance bands are deterministic software calculations.
 
 ## App Workflow & Feature Matrix
 
@@ -14,7 +16,7 @@ CAMP Mobile is a Flutter rider cockpit for managing a motorcycle, checking live 
    - Central routing system with full support for legacy aliases.
 
 3. **Explore Dashboard & Profile (`lib/features/dashboard/`)**
-   - `HomeScreen` (`/`): Tactical cockpit landing page with live telemetry stats, AI voice copilot bar, active bike status, quick alerts, and bottom navigation dock (`CampBottomNav`).
+   - `HomeScreen` (`/`): Tactical cockpit landing page with rider odometer stats, AI voice copilot bar, active bike status, quick alerts, and bottom navigation dock (`CampBottomNav`).
    - `ProfileScreen` (`/profile`): Rider account overview with cockpit hero card, touring tier progress, earned trail badges, garage quick view, maintenance health summaries, recent trips, rider medical SOS ID, and a reactive **Settings card**.
    - `EditProfileScreen` (`/edit-profile`): Form for editing rider personal information and preferences.
 
@@ -24,12 +26,16 @@ CAMP Mobile is a Flutter rider cockpit for managing a motorcycle, checking live 
    - `BikeDetailsScreen` (`/bike-details`): Multi-step bike spec editor with validation gating.
 
 5. **Garage Fleet & Bike Profile (`lib/features/garage/`)**
-   - `GarageScreen` (`/garage`): Active fleet manager with telemetry status, sync controls, and bike card list.
+   - `GarageScreen` (`/garage`): Active fleet manager with bike spec cards, odometer display, and quick fleet switching.
    - `BikeProfileScreen` (`/bike-profile`): Detailed motorcycle spec sheet, service history, and active bike selection controller (`ActiveBikeController`).
 
 6. **Expedition Maintenance, Diagnostics & Finances (`lib/features/maintenance/`)**
-   - `FinanceRigHealthScreen` (`/finance-rig-health`): Combined trip budget calculator (`TripBudgetCardWidget`) and component health telemetry tracker (`MaintenanceListWidget`).
-   - `PredictiveMaintenanceScreen` (`/predictive-maintenance`): AI wear-and-tear tracking, service interval forecasting, and part replacement alerts.
+   - `MaintenanceScreen` (`/maintenance`, `/predictive-maintenance`): 100% software-driven maintenance hub organized into 4 modular sub-views:
+     - **Diagnostics Tab** (`DiagnosticsTab`): Predicts component wear (engine oil, chain tension, brake pads, tire degradation) using `MaintenancePredictionEngine`. Oil wear evaluates the earlier of odometer distance (5,000 km baseline) vs calendar time elapsed (90 days baseline), with both shortened by 15% under Off-road or Mountain terrain conditions. Highlights riding pattern insights derived from post-ride logs.
+     - **Carburetor Tab** (`CarburetorTab`): Altitude calibration advisor. Reads live phone GPS altitude via `geolocator` with graceful fallback to manual entry. Uses baseline tuning elevation recorded in the Jetting Log to calculate air density ratios via the US Standard Atmosphere 1976 formula. Maps ratios to 4 severity bands (minimal `<5%`, slight `5–10%`, noticeable `10–20%`, significant `>20%`) with bidirectional guidance (rich condition for thinner air, prominent lean risk warning for denser air) and prominent safety disclaimers. Dynamically hidden for EFI bikes.
+     - **Pre-Ride Tab** (`PreRideTab`): Pre-flight safety checklist covering tire pressures, chain slack, fluid levels, controls, and lighting.
+     - **Post-Ride Tab** (`PostRideTab`): Expedition debrief form and historical log. Persists distance, terrain tags, and flagged issues via reactive `PostRideReportController`.
+   - `FinanceRigHealthScreen` (`/finance-rig-health`): Combined trip budget calculator (`TripBudgetCardWidget`) and component health tracker (`MaintenanceListWidget`).
    - `CarburetorTuningScreen` (`/carburetor-tuning`): Interactive diagnostic guide for jetting, mixture adjustment, and carb synchronization.
 
 7. **Mechanics & Workshop Directory (`lib/features/mechanics/`)**
@@ -38,10 +44,10 @@ CAMP Mobile is a Flutter rider cockpit for managing a motorcycle, checking live 
 
 8. **Off-Grid Navigation & Route Packs (`lib/features/navigation/`)**
    - `NavigationMapScreen` (`/navigation/map`): Interactive turn-by-turn navigation map interface.
-   - `RoutePacksScreen` (`/route-packs`): Offline route pack discovery, trail telemetry, and map pack manager.
+   - `RoutePacksScreen` (`/route-packs`): Offline route pack discovery, trail difficulty ratings, and map pack manager.
 
-9. **Trip History & Telemetry Logs (`lib/features/ride_history/`)**
-   - `RideHistoryScreen` (`/ride-history`): Comprehensive log of past rides, trip telemetry, elevation metrics, and speed profiles.
+9. **Trip History & Ride Logs (`lib/features/ride_history/`)**
+   - `RideHistoryScreen` (`/ride-history`): Comprehensive log of past rides, trip distance, elevation metrics, and speed profiles.
 
 10. **Voice Copilot AI Assistant (`lib/features/voice_copilot/`)**
     - `VoiceAssistantScreen` (`/voice-copilot`, `/voice-assistant`): Hands-free audio assistant for real-time rider voice queries, route inquiries, and system checks.
@@ -50,7 +56,7 @@ CAMP Mobile is a Flutter rider cockpit for managing a motorcycle, checking live 
     - `EmergencySosScreen` (`/emergency-sos`): Rapid-response emergency dispatch UI with live location payload, emergency contact notifications, and medical profile details.
 
 12. **Dedicated Settings Management (`lib/features/settings/`)**
-    - `SettingsScreen` (`/settings`): Centralized hub for unit preference (Metric vs Imperial), notification alerts, cache clearing, and telemetry sharing.
+    - `SettingsScreen` (`/settings`): Centralized hub for unit preference (Metric vs Imperial), notification alerts, cache clearing, and data sharing controls.
     - `SettingsController`: Reactive singleton state manager for app preferences.
 
 ---
@@ -74,8 +80,8 @@ CAMP Mobile is a Flutter rider cockpit for managing a motorcycle, checking live 
 | `/mechanics/add`, `/add-mechanic` | `AddMechanicScreen` | Workshop Directory |
 | `/navigation/map` | `NavigationMapScreen` | Navigation |
 | `/route-packs` | `RoutePacksScreen` | Navigation |
+| `/maintenance`, `/predictive-maintenance` | `MaintenanceScreen` | Maintenance Hub |
 | `/finance-rig-health` | `FinanceRigHealthScreen` | Maintenance & Budget |
-| `/predictive-maintenance` | `PredictiveMaintenanceScreen` | Maintenance |
 | `/carburetor-tuning` | `CarburetorTuningScreen` | Diagnostics |
 | `/ride-history` | `RideHistoryScreen` | Trip Logs |
 | `/voice-copilot`, `/voice-assistant` | `VoiceAssistantScreen` | Voice Assistant |
@@ -98,7 +104,7 @@ lib/features/
 ├── maintenance/    # Service history, predictive maintenance, carburetor tuning, expense budget
 ├── mechanics/      # Nearby motorcycle service center finder & workshop registry
 ├── navigation/     # Offline maps, route packs, GPX trail tracking
-├── ride_history/   # Log of past rides, telemetry logs, performance metrics
+├── ride_history/   # Log of past rides, trip ride logs, performance metrics
 ├── settings/       # Shared SettingsController & dedicated SettingsScreen
 └── voice_copilot/  # Hands-free tactical AI voice query assistant
 ```
@@ -129,6 +135,6 @@ flutter test
 ## Stack Highlights
 
 - **Framework**: Flutter (Dart `^3.13.4`)
-- **State Management**: Reactive Singleton `ChangeNotifier` controllers (`ActiveBikeController`, `SettingsController`)
+- **State Management**: Reactive Singleton `ChangeNotifier` controllers (`ActiveBikeController`, `SettingsController`, `PostRideReportController`)
 - **UI Design System**: Tactical skeuomorphic clay-style design system with Google Fonts (`Manrope`, `Teko`, `Share Tech Mono`)
-- **Plugins**: `camera`, `flutter_map`, `google_fonts`, `latlong2`, `proj4dart`
+- **Plugins**: `camera`, `flutter_map`, `geolocator`, `google_fonts`, `latlong2`, `proj4dart`

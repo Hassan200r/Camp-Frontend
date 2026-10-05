@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/skeuomorphic_container.dart';
+import '../../../../core/widgets/camp_app_bar.dart';
 import '../../../../core/widgets/camp_bottom_nav.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
 import '../../../dashboard/presentation/widgets/tactical_bottom_dock_widget.dart';
@@ -586,7 +587,8 @@ class _BikeScanScreenState extends State<BikeScanScreen>
             ),
           ),
 
-          const SizedBox.shrink(),
+          // Center: CAMP Logo
+          const CampLogo(),
 
           // Right: Skeuomorphic Pill Badge ("• BIKE SCAN")
           SkeuomorphicContainer(

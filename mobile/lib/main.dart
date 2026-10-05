@@ -15,7 +15,7 @@ import 'features/garage/presentation/screens/bike_profile_screen.dart';
 import 'features/garage/presentation/screens/garage_screen.dart';
 import 'features/maintenance/presentation/screens/carburetor_tuning_screen.dart';
 import 'features/maintenance/presentation/screens/finance_rig_health_screen.dart';
-import 'features/maintenance/presentation/screens/predictive_maintenance_screen.dart';
+import 'features/maintenance/presentation/screens/maintenance_screen.dart';
 import 'features/mechanics/presentation/screens/add_mechanic_screen.dart';
 import 'features/mechanics/presentation/screens/mechanics_home_screen.dart';
 import 'features/navigation/presentation/screens/navigation_map_screen.dart';
@@ -70,7 +70,8 @@ class CampApp extends StatelessWidget {
         '/ride-history': (context) => const RideHistoryScreen(),
         '/finance-rig-health': (context) => const FinanceRigHealthScreen(),
         '/finances-rig-health': (context) => const FinanceRigHealthScreen(),
-        '/predictive-maintenance': (context) => const PredictiveMaintenanceScreen(),
+        '/maintenance': (context) => const MaintenanceScreen(),
+        '/predictive-maintenance': (context) => const MaintenanceScreen(),
         '/carburetor-tuning': (context) => const CarburetorTuningScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/emergency-sos': (context) => const EmergencySosScreen(),

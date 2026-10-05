@@ -76,6 +76,7 @@ class Bike {
     this.lastTuneUp,
     this.vin,
     this.nickname,
+    this.lastUpdated,
   });
 
   /// Unique identifier for the bike.
@@ -135,6 +136,13 @@ class Bike {
   /// Optional rider nickname for the motorcycle (e.g. Black Beast).
   final String? nickname;
 
+  /// Timestamp of when the motorcycle profile/mileage/service was last updated.
+  final DateTime? lastUpdated;
+
+  /// Fallback getter ensuring a non-null timestamp for relative time display.
+  DateTime get lastUpdatedAt =>
+      lastUpdated ?? DateTime.now().subtract(const Duration(hours: 2, minutes: 15));
+
   Bike copyWith({
     String? id,
     String? make,
@@ -155,6 +163,7 @@ class Bike {
     ServiceRecord? lastTuneUp,
     String? vin,
     String? nickname,
+    DateTime? lastUpdated,
   }) {
     return Bike(
       id: id ?? this.id,
@@ -178,6 +187,7 @@ class Bike {
       lastTuneUp: lastTuneUp ?? this.lastTuneUp,
       vin: vin ?? this.vin,
       nickname: nickname ?? this.nickname,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
     );
   }
 
