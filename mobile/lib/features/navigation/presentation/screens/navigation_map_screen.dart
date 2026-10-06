@@ -373,16 +373,18 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
                   Positioned(
                     left: 0,
                     right: 0,
-                    bottom: 0,
-                    child: CampBottomNav(
-                      selectedIndex: 2,
-                      onIndexChanged: (index) {
-                        CampBottomNav.navigateToTab(
-                          context,
-                          index,
-                          currentIndex: 2,
-                        );
-                      },
+                    bottom: 24,
+                    child: Center(
+                      child: CampBottomNav(
+                        selectedIndex: 2,
+                        onIndexChanged: (index) {
+                          CampBottomNav.navigateToTab(
+                            context,
+                            index,
+                            currentIndex: 2,
+                          );
+                        },
+                      ),
                     ),
                   ),
               ],

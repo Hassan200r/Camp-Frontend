@@ -24,8 +24,10 @@ class AddMotorcycleScreen extends StatelessWidget {
       child: Scaffold(
         drawer: const AppDrawerWidget(),
         backgroundColor: AppColors.clay,
-        body: Stack(
-          children: [
+        body: SizedBox.expand(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
             // ── Scrollable Body Content ─────────────────────────────────────
             SafeArea(
               bottom: false,
@@ -94,8 +96,9 @@ class AddMotorcycleScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   // ── Option 1: Scan Bike Card ──────────────────────────────────────────────
   Widget _buildScanBikeCard(BuildContext context) {
