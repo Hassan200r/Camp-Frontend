@@ -6,6 +6,19 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- Camera permission required for the Bike Scan screen photo capture. -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Internet permission for live tile fetching, routing, and geocoding. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
+        </intent>
+    </queries>
     <application
         android:label="Camp"
         android:name="${applicationName}"
