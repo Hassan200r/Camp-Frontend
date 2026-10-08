@@ -42,9 +42,14 @@ CAMP Mobile is a Flutter rider cockpit for managing a motorcycle, tracking predi
    - `MechanicsHomeScreen` (`/mechanics`): Directory and locator for nearby verified motorcycle workshops and mechanics.
    - `AddMechanicScreen` (`/mechanics/add`, `/add-mechanic`): Registration portal for workshop owners and specialist mechanics.
 
-8. **Off-Grid Navigation & Route Packs (`lib/features/navigation/`)**
-   - `NavigationMapScreen` (`/navigation/map`): Interactive turn-by-turn navigation map interface.
-   - `RoutePacksScreen` (`/route-packs`): Offline route pack discovery, trail difficulty ratings, and map pack manager.
+8. **Off-Grid Navigation, Mapping & Turn-by-Turn Guidance (`lib/features/navigation/`)**
+   - `NavigationMapScreen` (`/navigation/map`): Full-featured interactive turn-by-turn navigation map interface backed by `NavigationController` state management:
+     - **Topographic & Map Views** (`NavMapView`, `TopographicMapCanvas`): Tactical vector map canvas with location centering, zoom controls, and custom trail overlays.
+     - **Interactive HUD Controls** (`NavMapControls`, `NavPermissionBanner`, `NavSearchBar`, `NavFilterChips`): Location permission status banners, quick search, and tactical layer toggles.
+     - **Route Preview & Active Guidance** (`NavRoutePreviewSheet`, `NavRoutePreviewPanel`, `NavActiveNavigationOverlay`, `NavTurnBanner`, `NavActiveBottomBar`, `NavArrivedSheet`): Step-by-step turn guidance banner, dynamic ETA, recalculation triggers, and destination arrival debrief sheets.
+     - **POI & Location Sheets** (`NavLocationSheet`, `NavPoiDetailSheet`, `RouteDetailSheet`): Deep inspection sheets for waypoints, roadside amenities, and trail technicality.
+   - `RoutePacksScreen` (`/route-packs`): Offline route pack discovery, trail difficulty ratings, storage management (`StorageAllocationCardWidget`), and offline map pack manager (`RoutePackCardWidget`).
+   - **Services & Domain Models** (`lib/features/navigation/domain/`): `LocationService`, `GeocodingService`, `RoutingService`, `PlacesPoiService`, `RoutePackModel`, `RoadsideMapModels`.
 
 9. **Trip History & Ride Logs (`lib/features/ride_history/`)**
    - `RideHistoryScreen` (`/ride-history`): Comprehensive log of past rides, trip distance, elevation metrics, and speed profiles.
@@ -103,7 +108,7 @@ lib/features/
 ├── garage/         # Fleet management, active bike state controller, bike profile
 ├── maintenance/    # Service history, predictive maintenance, carburetor tuning, expense budget
 ├── mechanics/      # Nearby motorcycle service center finder & workshop registry
-├── navigation/     # Offline maps, route packs, GPX trail tracking
+├── navigation/     # Turn-by-turn navigation, map controls, route preview/active overlays, offline route packs, location & routing services
 ├── ride_history/   # Log of past rides, trip ride logs, performance metrics
 ├── settings/       # Shared SettingsController & dedicated SettingsScreen
 └── voice_copilot/  # Hands-free tactical AI voice query assistant
@@ -135,6 +140,7 @@ flutter test
 ## Stack Highlights
 
 - **Framework**: Flutter (Dart `^3.13.4`)
-- **State Management**: Reactive Singleton `ChangeNotifier` controllers (`ActiveBikeController`, `SettingsController`, `PostRideReportController`)
+- **State Management**: Reactive Singleton `ChangeNotifier` controllers (`ActiveBikeController`, `SettingsController`, `PostRideReportController`, `NavigationController`)
 - **UI Design System**: Tactical skeuomorphic clay-style design system with Google Fonts (`Manrope`, `Teko`, `Share Tech Mono`)
 - **Plugins**: `camera`, `flutter_map`, `geolocator`, `google_fonts`, `latlong2`, `proj4dart`
+
