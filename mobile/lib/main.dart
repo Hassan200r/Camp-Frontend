@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'app/routes.dart';
@@ -18,7 +20,6 @@ import 'features/garage/presentation/screens/bike_profile_screen.dart';
 import 'features/garage/presentation/screens/garage_screen.dart';
 import 'features/maintenance/controllers/post_ride_report_controller.dart';
 import 'features/maintenance/controllers/trip_budget_controller.dart';
-import 'features/maintenance/presentation/screens/carburetor_tuning_screen.dart';
 import 'features/maintenance/presentation/screens/finance_rig_health_screen.dart';
 import 'features/maintenance/presentation/screens/maintenance_screen.dart';
 import 'features/mechanics/presentation/screens/add_mechanic_screen.dart';
@@ -58,8 +59,34 @@ void main() async {
   runApp(const CampApp());
 }
 
-class CampApp extends StatelessWidget {
+class CampApp extends StatefulWidget {
   const CampApp({super.key});
+
+  @override
+  State<CampApp> createState() => _CampAppState();
+}
+
+class _CampAppState extends State<CampApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      unawaited(LocalStore.instance.flush());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,15 +98,9 @@ class CampApp extends StatelessWidget {
       routes: {
         CampRoutes.home: (context) => const HomeScreen(),
         CampRoutes.signIn: (context) => const SignInScreen(),
-        CampRoutes.login: (context) => const SignInScreen(),
-        CampRoutes.auth: (context) => const SignInScreen(),
         CampRoutes.signUp: (context) => const SignUpScreen(),
-        CampRoutes.register: (context) => const SignUpScreen(),
         CampRoutes.forgotPassword: (context) => const ForgotPasswordScreen(),
         CampRoutes.addBike: (context) => const AddMotorcycleScreen(),
-        CampRoutes.addMotorcycle: (context) => const AddMotorcycleScreen(),
-        CampRoutes.addBikeUnderscore: (context) => const AddMotorcycleScreen(),
-        CampRoutes.addMotorcycleUnderscore: (context) => const AddMotorcycleScreen(),
         CampRoutes.bikeDetails: (context) => const BikeDetailsScreen(),
         CampRoutes.bikeScan: (context) => const BikeScanScreen(),
         CampRoutes.bikeProfile: (context) => const BikeProfileScreen(),
@@ -87,21 +108,20 @@ class CampApp extends StatelessWidget {
         CampRoutes.profile: (context) => const ProfileScreen(),
         CampRoutes.editProfile: (context) => const EditProfileScreen(),
         CampRoutes.mechanics: (context) => const MechanicsHomeScreen(),
-        CampRoutes.mechanicsAdd: (context) => const AddMechanicScreen(),
         CampRoutes.addMechanic: (context) => const AddMechanicScreen(),
         CampRoutes.navigationMap: (context) => const NavigationMapScreen(),
         // TODO: Legacy route aliases — kept for temporary backward compatibility during team branch merges. Remove once confirmed unused across all teammate branches.
         CampRoutes.legacyMechanicsMap: (context) => const NavigationMapScreen(),
         CampRoutes.voiceCopilot: (context) => const VoiceAssistantScreen(),
-        CampRoutes.voiceAssistant: (context) => const VoiceAssistantScreen(),
         CampRoutes.legacyMechanicsVoiceAssistant: (context) => const VoiceAssistantScreen(),
         CampRoutes.routePacks: (context) => const RoutePacksScreen(),
         CampRoutes.rideHistory: (context) => const RideHistoryScreen(),
         CampRoutes.financeRigHealth: (context) => const FinanceRigHealthScreen(),
-        CampRoutes.financesRigHealth: (context) => const FinanceRigHealthScreen(),
         CampRoutes.maintenance: (context) => const MaintenanceScreen(),
-        CampRoutes.predictiveMaintenance: (context) => const MaintenanceScreen(),
-        CampRoutes.carburetorTuning: (context) => const CarburetorTuningScreen(),
+        CampRoutes.predictiveMaintenance: (context) =>
+            const MaintenanceScreen(initialTab: MaintenanceTab.diagnostics),
+        CampRoutes.carburetorTuning: (context) =>
+            const MaintenanceScreen(initialTab: MaintenanceTab.carburetor),
         CampRoutes.settings: (context) => const SettingsScreen(),
         CampRoutes.emergencySos: (context) => const EmergencySosScreen(),
       },

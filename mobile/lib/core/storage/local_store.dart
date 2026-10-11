@@ -1,14 +1,16 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Lightweight wrapper around [SharedPreferences] providing typed JSON storage,
-/// schema versioning, and first-run detection for CAMP offline persistence.
+/// schema versioning, first-run detection, and ordered write sequencing for CAMP offline persistence.
 class LocalStore {
   LocalStore([this._prefs]);
 
   static LocalStore instance = LocalStore();
 
   SharedPreferences? _prefs;
+  Future<void> _writeQueue = Future.value();
 
   static const String schemaVersionKey = 'camp_schema_version';
   static const int currentSchemaVersion = 1;
@@ -34,9 +36,29 @@ class LocalStore {
     _prefs = customPrefs ?? await SharedPreferences.getInstance();
   }
 
-  /// Reset internal preferences reference for test harnesses.
+  /// Reset internal preferences reference and write queue for test harnesses.
   void resetForTesting([SharedPreferences? mockPrefs]) {
     _prefs = mockPrefs;
+    _writeQueue = Future.value();
+  }
+
+  /// Queue an asynchronous write action so all writes execute in strict order.
+  Future<T> _enqueueWrite<T>(Future<T> Function() action) {
+    final completer = Completer<T>();
+    _writeQueue = _writeQueue.then(
+      (_) => action(),
+      onError: (_) => action(),
+    ).then((result) {
+      completer.complete(result);
+    }).catchError((Object error, StackTrace stackTrace) {
+      completer.completeError(error, stackTrace);
+    });
+    return completer.future;
+  }
+
+  /// Await completion of all pending queued writes.
+  Future<void> flush() async {
+    await _writeQueue;
   }
 
   /// Read raw string value for [key].
@@ -45,10 +67,12 @@ class LocalStore {
     return p.getString(key);
   }
 
-  /// Write raw string [value] for [key].
-  Future<bool> writeString(String key, String value) async {
-    final p = await prefs;
-    return p.setString(key, value);
+  /// Write raw string [value] for [key] in strictly queued order.
+  Future<bool> writeString(String key, String value) {
+    return _enqueueWrite(() async {
+      final p = await prefs;
+      return p.setString(key, value);
+    });
   }
 
   /// Read and parse JSON from string stored at [key].
@@ -64,16 +88,18 @@ class LocalStore {
     }
   }
 
-  /// Encode [value] to JSON string and store at [key].
+  /// Encode [value] to JSON string and store at [key] in queued order.
   Future<bool> writeJson(String key, dynamic value) async {
     final encoded = jsonEncode(value);
     return writeString(key, encoded);
   }
 
-  /// Remove entry by [key].
-  Future<bool> remove(String key) async {
-    final p = await prefs;
-    return p.remove(key);
+  /// Remove entry by [key] in queued order.
+  Future<bool> remove(String key) {
+    return _enqueueWrite(() async {
+      final p = await prefs;
+      return p.remove(key);
+    });
   }
 
   /// Check whether this is the application's first run.
@@ -83,11 +109,13 @@ class LocalStore {
         !p.containsKey(schemaVersionKey);
   }
 
-  /// Mark first-run seeding as completed.
-  Future<void> markFirstRunCompleted() async {
-    final p = await prefs;
-    await p.setBool(keyFirstRunCompleted, true);
-    await p.setInt(schemaVersionKey, currentSchemaVersion);
+  /// Mark first-run seeding as completed in queued order.
+  Future<void> markFirstRunCompleted() {
+    return _enqueueWrite(() async {
+      final p = await prefs;
+      await p.setBool(keyFirstRunCompleted, true);
+      await p.setInt(schemaVersionKey, currentSchemaVersion);
+    });
   }
 
   /// Read stored schema version, if present.
@@ -96,15 +124,19 @@ class LocalStore {
     return p.getInt(schemaVersionKey);
   }
 
-  /// Write schema version integer.
-  Future<bool> setSchemaVersion(int version) async {
-    final p = await prefs;
-    return p.setInt(schemaVersionKey, version);
+  /// Write schema version integer in queued order.
+  Future<bool> setSchemaVersion(int version) {
+    return _enqueueWrite(() async {
+      final p = await prefs;
+      return p.setInt(schemaVersionKey, version);
+    });
   }
 
-  /// Clear all stored keys in [SharedPreferences].
-  Future<bool> clear() async {
-    final p = await prefs;
-    return p.clear();
+  /// Clear all stored keys in [SharedPreferences] in queued order.
+  Future<bool> clear() {
+    return _enqueueWrite(() async {
+      final p = await prefs;
+      return p.clear();
+    });
   }
 }

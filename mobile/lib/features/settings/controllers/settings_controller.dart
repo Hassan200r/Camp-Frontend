@@ -107,6 +107,9 @@ class SettingsController extends ChangeNotifier {
     reset();
   }
 
+  /// Await completion of all pending storage writes.
+  Future<void> flush() => LocalStore.instance.flush();
+
   /// Load user settings from persistent store.
   Future<void> load([LocalStore? store]) async {
     final localStore = store ?? LocalStore.instance;

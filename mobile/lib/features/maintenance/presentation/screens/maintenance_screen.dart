@@ -14,6 +14,13 @@ import '../widgets/diagnostics_tab.dart';
 import '../widgets/post_ride_tab.dart';
 import '../widgets/pre_ride_tab.dart';
 
+enum MaintenanceTab {
+  diagnostics,
+  carburetor,
+  preRide,
+  postRide,
+}
+
 /// Software-driven Maintenance Screen — thin shell.
 ///
 /// Owns only the tab-selector state and the shared scaffold chrome
@@ -26,7 +33,9 @@ import '../widgets/pre_ride_tab.dart';
 ///
 /// No sensor, OBD-II, or ECU claims anywhere in this file.
 class MaintenanceScreen extends StatefulWidget {
-  const MaintenanceScreen({super.key});
+  const MaintenanceScreen({super.key, this.initialTab});
+
+  final MaintenanceTab? initialTab;
 
   @override
   State<MaintenanceScreen> createState() => _MaintenanceScreenState();
@@ -34,6 +43,32 @@ class MaintenanceScreen extends StatefulWidget {
 
 class _MaintenanceScreenState extends State<MaintenanceScreen> {
   int _selectedTabIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveInitialTab();
+  }
+
+  void _resolveInitialTab() {
+    final activeBike = ActiveBikeController.instance.activeBike;
+    final isCarburetor = activeBike?.fuelSystem == FuelSystem.carburetor;
+
+    if (widget.initialTab == MaintenanceTab.carburetor) {
+      if (isCarburetor) {
+        _selectedTabIndex = 1;
+      } else {
+        // If active bike is EFI, open Diagnostics instead
+        _selectedTabIndex = 0;
+      }
+    } else if (widget.initialTab == MaintenanceTab.diagnostics) {
+      _selectedTabIndex = 0;
+    } else if (widget.initialTab == MaintenanceTab.preRide) {
+      _selectedTabIndex = isCarburetor ? 2 : 1;
+    } else if (widget.initialTab == MaintenanceTab.postRide) {
+      _selectedTabIndex = isCarburetor ? 3 : 2;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

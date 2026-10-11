@@ -103,6 +103,9 @@ class ActiveBikeController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Await completion of all pending storage writes.
+  Future<void> flush() => LocalStore.instance.flush();
+
   /// Load garage fleet and active bike selection from persistent store.
   Future<void> load([LocalStore? store]) async {
     final localStore = store ?? LocalStore.instance;

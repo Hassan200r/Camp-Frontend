@@ -532,4 +532,110 @@ void main() {
       );
     });
   });
+
+  group('Save ordering and flush', () {
+    test('two rapid mutations, then await flush, then reload from a fresh store gives the last state', () async {
+      SharedPreferences.setMockInitialValues({});
+      LocalStore.instance.resetForTesting();
+      ActiveBikeController.instance.resetForTesting();
+
+      // Seed first run completed so subsequent loads don't re-seed defaults
+      await LocalStore.instance.markFirstRunCompleted();
+
+      const bikeA = Bike(
+        id: 'rapid-bike-1',
+        make: 'Yamaha',
+        modelName: 'Tenere 700',
+        modelYear: 2024,
+        displacement: 689,
+        bikeType: 'Adventure',
+        fuelSystem: FuelSystem.efi,
+        carburetorType: null,
+        fuelTankCapacityLiters: 16.0,
+        fuelAverageKmPerLiter: 23.0,
+        ridingTerrain: ['Off-road', 'Highway'],
+        edition: 'Rally',
+        imagePath: null,
+        odometerKm: 2500,
+        currentFuelLiters: 12.0,
+        lastOilChange: null,
+        lastTuneUp: null,
+        vin: 'RAPIDVIN1',
+        nickname: 'T7 Rapid 1',
+      );
+
+      const bikeB = Bike(
+        id: 'rapid-bike-2',
+        make: 'Ducati',
+        modelName: 'DesertX',
+        modelYear: 2024,
+        displacement: 937,
+        bikeType: 'Adventure',
+        fuelSystem: FuelSystem.efi,
+        carburetorType: null,
+        fuelTankCapacityLiters: 21.0,
+        fuelAverageKmPerLiter: 18.0,
+        ridingTerrain: ['Off-road', 'Desert'],
+        edition: 'Discovery',
+        imagePath: null,
+        odometerKm: 1200,
+        currentFuelLiters: 15.0,
+        lastOilChange: null,
+        lastTuneUp: null,
+        vin: 'RAPIDVIN2',
+        nickname: 'DesertX Rapid 2',
+      );
+
+      // Mutation 1 (fire-and-forget save)
+      ActiveBikeController.instance.addBike(bikeA, setActive: true);
+
+      // Mutation 2 immediately afterwards without awaiting (fire-and-forget save)
+      ActiveBikeController.instance.addBike(bikeB, setActive: true);
+
+      // Await flush() so queued writes complete in strict order
+      await LocalStore.instance.flush();
+
+      // Reload into a freshly reset controller using a fresh LocalStore
+      final freshStore = LocalStore();
+      freshStore.resetForTesting();
+      final reloadController = ActiveBikeController.instance;
+      reloadController.resetForTesting();
+
+      await reloadController.load(freshStore);
+
+      // State must reflect both rapid mutations with the second one as active
+      expect(reloadController.bikes.length, 2);
+      expect(reloadController.bikes.any((b) => b.id == 'rapid-bike-1'), isTrue);
+      expect(reloadController.bikes.any((b) => b.id == 'rapid-bike-2'), isTrue);
+      expect(reloadController.activeBikeId, 'rapid-bike-2');
+    });
+
+    test('clearAll() awaits its save and persists empty list', () async {
+      SharedPreferences.setMockInitialValues({});
+      LocalStore.instance.resetForTesting();
+      PostRideReportController.instance.resetForTesting();
+      await LocalStore.instance.markFirstRunCompleted();
+
+      final report = PostRideReport(
+        id: 'clear-rep-1',
+        bikeId: 'bike-bmw-1250',
+        date: DateTime.now(),
+        distanceKm: 100.0,
+        terrainTags: const ['Highway'],
+      );
+      PostRideReportController.instance.addReport(report);
+      await PostRideReportController.instance.flush();
+
+      // clearAll() awaits save
+      await PostRideReportController.instance.clearAll();
+
+      // Reload from fresh store
+      final freshStore = LocalStore();
+      freshStore.resetForTesting();
+      PostRideReportController.instance.resetForTesting();
+      await PostRideReportController.instance.load(freshStore);
+
+      expect(PostRideReportController.instance.reports, isEmpty);
+    });
+  });
 }

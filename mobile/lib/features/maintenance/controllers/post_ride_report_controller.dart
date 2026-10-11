@@ -57,12 +57,16 @@ class PostRideReportController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Reset to completely empty list (useful for testing zero-state).
-  void clearAll() {
+  /// Reset to completely empty list and persist to disk (restricted to tests).
+  @visibleForTesting
+  Future<void> clearAll() async {
     _reports.clear();
     notifyListeners();
-    save();
+    await save();
   }
+
+  /// Await completion of all pending storage writes.
+  Future<void> flush() => LocalStore.instance.flush();
 
   /// Reset in-memory state for unit testing without writing to storage.
   void resetForTesting() {

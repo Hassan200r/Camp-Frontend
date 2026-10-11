@@ -995,7 +995,7 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
-              Navigator.of(context).pushNamed(CampRoutes.financesRigHealth);
+              Navigator.of(context).pushNamed(CampRoutes.financeRigHealth);
             },
             child: Container(
               width: double.infinity,

@@ -1,3 +1,4 @@
+import 'package:camp/features/garage/controllers/active_bike_controller.dart';
 import 'package:camp/features/maintenance/domain/expense_model.dart';
 import 'package:camp/features/maintenance/domain/maintenance_item_model.dart';
 import 'package:camp/features/maintenance/domain/trip_budget_model.dart';
@@ -5,6 +6,7 @@ import 'package:camp/features/maintenance/presentation/screens/add_expense_scree
 import 'package:camp/features/maintenance/presentation/screens/add_maintenance_item_screen.dart';
 import 'package:camp/features/maintenance/presentation/screens/edit_trip_budget_screen.dart';
 import 'package:camp/features/maintenance/presentation/screens/finance_rig_health_screen.dart';
+import 'package:camp/features/maintenance/presentation/screens/maintenance_screen.dart';
 import 'package:camp/features/maintenance/presentation/widgets/delete_trip_dialog_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -164,5 +166,36 @@ void main() {
     expect(find.text('Delete Alpine Ridge Tour?'), findsOneWidget);
     expect(find.text('Cancel'), findsOneWidget);
     expect(find.text('Delete'), findsOneWidget);
+  });
+
+  testWidgets('MaintenanceScreen initialTab respects EFI fallback and carburetor selection',
+      (WidgetTester tester) async {
+    // BMW is default active bike (EFI)
+    ActiveBikeController.instance.reset();
+    expect(ActiveBikeController.instance.activeBike?.fuelSystem.name, 'efi');
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MaintenanceScreen(initialTab: MaintenanceTab.carburetor),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // EFI bike should fallback to Diagnostics tab, Carburetor tab should not even exist
+    expect(find.text('Diagnostics'), findsOneWidget);
+    expect(find.text('Carburetor'), findsNothing);
+
+    // Switch to Rebel 500 (Carburetor)
+    ActiveBikeController.instance.setActiveBike('bike-rebel-500');
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MaintenanceScreen(initialTab: MaintenanceTab.carburetor),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Carburetor bike should show Carburetor tab and select it
+    expect(find.text('Carburetor'), findsOneWidget);
   });
 }

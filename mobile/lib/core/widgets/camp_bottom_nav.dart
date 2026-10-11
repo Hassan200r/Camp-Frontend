@@ -69,7 +69,7 @@ class CampBottomNav extends StatelessWidget {
         break;
       case 4:
         Navigator.of(context).pushNamedAndRemoveUntil(
-          CampRoutes.financesRigHealth,
+          CampRoutes.financeRigHealth,
           (route) => route.settings.name == CampRoutes.home,
         );
         break;

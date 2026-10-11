@@ -90,7 +90,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
   Future<void> _navigateToAddMechanic() async {
     final newMechanic = await Navigator.pushNamed<Mechanic>(
       context,
-      CampRoutes.mechanicsAdd,
+      CampRoutes.addMechanic,
     );
 
     if (mounted) {
