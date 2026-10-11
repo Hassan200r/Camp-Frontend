@@ -178,6 +178,8 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
         ),
       );
 
+      if (!mounted) return false;
+
       if (shouldExit == true) {
         _controller.stopNavigation();
       }

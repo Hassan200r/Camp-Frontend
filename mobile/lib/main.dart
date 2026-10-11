@@ -22,10 +22,24 @@ import 'features/navigation/presentation/screens/navigation_map_screen.dart';
 import 'features/navigation/presentation/screens/route_packs_screen.dart';
 import 'features/ride_history/presentation/screens/ride_history_screen.dart';
 import 'features/settings/presentation/screens/settings_screen.dart';
+import 'core/storage/local_store.dart';
+import 'features/garage/controllers/active_bike_controller.dart';
+import 'features/maintenance/controllers/post_ride_report_controller.dart';
+import 'features/maintenance/controllers/trip_budget_controller.dart';
+import 'features/settings/controllers/settings_controller.dart';
 import 'features/voice_copilot/presentation/screens/voice_assistant_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final store = LocalStore.instance;
+  await store.init();
+  await ActiveBikeController.instance.load(store);
+  await SettingsController.instance.load(store);
+  await PostRideReportController.instance.load(store);
+  await TripBudgetController.instance.load(store);
+  if (await store.isFirstRun()) {
+    await store.markFirstRunCompleted();
+  }
   runApp(const CampApp());
 }
 

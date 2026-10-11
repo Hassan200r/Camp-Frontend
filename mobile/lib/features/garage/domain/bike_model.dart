@@ -21,6 +21,18 @@ class ServiceRecord {
     this.date,
   });
 
+  factory ServiceRecord.fromJson(Map<String, dynamic> json) {
+    return ServiceRecord(
+      mode: json['mode'] == 'byDate'
+          ? TrackingMode.byDate
+          : TrackingMode.byDistance,
+      km: json['km'] as int?,
+      date: json['date'] != null
+          ? DateTime.tryParse(json['date'] as String)
+          : null,
+    );
+  }
+
   final TrackingMode mode;
   final int? km;
   final DateTime? date;
@@ -51,6 +63,12 @@ class ServiceRecord {
 
   @override
   int get hashCode => Object.hash(mode, km, date);
+
+  Map<String, dynamic> toJson() => {
+        'mode': mode.name,
+        'km': km,
+        'date': date?.toIso8601String(),
+      };
 }
 
 /// Motorcycle domain model representing a registered vehicle in CAMP.
@@ -78,6 +96,45 @@ class Bike {
     this.nickname,
     this.lastUpdated,
   });
+
+  factory Bike.fromJson(Map<String, dynamic> json) {
+    return Bike(
+      id: json['id'] as String,
+      make: json['make'] as String? ?? 'Unknown',
+      modelName: json['modelName'] as String? ?? 'Unknown',
+      modelYear: json['modelYear'] as int? ?? DateTime.now().year,
+      odometerKm: json['odometerKm'] as int? ?? 0,
+      displacement: json['displacement'] as int?,
+      bikeType: json['bikeType'] as String?,
+      fuelSystem: json['fuelSystem'] == 'efi'
+          ? FuelSystem.efi
+          : FuelSystem.carburetor,
+      carburetorType: json['carburetorType'] as String?,
+      fuelTankCapacityLiters:
+          (json['fuelTankCapacityLiters'] as num?)?.toDouble(),
+      fuelAverageKmPerLiter:
+          (json['fuelAverageKmPerLiter'] as num?)?.toDouble(),
+      ridingTerrain: (json['ridingTerrain'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList(),
+      edition: json['edition'] as String?,
+      imagePath: json['imagePath'] as String?,
+      currentFuelLiters: (json['currentFuelLiters'] as num?)?.toDouble(),
+      lastOilChange: json['lastOilChange'] != null
+          ? ServiceRecord.fromJson(
+              json['lastOilChange'] as Map<String, dynamic>)
+          : null,
+      lastTuneUp: json['lastTuneUp'] != null
+          ? ServiceRecord.fromJson(
+              json['lastTuneUp'] as Map<String, dynamic>)
+          : null,
+      vin: json['vin'] as String?,
+      nickname: json['nickname'] as String?,
+      lastUpdated: json['lastUpdated'] != null
+          ? DateTime.tryParse(json['lastUpdated'] as String)
+          : null,
+    );
+  }
 
   /// Unique identifier for the bike.
   final String id;
@@ -194,4 +251,27 @@ class Bike {
   @override
   String toString() =>
       'Bike(id: $id, make: $make, modelName: $modelName, year: $modelYear, odo: $odometerKm)';
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'make': make,
+        'modelName': modelName,
+        'modelYear': modelYear,
+        'odometerKm': odometerKm,
+        'displacement': displacement,
+        'bikeType': bikeType,
+        'fuelSystem': fuelSystem.name,
+        'carburetorType': carburetorType,
+        'fuelTankCapacityLiters': fuelTankCapacityLiters,
+        'fuelAverageKmPerLiter': fuelAverageKmPerLiter,
+        'ridingTerrain': ridingTerrain,
+        'edition': edition,
+        'imagePath': imagePath,
+        'currentFuelLiters': currentFuelLiters,
+        'lastOilChange': lastOilChange?.toJson(),
+        'lastTuneUp': lastTuneUp?.toJson(),
+        'vin': vin,
+        'nickname': nickname,
+        'lastUpdated': lastUpdated?.toIso8601String(),
+      };
 }

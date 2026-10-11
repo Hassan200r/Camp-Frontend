@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:camp/features/garage/controllers/active_bike_controller.dart';
 import 'package:camp/features/navigation/controllers/navigation_controller.dart';
 import 'package:camp/features/navigation/domain/geocoding_service.dart';
@@ -356,4 +358,43 @@ void main() {
       );
     });
   });
+
+  group('NavigationController Lifecycle & Stability', () {
+    test('Disposing controller while permission request is pending does not throw or notify', () async {
+      final permCompleter = Completer<bool>();
+      final locationService = _PendingPermissionLocationService(permCompleter);
+      final controller = NavigationController(locationService: locationService);
+
+      var notifiedAfterDispose = false;
+      controller.addListener(() {
+        if (controller.isDisposed) {
+          notifiedAfterDispose = true;
+        }
+      });
+
+      // Start initialization which requests permission and awaits the completer
+      final initFuture = controller.initialize();
+
+      // Dispose controller while requestPermission is pending
+      controller.dispose();
+      expect(controller.isDisposed, isTrue);
+
+      // Now complete the permission request
+      permCompleter.complete(true);
+      await initFuture;
+
+      expect(notifiedAfterDispose, isFalse);
+    });
+  });
+}
+
+class _PendingPermissionLocationService extends FakeLocationService {
+  _PendingPermissionLocationService(this.permissionCompleter);
+  final Completer<bool> permissionCompleter;
+
+  @override
+  Future<bool> checkPermission() async => false;
+
+  @override
+  Future<bool> requestPermission() => permissionCompleter.future;
 }

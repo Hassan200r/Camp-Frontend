@@ -24,12 +24,16 @@ enum _BannerState { none, analyzing, identified, notIdentified }
 ///   [imagePath] — optional, starts in "photo taken" state with a gallery image.
 ///   [recognitionService] — injectable for widget tests (defaults to [BikeRecognitionProvider.instance]).
 ///   [cameraAvailable] — injectable for widget tests (defaults to runtime detection).
+///   [camerasFetcher] — injectable camera loader for widget tests (e.g. slow-start testing).
+///   [cameraController] — injectable camera controller for widget tests.
 class BikeScanScreen extends StatefulWidget {
   const BikeScanScreen({
     super.key,
     this.imagePath,
     this.recognitionService,
     this.cameraAvailable,
+    this.camerasFetcher,
+    this.cameraController,
   });
 
   final String? imagePath;
@@ -39,6 +43,12 @@ class BikeScanScreen extends StatefulWidget {
 
   /// Override camera availability (true = has camera, false = no camera, null = autodetect).
   final bool? cameraAvailable;
+
+  /// Override availableCameras lookup for tests.
+  final Future<List<CameraDescription>> Function()? camerasFetcher;
+
+  /// Injected camera controller (e.g. for tests).
+  final CameraController? cameraController;
 
   @override
   State<BikeScanScreen> createState() => _BikeScanScreenState();
@@ -109,7 +119,9 @@ class _BikeScanScreenState extends State<BikeScanScreen>
     // already being unmounted and calling setState would assert-fail.
     final c = _cameraController;
     _cameraController = null;
-    c?.dispose();
+    if (widget.cameraController == null) {
+      c?.dispose();
+    }
     super.dispose();
   }
 
@@ -128,7 +140,9 @@ class _BikeScanScreenState extends State<BikeScanScreen>
   void _disposeCamera() {
     final c = _cameraController;
     _cameraController = null;
-    c?.dispose();
+    if (widget.cameraController == null) {
+      c?.dispose();
+    }
     if (mounted) {
       setState(() {
         _isCameraInitialized = false;
@@ -162,8 +176,11 @@ class _BikeScanScreenState extends State<BikeScanScreen>
     try {
       List<CameraDescription> cameras;
       try {
-        cameras = await availableCameras().timeout(
-          const Duration(milliseconds: 800),
+        cameras = await (widget.camerasFetcher != null
+                ? widget.camerasFetcher!()
+                : availableCameras())
+            .timeout(
+          const Duration(seconds: 8),
         );
       } on MissingPluginException {
         throw Exception('camera_plugin_unavailable');
@@ -205,21 +222,26 @@ class _BikeScanScreenState extends State<BikeScanScreen>
   Future<void> _disposeAndCreateController(CameraDescription desc) async {
     final old = _cameraController;
     _cameraController = null;
-    await old?.dispose();
+    if (widget.cameraController == null) {
+      await old?.dispose();
+    }
 
     if (!mounted) return;
 
-    final controller = CameraController(
-      desc,
-      ResolutionPreset.high,
-      enableAudio: false,
-    );
+    final controller = widget.cameraController ??
+        CameraController(
+          desc,
+          ResolutionPreset.high,
+          enableAudio: false,
+        );
     _cameraController = controller;
 
     try {
-      await controller.initialize().timeout(
-        const Duration(milliseconds: 1200),
-      );
+      if (!controller.value.isInitialized) {
+        await controller.initialize().timeout(
+          const Duration(seconds: 8),
+        );
+      }
     } on MissingPluginException {
       if (!mounted) return;
       setState(() {
@@ -230,7 +252,9 @@ class _BikeScanScreenState extends State<BikeScanScreen>
     }
 
     if (!mounted) {
-      await controller.dispose();
+      if (widget.cameraController == null) {
+        await controller.dispose();
+      }
       return;
     }
     setState(() {
@@ -487,16 +511,30 @@ class _BikeScanScreenState extends State<BikeScanScreen>
       );
     }
     if (_isCameraLoading) {
-      return const ColoredBox(
+      return ColoredBox(
         color: Colors.black,
         child: Center(
-          child: SizedBox(
-            width: 28,
-            height: 28,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.5,
-              color: AppColors.tacticalOrange,
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: AppColors.tacticalOrange,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Starting camera…',
+                style: GoogleFonts.manrope(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
       );

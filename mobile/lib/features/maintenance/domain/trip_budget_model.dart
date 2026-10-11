@@ -58,4 +58,22 @@ class TripBudget {
     endDate: 'Oct 18, 2026',
     allocatedSoFar: 184.50,
   );
+
+  Map<String, dynamic> toJson() => {
+        'tripName': tripName,
+        'capAmount': capAmount,
+        'startDate': startDate,
+        'endDate': endDate,
+        'allocatedSoFar': allocatedSoFar,
+      };
+
+  factory TripBudget.fromJson(Map<String, dynamic> json) {
+    return TripBudget(
+      tripName: json['tripName'] as String? ?? 'Trip Budget',
+      capAmount: (json['capAmount'] as num?)?.toDouble() ?? 0.0,
+      startDate: json['startDate'] as String?,
+      endDate: json['endDate'] as String?,
+      allocatedSoFar: (json['allocatedSoFar'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
 }

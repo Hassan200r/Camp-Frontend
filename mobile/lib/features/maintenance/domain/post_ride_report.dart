@@ -14,6 +14,21 @@ class PostRideReport {
     this.flaggedIssues,
   });
 
+  factory PostRideReport.fromJson(Map<String, dynamic> json) {
+    return PostRideReport(
+      id: json['id'] as String,
+      bikeId: json['bikeId'] as String,
+      date: DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now(),
+      distanceKm: (json['distanceKm'] as num?)?.toDouble() ?? 0.0,
+      terrainTags: (json['terrainTags'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+      notes: json['notes'] as String?,
+      flaggedIssues: json['flaggedIssues'] as String?,
+    );
+  }
+
   /// Unique identifier for this report log.
   final String id;
 
@@ -90,4 +105,14 @@ class PostRideReport {
   @override
   String toString() =>
       'PostRideReport(id: $id, bike: $bikeId, dist: ${distanceKm}km, terrain: $terrainTags)';
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'bikeId': bikeId,
+        'date': date.toIso8601String(),
+        'distanceKm': distanceKm,
+        'terrainTags': terrainTags,
+        'notes': notes,
+        'flaggedIssues': flaggedIssues,
+      };
 }

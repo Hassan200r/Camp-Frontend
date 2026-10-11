@@ -235,15 +235,28 @@ class NavigationController extends ChangeNotifier {
     return buildGoogleMapsUrl(dest);
   }
 
+  bool _disposed = false;
+
+  /// Whether the controller has been disposed.
+  bool get isDisposed => _disposed;
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
   // ── Initialization & Lifecycle ─────────────────────────────────────────────
 
   Future<void> initialize() async {
     await checkLocationPermissionAndStart();
+    if (_disposed) return;
     _reverseGeocodeCurrentLocation();
   }
 
   Future<void> checkLocationPermissionAndStart() async {
     final serviceEnabled = await _locationService.isLocationServiceEnabled();
+    if (_disposed) return;
     _isLocationServiceEnabled = serviceEnabled;
     if (!serviceEnabled) {
       _currentLocationSubtitle = 'Location off';
@@ -251,8 +264,10 @@ class NavigationController extends ChangeNotifier {
     }
 
     final hasPerm = await _locationService.checkPermission();
+    if (_disposed) return;
     if (!hasPerm) {
       final granted = await _locationService.requestPermission();
+      if (_disposed) return;
       _permissionDenied = !granted;
       if (!granted) {
         _currentLocationSubtitle = 'Location permission denied';
@@ -267,6 +282,7 @@ class NavigationController extends ChangeNotifier {
 
     // Fetch single current position fix
     final initialPos = await _locationService.getCurrentPosition();
+    if (_disposed) return;
     if (initialPos != null) {
       _currentPosition = initialPos;
       _currentHeading = initialPos.heading;
@@ -730,7 +746,9 @@ class NavigationController extends ChangeNotifier {
 
   @override
   void dispose() {
-    stopPositionStream();
+    _disposed = true;
+    _positionSub?.cancel();
+    _positionSub = null;
     _disableWakelock();
     super.dispose();
   }

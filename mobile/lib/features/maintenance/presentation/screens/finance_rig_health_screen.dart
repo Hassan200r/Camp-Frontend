@@ -6,6 +6,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
+import '../../controllers/trip_budget_controller.dart';
 import '../../domain/expense_model.dart';
 import '../../domain/maintenance_item_model.dart';
 import '../../domain/trip_budget_model.dart';
@@ -38,8 +39,8 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
   @override
   void initState() {
     super.initState();
-    _tripBudget = TripBudget.defaultSampleBudget;
-    _expenses = List.from(Expense.defaultSampleExpenses);
+    _tripBudget = TripBudgetController.instance.budget;
+    _expenses = List.from(TripBudgetController.instance.expenses);
     _maintenanceItems = List.from(MaintenanceItem.defaultSampleItems);
   }
 
@@ -69,8 +70,9 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
       ),
     );
     if (result != null && mounted) {
+      TripBudgetController.instance.setBudget(result);
       setState(() {
-        _tripBudget = result;
+        _tripBudget = TripBudgetController.instance.budget;
       });
       _showNotification('Budget updated for ${_tripBudget.tripName}');
     }
@@ -81,11 +83,10 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
       MaterialPageRoute(builder: (context) => const AddExpenseScreen()),
     );
     if (result != null && mounted) {
+      TripBudgetController.instance.addExpense(result);
       setState(() {
-        _expenses.insert(0, result);
-        _tripBudget = _tripBudget.copyWith(
-          allocatedSoFar: _tripBudget.allocatedSoFar + result.amount,
-        );
+        _expenses = List.from(TripBudgetController.instance.expenses);
+        _tripBudget = TripBudgetController.instance.budget;
       });
       _showNotification(
         'Added ${result.title} (\$${result.amount.toStringAsFixed(2)})',
@@ -106,13 +107,10 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
   }
 
   void _handleDeleteTrip() {
+    TripBudgetController.instance.deleteTrip();
     setState(() {
-      _tripBudget = const TripBudget(
-        tripName: 'New Expedition',
-        capAmount: 0.0,
-        allocatedSoFar: 0.0,
-      );
-      _expenses.clear();
+      _tripBudget = TripBudgetController.instance.budget;
+      _expenses = List.from(TripBudgetController.instance.expenses);
     });
     _showNotification('Trip deleted. Maintenance records preserved.');
   }

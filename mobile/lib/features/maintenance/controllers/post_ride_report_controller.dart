@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../core/storage/local_store.dart';
 import '../domain/post_ride_report.dart';
 
 /// Central state controller managing user-logged post-ride debriefs.
@@ -30,6 +31,7 @@ class PostRideReportController extends ChangeNotifier {
   void addReport(PostRideReport report) {
     _reports.insert(0, report);
     notifyListeners();
+    save();
   }
 
   /// Remove a specific post-ride report by ID.
@@ -38,6 +40,7 @@ class PostRideReportController extends ChangeNotifier {
     if (index != -1) {
       _reports.removeAt(index);
       notifyListeners();
+      save();
     }
   }
 
@@ -45,6 +48,7 @@ class PostRideReportController extends ChangeNotifier {
   void clearReportsForBike(String bikeId) {
     _reports.removeWhere((r) => r.bikeId == bikeId);
     notifyListeners();
+    save();
   }
 
   /// Reset the controller back to initial default sample reports.
@@ -57,6 +61,69 @@ class PostRideReportController extends ChangeNotifier {
   void clearAll() {
     _reports.clear();
     notifyListeners();
+    save();
+  }
+
+  /// Load post-ride reports from persistent store.
+  Future<void> load([LocalStore? store]) async {
+    final localStore = store ?? LocalStore.instance;
+    final isFirst = await localStore.isFirstRun();
+
+    if (isFirst) {
+      _initializeDefaultReports();
+      await save(localStore);
+      return;
+    }
+
+    try {
+      final reportsJson =
+          await localStore.readJson(LocalStore.keyPostRideReports);
+
+      if (reportsJson == null || reportsJson is! List) {
+        // Fall back to defaults without crashing
+        _initializeDefaultReports();
+        notifyListeners();
+        return;
+      }
+
+      final schemaVer = await localStore.getSchemaVersion();
+      if (schemaVer == null || schemaVer > LocalStore.currentSchemaVersion) {
+        _initializeDefaultReports();
+        notifyListeners();
+        return;
+      }
+
+      final loadedReports = <PostRideReport>[];
+      for (final item in reportsJson) {
+        if (item is Map<String, dynamic>) {
+          loadedReports.add(PostRideReport.fromJson(item));
+        } else if (item is Map) {
+          loadedReports.add(
+              PostRideReport.fromJson(item.cast<String, dynamic>()));
+        }
+      }
+
+      _reports.clear();
+      _reports.addAll(loadedReports);
+      notifyListeners();
+    } catch (_) {
+      // Fallback on corrupt data
+      _initializeDefaultReports();
+      notifyListeners();
+    }
+  }
+
+  /// Persist post-ride reports to persistent store.
+  Future<void> save([LocalStore? store]) async {
+    final localStore = store ?? LocalStore.instance;
+    try {
+      await localStore.writeJson(
+        LocalStore.keyPostRideReports,
+        _reports.map((r) => r.toJson()).toList(),
+      );
+    } catch (_) {
+      // Ignore background write errors
+    }
   }
 
   void _initializeDefaultReports() {

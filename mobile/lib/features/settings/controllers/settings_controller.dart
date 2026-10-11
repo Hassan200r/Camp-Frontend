@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../core/storage/local_store.dart';
 import '../domain/units_system.dart';
 
 /// Central state controller managing application settings:
@@ -44,6 +45,7 @@ class SettingsController extends ChangeNotifier {
     if (_units == units) return;
     _units = units;
     notifyListeners();
+    save();
   }
 
   /// Toggle or update the push notification preference.
@@ -51,11 +53,13 @@ class SettingsController extends ChangeNotifier {
     if (_notificationsEnabled == enabled) return;
     _notificationsEnabled = enabled;
     notifyListeners();
+    save();
   }
 
   void toggleNotifications() {
     _notificationsEnabled = !_notificationsEnabled;
     notifyListeners();
+    save();
   }
 
   /// Toggle or update ride telemetry anonymization and sharing preference.
@@ -63,14 +67,17 @@ class SettingsController extends ChangeNotifier {
     if (_privacySharingEnabled == enabled) return;
     _privacySharingEnabled = enabled;
     notifyListeners();
+    save();
   }
 
   void togglePrivacySharing() {
     _privacySharingEnabled = !_privacySharingEnabled;
     notifyListeners();
+    save();
   }
 
   /// Clear temporary tile and telemetry cache, releasing local device space.
+  /// NOTE: This only clears map/tile cache, never garage, reports, or settings.
   void clearLocalCache() {
     _localCacheSizeGb = 0.0;
     notifyListeners();
@@ -93,5 +100,72 @@ class SettingsController extends ChangeNotifier {
     _localCacheSizeGb = 1.4;
     _language = 'English';
     notifyListeners();
+  }
+
+  /// Load user settings from persistent store.
+  Future<void> load([LocalStore? store]) async {
+    final localStore = store ?? LocalStore.instance;
+    final isFirst = await localStore.isFirstRun();
+
+    if (isFirst) {
+      _units = UnitsSystem.metric;
+      _notificationsEnabled = true;
+      _privacySharingEnabled = true;
+      await save(localStore);
+      return;
+    }
+
+    try {
+      final json = await localStore.readJson(LocalStore.keySettings);
+      if (json == null || json is! Map) {
+        // Fall back to defaults without crashing
+        _units = UnitsSystem.metric;
+        _notificationsEnabled = true;
+        _privacySharingEnabled = true;
+        notifyListeners();
+        return;
+      }
+
+      final schemaVer = await localStore.getSchemaVersion();
+      if (schemaVer == null || schemaVer > LocalStore.currentSchemaVersion) {
+        _units = UnitsSystem.metric;
+        _notificationsEnabled = true;
+        _privacySharingEnabled = true;
+        notifyListeners();
+        return;
+      }
+
+      final map = json.cast<String, dynamic>();
+      final unitsStr = map['units'] as String?;
+      if (unitsStr == 'imperial') {
+        _units = UnitsSystem.imperial;
+      } else {
+        _units = UnitsSystem.metric;
+      }
+
+      _notificationsEnabled = map['notificationsEnabled'] as bool? ?? true;
+      _privacySharingEnabled = map['privacySharingEnabled'] as bool? ?? true;
+      notifyListeners();
+    } catch (_) {
+      // Fallback on corrupt data
+      _units = UnitsSystem.metric;
+      _notificationsEnabled = true;
+      _privacySharingEnabled = true;
+      notifyListeners();
+    }
+  }
+
+  /// Persist user settings to persistent store.
+  Future<void> save([LocalStore? store]) async {
+    final localStore = store ?? LocalStore.instance;
+    try {
+      await localStore.writeJson(LocalStore.keySettings, {
+        'units': _units.name,
+        'notificationsEnabled': _notificationsEnabled,
+        'privacySharingEnabled': _privacySharingEnabled,
+      });
+    } catch (_) {
+      // Ignore background write errors
+    }
   }
 }

@@ -97,6 +97,27 @@ class Expense {
     this.formattedDate,
   });
 
+  factory Expense.fromJson(Map<String, dynamic> json) {
+    return Expense(
+      id: json['id'] as String,
+      category: ExpenseCategory.values.firstWhere(
+        (c) => c.name == json['category'],
+        orElse: () => ExpenseCategory.other,
+      ),
+      title: json['title'] as String? ?? 'Expense',
+      amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+      trackingMode: json['trackingMode'] == 'autoTrack'
+          ? ExpenseTrackingMode.autoTrack
+          : ExpenseTrackingMode.manualEntry,
+      subtitle: json['subtitle'] as String?,
+      note: json['note'] as String?,
+      dateRecorded: json['dateRecorded'] != null
+          ? DateTime.tryParse(json['dateRecorded'] as String)
+          : null,
+      formattedDate: json['formattedDate'] as String?,
+    );
+  }
+
   final String id;
   final ExpenseCategory category;
   final String title;
@@ -137,4 +158,16 @@ class Expense {
           formattedDate: 'Oct 14, 6:00 PM',
         ),
       ];
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'category': category.name,
+        'title': title,
+        'amount': amount,
+        'trackingMode': trackingMode.name,
+        'subtitle': subtitle,
+        'note': note,
+        'dateRecorded': dateRecorded?.toIso8601String(),
+        'formattedDate': formattedDate,
+      };
 }

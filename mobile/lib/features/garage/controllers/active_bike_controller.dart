@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../core/storage/local_store.dart';
 import '../domain/bike_model.dart';
 
 /// Central state controller managing the rider's garage fleet and the current active telemetry rig.
@@ -51,6 +52,7 @@ class ActiveBikeController extends ChangeNotifier {
     if (exists) {
       _activeBikeId = bikeId;
       notifyListeners();
+      save();
     }
   }
 
@@ -64,6 +66,7 @@ class ActiveBikeController extends ChangeNotifier {
         _activeBikeId = _bikes.isNotEmpty ? _bikes.first.id : null;
       }
       notifyListeners();
+      save();
     }
   }
 
@@ -74,6 +77,7 @@ class ActiveBikeController extends ChangeNotifier {
       _activeBikeId = bike.id;
     }
     notifyListeners();
+    save();
   }
 
   /// Update specifications or telemetry milestone records of an existing bike.
@@ -82,6 +86,7 @@ class ActiveBikeController extends ChangeNotifier {
     if (index != -1) {
       _bikes[index] = updatedBike;
       notifyListeners();
+      save();
     }
   }
 
@@ -89,6 +94,79 @@ class ActiveBikeController extends ChangeNotifier {
   void reset() {
     _initializeDefaultFleet();
     notifyListeners();
+  }
+
+  /// Load garage fleet and active bike selection from persistent store.
+  Future<void> load([LocalStore? store]) async {
+    final localStore = store ?? LocalStore.instance;
+    final isFirst = await localStore.isFirstRun();
+
+    if (isFirst) {
+      _initializeDefaultFleet();
+      await save(localStore);
+      return;
+    }
+
+    try {
+      final bikesJson = await localStore.readJson(LocalStore.keyBikes);
+      final activeId = await localStore.readString(LocalStore.keyActiveBikeId);
+
+      if (bikesJson == null || bikesJson is! List) {
+        // Corrupted or missing data falls back to defaults without crashing
+        _initializeDefaultFleet();
+        notifyListeners();
+        return;
+      }
+
+      final schemaVer = await localStore.getSchemaVersion();
+      if (schemaVer == null || schemaVer > LocalStore.currentSchemaVersion) {
+        _initializeDefaultFleet();
+        notifyListeners();
+        return;
+      }
+
+      final loadedBikes = <Bike>[];
+      for (final item in bikesJson) {
+        if (item is Map<String, dynamic>) {
+          loadedBikes.add(Bike.fromJson(item));
+        } else if (item is Map) {
+          loadedBikes.add(Bike.fromJson(item.cast<String, dynamic>()));
+        }
+      }
+
+      _bikes.clear();
+      _bikes.addAll(loadedBikes);
+      _activeBikeId = activeId;
+
+      if (_bikes.isNotEmpty &&
+          (_activeBikeId == null || !_bikes.any((b) => b.id == _activeBikeId))) {
+        _activeBikeId = _bikes.first.id;
+      }
+
+      notifyListeners();
+    } catch (_) {
+      // Fallback without crashing
+      _initializeDefaultFleet();
+      notifyListeners();
+    }
+  }
+
+  /// Persist current garage fleet and active bike selection.
+  Future<void> save([LocalStore? store]) async {
+    final localStore = store ?? LocalStore.instance;
+    try {
+      await localStore.writeJson(
+        LocalStore.keyBikes,
+        _bikes.map((b) => b.toJson()).toList(),
+      );
+      if (_activeBikeId != null) {
+        await localStore.writeString(LocalStore.keyActiveBikeId, _activeBikeId!);
+      } else {
+        await localStore.remove(LocalStore.keyActiveBikeId);
+      }
+    } catch (_) {
+      // Ignore background write errors
+    }
   }
 
   void _initializeDefaultFleet() {

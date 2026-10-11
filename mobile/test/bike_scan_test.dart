@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:camera/camera.dart';
 import 'package:camp/features/bike_scan/controllers/bike_onboarding_controller.dart';
 import 'package:camp/features/bike_scan/domain/bike_recognition_service.dart';
 import 'package:camp/features/bike_scan/presentation/screens/bike_scan_screen.dart';
@@ -264,6 +265,40 @@ void main() {
 
       // Add Details should be enabled (no longer in "analyzing" state).
       expect(find.text('Add Details'), findsOneWidget);
+    },
+  );
+
+  // ── 6. Slow-start camera case ─────────────────────────────────────────────
+  testWidgets(
+    'Slow camera start displays "Starting camera…" while initializing and falls back on error/timeout',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final completer = Completer<List<CameraDescription>>();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BikeScanScreen(
+            camerasFetcher: () => completer.future,
+          ),
+        ),
+      );
+
+      // Pump a single frame — camera is initializing.
+      await tester.pump();
+
+      // Verify that while waiting, it shows "Starting camera…" and progress indicator.
+      expect(find.text('Starting camera…'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      // Complete with timeout / error.
+      completer.completeError(TimeoutException('Camera slow start timed out'));
+      await tester.pumpAndSettle();
+
+      // On timeout or error, show the existing "Enter details manually" fallback.
+      expect(find.text('Enter details manually'), findsOneWidget);
     },
   );
 }
