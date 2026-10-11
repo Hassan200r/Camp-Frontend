@@ -102,3 +102,7 @@ ui-debug.log*
 *.tmp
 *.bak
 migrated/
+
+# Agents
+Agents.md
+PROGRESS.md
