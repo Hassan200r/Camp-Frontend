@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -404,7 +405,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(width: 10),
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () => Navigator.of(context).pushNamed('/mechanics/map'),
+                    onTap: () => Navigator.of(context).pushNamed(CampRoutes.navigationMap),
                     child: Container(
                       width: 44,
                       height: 44,
@@ -482,7 +483,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Expanded(
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () => Navigator.of(context).pushNamed('/edit-profile'),
+                    onTap: () => Navigator.of(context).pushNamed(CampRoutes.editProfile),
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 11),
                       decoration: BoxDecoration(
@@ -887,7 +888,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: 'MY GARAGE',
           actionWidget: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pushNamed('/add-bike'),
+            onTap: () => Navigator.of(context).pushNamed(CampRoutes.addBike),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -969,7 +970,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => Navigator.of(context).pushNamed('/garage'),
+      onTap: () => Navigator.of(context).pushNamed(CampRoutes.garage),
       child: Container(
         width: 236,
         padding: const EdgeInsets.all(12),
@@ -1302,7 +1303,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // View Full Report Button
           GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).pushNamed('/mechanics'),
+            onTap: () => Navigator.of(context).pushNamed(CampRoutes.mechanics),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 10),
@@ -1759,7 +1760,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.person_outline_rounded,
                     title: 'Edit Personal Info',
                     trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
-                    onTap: () => Navigator.of(context).pushNamed('/edit-profile'),
+                    onTap: () => Navigator.of(context).pushNamed(CampRoutes.editProfile),
                   ),
                   const Divider(height: 1, color: Color(0x12000000)),
                   _buildSettingsRow(
@@ -1787,7 +1788,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
                       ],
                     ),
-                    onTap: () => Navigator.of(context).pushNamed('/settings'),
+                    onTap: () => Navigator.of(context).pushNamed(CampRoutes.settings),
                   ),
                   const Divider(height: 1, color: Color(0x12000000)),
                   _buildSettingsRow(
@@ -1808,7 +1809,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
                       ],
                     ),
-                    onTap: () => Navigator.of(context).pushNamed('/settings'),
+                    onTap: () => Navigator.of(context).pushNamed(CampRoutes.settings),
                   ),
                   const Divider(height: 1, color: Color(0x12000000)),
                   _buildSettingsRow(
@@ -1816,7 +1817,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: 'Offline Maps',
                     subtitle: '${settings.cachedPacksSizeGb.toStringAsFixed(1)} GB used • ${settings.cachedPacksSubtitle}',
                     trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
-                    onTap: () => Navigator.of(context).pushNamed('/settings'),
+                    onTap: () => Navigator.of(context).pushNamed(CampRoutes.settings),
                   ),
                   const Divider(height: 1, color: Color(0x12000000)),
                   _buildSettingsRow(
@@ -1837,14 +1838,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
                       ],
                     ),
-                    onTap: () => Navigator.of(context).pushNamed('/settings'),
+                    onTap: () => Navigator.of(context).pushNamed(CampRoutes.settings),
                   ),
                   const Divider(height: 1, color: Color(0x12000000)),
                   _buildSettingsRow(
                     icon: Icons.help_outline_rounded,
                     title: 'Help & Support',
                     trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
-                    onTap: () => Navigator.of(context).pushNamed('/settings'),
+                    onTap: () => Navigator.of(context).pushNamed(CampRoutes.settings),
                   ),
                   const Divider(height: 1, color: Color(0x12000000)),
                   _buildSettingsRow(
@@ -1883,7 +1884,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
                       ],
                     ),
-                    onTap: () => Navigator.of(context).pushNamed('/settings'),
+                    onTap: () => Navigator.of(context).pushNamed(CampRoutes.settings),
                   ),
                 ],
               ),

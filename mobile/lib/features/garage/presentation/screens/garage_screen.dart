@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -183,7 +184,7 @@ class GarageScreen extends StatelessWidget {
         const SizedBox(width: 8),
         GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () => Navigator.of(context).pushNamed('/add-bike'),
+          onTap: () => Navigator.of(context).pushNamed(CampRoutes.addBike),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
@@ -1171,7 +1172,7 @@ class GarageScreen extends StatelessWidget {
             PrimaryButton(
               label: '+ Add a Motorcycle',
               isFullWidth: true,
-              onTap: () => Navigator.of(context).pushNamed('/add-bike'),
+              onTap: () => Navigator.of(context).pushNamed(CampRoutes.addBike),
             ),
           ],
         ),

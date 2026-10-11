@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -205,7 +206,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
     );
 
     // Proceed to Garage screen with newly registered bike telemetry
-    Navigator.of(context).pushNamed('/garage');
+    Navigator.of(context).pushNamed(CampRoutes.garage);
   }
 
   @override

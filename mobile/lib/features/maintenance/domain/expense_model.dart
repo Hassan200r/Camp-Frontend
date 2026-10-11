@@ -159,6 +159,34 @@ class Expense {
         ),
       ];
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Expense &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          category == other.category &&
+          title == other.title &&
+          amount == other.amount &&
+          trackingMode == other.trackingMode &&
+          subtitle == other.subtitle &&
+          note == other.note &&
+          dateRecorded == other.dateRecorded &&
+          formattedDate == other.formattedDate;
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        category,
+        title,
+        amount,
+        trackingMode,
+        subtitle,
+        note,
+        dateRecorded,
+        formattedDate,
+      );
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'category': category.name,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../core/widgets/camp_bottom_nav.dart';
 import '../../controllers/navigation_controller.dart';
 import '../../domain/geocoding_service.dart';
@@ -72,11 +73,13 @@ class NavigationMapScreen extends StatefulWidget {
     this.onNavigateToHome,
     this.controller,
     this.locationService,
+    this.tileProvider,
   });
 
   final VoidCallback? onNavigateToHome;
   final NavigationController? controller;
   final LocationService? locationService;
+  final TileProvider? tileProvider;
 
   @override
   State<NavigationMapScreen> createState() => _NavigationMapScreenState();
@@ -229,6 +232,7 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
                   child: NavMapView(
                     controller: _controller,
                     mapController: _mapController,
+                    tileProvider: widget.tileProvider,
                     onTapMap: () {
                       _controller.clearSelectedPoiMarker();
                     },
@@ -252,7 +256,7 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
                           NavSearchBar(
                             controller: _controller,
                             onOpenProfile: () {
-                              Navigator.of(context).pushNamed('/profile');
+                              Navigator.of(context).pushNamed(CampRoutes.profile);
                             },
                             onSelectPlace: (place) {
                               _controller.openRoutePreview(place);

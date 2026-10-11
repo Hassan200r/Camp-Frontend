@@ -360,30 +360,62 @@ void main() {
   });
 
   group('NavigationController Lifecycle & Stability', () {
-    test('Disposing controller while permission request is pending does not throw or notify', () async {
+    test('Disposing controller while permission request is pending completes without throwing', () async {
       final permCompleter = Completer<bool>();
       final locationService = _PendingPermissionLocationService(permCompleter);
       final controller = NavigationController(locationService: locationService);
 
-      var notifiedAfterDispose = false;
-      controller.addListener(() {
-        if (controller.isDisposed) {
-          notifiedAfterDispose = true;
-        }
-      });
-
-      // Start initialization which requests permission and awaits the completer
       final initFuture = controller.initialize();
-
-      // Dispose controller while requestPermission is pending
       controller.dispose();
       expect(controller.isDisposed, isTrue);
 
-      // Now complete the permission request
       permCompleter.complete(true);
-      await initFuture;
+      await expectLater(initFuture, completes);
+    });
 
-      expect(notifiedAfterDispose, isFalse);
+    test('Disposing controller while getCurrentPosition is pending completes without throwing', () async {
+      final posCompleter = Completer<PositionData?>();
+      final locationService = _PendingPositionLocationService(posCompleter);
+      final controller = NavigationController(locationService: locationService);
+
+      final initFuture = controller.initialize();
+      controller.dispose();
+      expect(controller.isDisposed, isTrue);
+
+      posCompleter.complete(
+        PositionData(
+          latitude: 48.515,
+          longitude: -120.690,
+          timestamp: DateTime.now(),
+        ),
+      );
+      await expectLater(initFuture, completes);
+    });
+
+    test('Disposing controller while route request is pending completes without throwing', () async {
+      final routeCompleter = Completer<RouteResult>();
+      final routingService = _PendingRouteRoutingService(routeCompleter);
+      final controller = NavigationController(routingService: routingService);
+
+      final previewFuture = controller.openRoutePreview(
+        const PlaceSearchResult(
+          name: 'Summit Outpost',
+          displayName: 'Summit Outpost, WA',
+          location: LatLng(48.520, -120.650),
+        ),
+      );
+      controller.dispose();
+      expect(controller.isDisposed, isTrue);
+
+      routeCompleter.complete(
+        const RouteResult(
+          polyline: [LatLng(48.515, -120.690), LatLng(48.520, -120.650)],
+          distanceMeters: 1200.0,
+          durationSeconds: 150.0,
+          steps: [],
+        ),
+      );
+      await expectLater(previewFuture, completes);
     });
   });
 }
@@ -397,4 +429,28 @@ class _PendingPermissionLocationService extends FakeLocationService {
 
   @override
   Future<bool> requestPermission() => permissionCompleter.future;
+}
+
+class _PendingPositionLocationService extends FakeLocationService {
+  _PendingPositionLocationService(this.positionCompleter);
+  final Completer<PositionData?> positionCompleter;
+
+  @override
+  Future<bool> checkPermission() async => true;
+
+  @override
+  Future<PositionData?> getCurrentPosition() => positionCompleter.future;
+}
+
+class _PendingRouteRoutingService extends FakeRoutingService {
+  _PendingRouteRoutingService(this.routeCompleter);
+  final Completer<RouteResult> routeCompleter;
+
+  @override
+  Future<RouteResult> getRoute({
+    required List<LatLng> waypoints,
+    String mode = 'motorcycle',
+    bool requestAlternatives = false,
+  }) =>
+      routeCompleter.future;
 }

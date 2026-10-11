@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/camp_bottom_nav.dart';
@@ -89,7 +90,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
   Future<void> _navigateToAddMechanic() async {
     final newMechanic = await Navigator.pushNamed<Mechanic>(
       context,
-      '/mechanics/add',
+      CampRoutes.mechanicsAdd,
     );
 
     if (mounted) {
@@ -111,7 +112,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
     });
     await Navigator.pushNamed(
       context,
-      '/mechanics/map',
+      CampRoutes.navigationMap,
     );
     if (mounted) {
       // Strictly open Mechanic Screen (Index 3)

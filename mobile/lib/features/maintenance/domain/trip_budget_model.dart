@@ -8,6 +8,16 @@ class TripBudget {
     this.allocatedSoFar = 0.0,
   });
 
+  factory TripBudget.fromJson(Map<String, dynamic> json) {
+    return TripBudget(
+      tripName: json['tripName'] as String? ?? 'Trip Budget',
+      capAmount: (json['capAmount'] as num?)?.toDouble() ?? 0.0,
+      startDate: json['startDate'] as String?,
+      endDate: json['endDate'] as String?,
+      allocatedSoFar: (json['allocatedSoFar'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
   final String tripName;
   final double capAmount;
   final String? startDate;
@@ -59,6 +69,26 @@ class TripBudget {
     allocatedSoFar: 184.50,
   );
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TripBudget &&
+          runtimeType == other.runtimeType &&
+          tripName == other.tripName &&
+          capAmount == other.capAmount &&
+          startDate == other.startDate &&
+          endDate == other.endDate &&
+          allocatedSoFar == other.allocatedSoFar;
+
+  @override
+  int get hashCode => Object.hash(
+        tripName,
+        capAmount,
+        startDate,
+        endDate,
+        allocatedSoFar,
+      );
+
   Map<String, dynamic> toJson() => {
         'tripName': tripName,
         'capAmount': capAmount,
@@ -66,14 +96,4 @@ class TripBudget {
         'endDate': endDate,
         'allocatedSoFar': allocatedSoFar,
       };
-
-  factory TripBudget.fromJson(Map<String, dynamic> json) {
-    return TripBudget(
-      tripName: json['tripName'] as String? ?? 'Trip Budget',
-      capAmount: (json['capAmount'] as num?)?.toDouble() ?? 0.0,
-      startDate: json['startDate'] as String?,
-      endDate: json['endDate'] as String?,
-      allocatedSoFar: (json['allocatedSoFar'] as num?)?.toDouble() ?? 0.0,
-    );
-  }
 }

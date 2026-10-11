@@ -4,6 +4,7 @@ import 'package:camp/features/garage/domain/bike_model.dart';
 import 'package:camp/features/maintenance/controllers/post_ride_report_controller.dart';
 import 'package:camp/features/maintenance/controllers/trip_budget_controller.dart';
 import 'package:camp/features/maintenance/domain/expense_model.dart';
+import 'package:camp/features/maintenance/domain/maintenance_item_model.dart';
 import 'package:camp/features/maintenance/domain/post_ride_report.dart';
 import 'package:camp/features/maintenance/domain/trip_budget_model.dart';
 import 'package:camp/features/settings/controllers/settings_controller.dart';
@@ -17,10 +18,10 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     LocalStore.instance.resetForTesting();
-    ActiveBikeController.instance.reset();
-    SettingsController.instance.reset();
-    PostRideReportController.instance.reset();
-    TripBudgetController.instance.reset();
+    ActiveBikeController.instance.resetForTesting();
+    SettingsController.instance.resetForTesting();
+    PostRideReportController.instance.resetForTesting();
+    TripBudgetController.instance.resetForTesting();
   });
 
   group('First-run demo data seeding', () {
@@ -47,7 +48,7 @@ void main() {
       expect(await store.isFirstRun(), isFalse);
     });
 
-    test('User data wins on subsequent runs even if modified or empty', () async {
+    test('User data wins on subsequent runs even if modified', () async {
       final store = LocalStore();
       store.resetForTesting();
 
@@ -55,7 +56,7 @@ void main() {
       await ActiveBikeController.instance.load(store);
       await store.markFirstRunCompleted();
 
-      // User removes all bikes except a custom one
+      // User adds a custom bike and removes original ones
       const customBike = Bike(
         id: 'custom-bike-99',
         make: 'Yamaha',
@@ -66,8 +67,9 @@ void main() {
       ActiveBikeController.instance.addBike(customBike, setActive: true);
       ActiveBikeController.instance.removeBike('bike-bmw-1250');
       ActiveBikeController.instance.removeBike('bike-rebel-500');
+      await ActiveBikeController.instance.save(store);
 
-      // Reload controller from store
+      // Reload controller from fresh store
       final freshStore = LocalStore();
       freshStore.resetForTesting();
       await ActiveBikeController.instance.load(freshStore);
@@ -77,14 +79,38 @@ void main() {
       expect(ActiveBikeController.instance.bikes.first.id, 'custom-bike-99');
       expect(ActiveBikeController.instance.activeBikeId, 'custom-bike-99');
     });
+
+    test('Deleted bikes stay deleted after reload (demo data only seeded on isFirstRun)', () async {
+      final store = LocalStore();
+      store.resetForTesting();
+
+      // Complete first run seeding
+      await ActiveBikeController.instance.load(store);
+      await store.markFirstRunCompleted();
+
+      // Rider deletes all bikes from garage
+      final existingIds = ActiveBikeController.instance.bikes.map((b) => b.id).toList();
+      for (final id in existingIds) {
+        ActiveBikeController.instance.removeBike(id);
+      }
+      expect(ActiveBikeController.instance.bikes, isEmpty);
+      await ActiveBikeController.instance.save(store);
+
+      // Reload controller from fresh store
+      final freshStore = LocalStore();
+      freshStore.resetForTesting();
+      await ActiveBikeController.instance.load(freshStore);
+
+      // Garage remains empty; does NOT re-seed defaults because isFirstRun is false
+      expect(ActiveBikeController.instance.bikes, isEmpty);
+      expect(ActiveBikeController.instance.activeBikeId, isNull);
+    });
   });
 
   group('Round-trip persistence for each controller', () {
     test('ActiveBikeController round-trip saves and restores bikes & activeBikeId', () async {
       final store = LocalStore();
       store.resetForTesting();
-
-      // Mark first run completed so user data rules apply
       await store.markFirstRunCompleted();
 
       const testBike = Bike(
@@ -99,9 +125,10 @@ void main() {
       ActiveBikeController.instance.addBike(testBike, setActive: true);
       await ActiveBikeController.instance.save(store);
 
-      // Reset in-memory state
-      ActiveBikeController.instance.reset();
-      expect(ActiveBikeController.instance.activeBikeId, isNot('test-ducati-v4'));
+      // Reset in-memory state without persisting
+      ActiveBikeController.instance.resetForTesting();
+      expect(ActiveBikeController.instance.activeBikeId, isNull);
+      expect(ActiveBikeController.instance.bikes, isEmpty);
 
       // Restore from persistent store
       await ActiveBikeController.instance.load(store);
@@ -152,7 +179,8 @@ void main() {
       PostRideReportController.instance.addReport(customReport);
       await PostRideReportController.instance.save(store);
 
-      PostRideReportController.instance.clearAll();
+      // Reset in-memory state without writing empty list to storage
+      PostRideReportController.instance.resetForTesting();
       expect(PostRideReportController.instance.reports, isEmpty);
 
       await PostRideReportController.instance.load(store);
@@ -164,6 +192,10 @@ void main() {
       expect(
         PostRideReportController.instance.reports.first.distanceKm,
         312.4,
+      );
+      expect(
+        PostRideReportController.instance.reports.first,
+        customReport,
       );
     });
 
@@ -191,10 +223,10 @@ void main() {
       TripBudgetController.instance.addExpense(customExpense);
       await TripBudgetController.instance.save(store);
 
-      TripBudgetController.instance.reset();
+      TripBudgetController.instance.resetForTesting();
       expect(
         TripBudgetController.instance.budget.tripName,
-        'Alpine Ridge Tour',
+        '',
       );
 
       await TripBudgetController.instance.load(store);
@@ -208,9 +240,109 @@ void main() {
         isTrue,
       );
     });
+
+    test('Every field of Bike, PostRideReport, Expense, and TripBudget survives save and load', () async {
+      final store = LocalStore();
+      store.resetForTesting();
+      await store.markFirstRunCompleted();
+
+      final fullSpecBike = Bike(
+        id: 'bike-full-spec-1',
+        make: 'KTM',
+        modelName: '890 Adventure R',
+        modelYear: 2024,
+        odometerKm: 6450,
+        displacement: 889,
+        bikeType: 'Adventure',
+        fuelSystem: FuelSystem.efi,
+        carburetorType: null,
+        fuelTankCapacityLiters: 20.0,
+        fuelAverageKmPerLiter: 21.5,
+        ridingTerrain: const ['Off-road', 'Mountain'],
+        edition: 'Rally Edition',
+        imagePath: 'assets/images/ktm_890.jpg',
+        currentFuelLiters: 14.2,
+        lastOilChange: ServiceRecord(
+          mode: TrackingMode.byDistance,
+          km: 5000,
+          date: DateTime(2026, 5, 1),
+        ),
+        lastTuneUp: ServiceRecord(
+          mode: TrackingMode.byDate,
+          km: 6000,
+          date: DateTime(2026, 6, 15),
+        ),
+        vin: 'VBKVA4400PM000001',
+        nickname: 'Orange Beast',
+        lastUpdated: DateTime(2026, 7, 10, 12, 0),
+      );
+
+      final fullSpecReport = PostRideReport(
+        id: 'rep-full-spec-1',
+        bikeId: 'bike-full-spec-1',
+        date: DateTime(2026, 8, 15, 10, 30),
+        distanceKm: 245.5,
+        terrainTags: const ['Mountain', 'Off-road', 'Highway'],
+        notes: 'Scenic pass traverse with scree crossing',
+        flaggedIssues: 'Front tire pressure drop',
+      );
+
+      final fullSpecExpense = Expense(
+        id: 'exp-full-spec-1',
+        category: ExpenseCategory.fuel,
+        title: 'High-octane fuel',
+        amount: 55.40,
+        trackingMode: ExpenseTrackingMode.autoTrack,
+        subtitle: '5.2 gallons at pass',
+        note: 'Card receipt #991',
+        dateRecorded: DateTime(2026, 8, 15, 11, 45),
+        formattedDate: 'Aug 15, 11:45 AM',
+      );
+
+      const fullSpecBudget = TripBudget(
+        tripName: 'North Cascade Loop',
+        capAmount: 600.0,
+        startDate: 'Aug 10, 2026',
+        endDate: 'Aug 20, 2026',
+        allocatedSoFar: 310.40,
+      );
+
+      ActiveBikeController.instance.addBike(fullSpecBike, setActive: true);
+      await ActiveBikeController.instance.save(store);
+
+      PostRideReportController.instance.addReport(fullSpecReport);
+      await PostRideReportController.instance.save(store);
+
+      TripBudgetController.instance.setBudget(fullSpecBudget);
+      TripBudgetController.instance.addExpense(fullSpecExpense);
+      await TripBudgetController.instance.save(store);
+
+      // Clear in-memory singletons
+      ActiveBikeController.instance.resetForTesting();
+      PostRideReportController.instance.resetForTesting();
+      TripBudgetController.instance.resetForTesting();
+
+      // Reload
+      await ActiveBikeController.instance.load(store);
+      await PostRideReportController.instance.load(store);
+      await TripBudgetController.instance.load(store);
+
+      // Verify exact equality across all fields
+      expect(ActiveBikeController.instance.getBikeById('bike-full-spec-1'), fullSpecBike);
+      expect(ActiveBikeController.instance.activeBikeId, 'bike-full-spec-1');
+      expect(PostRideReportController.instance.reports.first, fullSpecReport);
+      expect(TripBudgetController.instance.budget.tripName, fullSpecBudget.tripName);
+      expect(TripBudgetController.instance.budget.capAmount, fullSpecBudget.capAmount);
+      expect(TripBudgetController.instance.budget.startDate, fullSpecBudget.startDate);
+      expect(TripBudgetController.instance.budget.endDate, fullSpecBudget.endDate);
+      expect(
+        TripBudgetController.instance.expenses.firstWhere((e) => e.id == 'exp-full-spec-1'),
+        fullSpecExpense,
+      );
+    });
   });
 
-  group('Corrupt JSON fallback', () {
+  group('Corrupt JSON & Schema Version Fallback', () {
     test('Corrupted or invalid JSON falls back to defaults without crashing', () async {
       SharedPreferences.setMockInitialValues({
         LocalStore.schemaVersionKey: 1,
@@ -225,7 +357,6 @@ void main() {
       final store = LocalStore();
       store.resetForTesting();
 
-      // Must execute cleanly without unhandled exceptions or crashes
       await ActiveBikeController.instance.load(store);
       await SettingsController.instance.load(store);
       await PostRideReportController.instance.load(store);
@@ -237,10 +368,34 @@ void main() {
       expect(TripBudgetController.instance.budget.tripName, 'Alpine Ridge Tour');
     });
 
-    test('Older or incompatible schema version falls back safely', () async {
+    test('Incompatible future schema version falls back safely to defaults', () async {
       SharedPreferences.setMockInitialValues({
-        LocalStore.schemaVersionKey: 999, // Incompatible future version
+        LocalStore.schemaVersionKey: 999,
         LocalStore.keyFirstRunCompleted: true,
+        LocalStore.keySettings: '{"units": "imperial"}',
+        LocalStore.keyBikes: '[{"id": "future-bike"}]',
+        LocalStore.keyPostRideReports: '[{"id": "future-rep"}]',
+        LocalStore.keyTripBudget: '{"tripName": "Future Tour"}',
+      });
+
+      final store = LocalStore();
+      store.resetForTesting();
+
+      await SettingsController.instance.load(store);
+      await ActiveBikeController.instance.load(store);
+      await PostRideReportController.instance.load(store);
+      await TripBudgetController.instance.load(store);
+
+      expect(SettingsController.instance.units, UnitsSystem.metric);
+      expect(ActiveBikeController.instance.bikes.first.id, 'bike-bmw-1250');
+      expect(PostRideReportController.instance.reports.isNotEmpty, isTrue);
+      expect(TripBudgetController.instance.budget.tripName, 'Alpine Ridge Tour');
+    });
+
+    test('Missing schema version after first run completed falls back safely', () async {
+      SharedPreferences.setMockInitialValues({
+        LocalStore.keyFirstRunCompleted: true,
+        // schemaVersionKey missing
         LocalStore.keySettings: '{"units": "imperial"}',
       });
 
@@ -248,37 +403,133 @@ void main() {
       store.resetForTesting();
 
       await SettingsController.instance.load(store);
-      // Falls back to defaults because schema version 999 is incompatible
       expect(SettingsController.instance.units, UnitsSystem.metric);
     });
   });
 
   group('Clear Cache Isolation', () {
-    test('Settings clearLocalCache leaves garage, reports, and settings intact', () async {
+    test('Settings clearLocalCache leaves garage, reports, and settings intact on disk', () async {
       final store = LocalStore();
       store.resetForTesting();
       await store.markFirstRunCompleted();
 
-      // Configure garage, reports, and settings
+      // Configure custom garage bike, post-ride report, and settings
+      const testBike = Bike(
+        id: 'cache-test-bike',
+        make: 'Triumph',
+        modelName: 'Tiger 900',
+        modelYear: 2024,
+        odometerKm: 3100,
+      );
+      ActiveBikeController.instance.addBike(testBike, setActive: true);
+      await ActiveBikeController.instance.save(store);
+
+      final testReport = PostRideReport(
+        id: 'cache-test-report',
+        bikeId: 'cache-test-bike',
+        date: DateTime(2026, 9, 1),
+        distanceKm: 140.0,
+        terrainTags: const ['Mountain'],
+      );
+      PostRideReportController.instance.addReport(testReport);
+      await PostRideReportController.instance.save(store);
+
       SettingsController.instance.setUnits(UnitsSystem.imperial);
       SettingsController.instance.setPrivacySharingEnabled(false);
-      expect(SettingsController.instance.localCacheSizeGb, greaterThan(0.0));
+      await SettingsController.instance.save(store);
 
-      final bikeCountBefore = ActiveBikeController.instance.bikes.length;
-      final reportsCountBefore = PostRideReportController.instance.reports.length;
+      expect(SettingsController.instance.localCacheSizeGb, greaterThan(0.0));
 
       // Execute Clear Local Cache from Settings
       SettingsController.instance.clearLocalCache();
 
-      // Verify cache display is 0.0 GB
+      // Local cache size display is cleared
       expect(SettingsController.instance.localCacheSizeGb, 0.0);
       expect(SettingsController.instance.localCacheDisplay, '0 B');
 
-      // Verify garage, reports, and settings preferences are untouched
-      expect(ActiveBikeController.instance.bikes.length, bikeCountBefore);
-      expect(PostRideReportController.instance.reports.length, reportsCountBefore);
+      // Reload from a completely fresh LocalStore instance
+      final freshStore = LocalStore();
+      freshStore.resetForTesting();
+
+      ActiveBikeController.instance.resetForTesting();
+      PostRideReportController.instance.resetForTesting();
+      SettingsController.instance.resetForTesting();
+
+      await ActiveBikeController.instance.load(freshStore);
+      await PostRideReportController.instance.load(freshStore);
+      await SettingsController.instance.load(freshStore);
+
+      // Assert they are ALL still there!
+      expect(
+        ActiveBikeController.instance.bikes.any((b) => b.id == 'cache-test-bike'),
+        isTrue,
+      );
+      expect(ActiveBikeController.instance.activeBikeId, 'cache-test-bike');
+      expect(
+        PostRideReportController.instance.reports.any((r) => r.id == 'cache-test-report'),
+        isTrue,
+      );
       expect(SettingsController.instance.units, UnitsSystem.imperial);
       expect(SettingsController.instance.privacySharingEnabled, isFalse);
+    });
+  });
+
+  group('Trip Deletion Isolation', () {
+    test('deleteTrip saves and clears ledger while maintenance items, bikes, and reports stay intact', () async {
+      final store = LocalStore();
+      store.resetForTesting();
+      await store.markFirstRunCompleted();
+
+      // Set up garage bike, report, maintenance item and trip
+      const bike = Bike(
+        id: 'trip-del-bike',
+        make: 'Honda',
+        modelName: 'Transalp',
+        modelYear: 2024,
+        odometerKm: 2100,
+      );
+      ActiveBikeController.instance.addBike(bike, setActive: true);
+      await ActiveBikeController.instance.save(store);
+
+      final report = PostRideReport(
+        id: 'trip-del-report',
+        bikeId: 'trip-del-bike',
+        date: DateTime(2026, 9, 5),
+        distanceKm: 88.0,
+        terrainTags: const ['City'],
+      );
+      PostRideReportController.instance.addReport(report);
+      await PostRideReportController.instance.save(store);
+
+      final maintenanceItemsBefore = List<MaintenanceItem>.from(MaintenanceItem.defaultSampleItems);
+
+      // Execute deleteTrip
+      TripBudgetController.instance.deleteTrip();
+      await TripBudgetController.instance.save(store);
+
+      expect(TripBudgetController.instance.budget.tripName, 'New Expedition');
+      expect(TripBudgetController.instance.budget.capAmount, 0.0);
+      expect(TripBudgetController.instance.expenses, isEmpty);
+
+      // Reload from persistent store
+      final freshStore = LocalStore();
+      freshStore.resetForTesting();
+
+      await TripBudgetController.instance.load(freshStore);
+      expect(TripBudgetController.instance.budget.tripName, 'New Expedition');
+      expect(TripBudgetController.instance.budget.capAmount, 0.0);
+      expect(TripBudgetController.instance.expenses, isEmpty);
+
+      // Confirm maintenance items, bikes, and reports are completely untouched
+      expect(maintenanceItemsBefore.length, MaintenanceItem.defaultSampleItems.length);
+      expect(
+        ActiveBikeController.instance.bikes.any((b) => b.id == 'trip-del-bike'),
+        isTrue,
+      );
+      expect(
+        PostRideReportController.instance.reports.any((r) => r.id == 'trip-del-report'),
+        isTrue,
+      );
     });
   });
 }

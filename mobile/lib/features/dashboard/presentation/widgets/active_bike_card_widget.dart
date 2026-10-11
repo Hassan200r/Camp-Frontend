@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -54,7 +55,7 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
                 children: [
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () => Navigator.of(context).pushNamed('/add-bike'),
+                    onTap: () => Navigator.of(context).pushNamed(CampRoutes.addBike),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(

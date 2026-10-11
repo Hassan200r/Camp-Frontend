@@ -14,6 +14,7 @@ class NavMapView extends StatelessWidget {
   const NavMapView({
     required this.controller,
     required this.mapController,
+    this.tileProvider,
     this.onTapMap,
     this.onPositionChanged,
     super.key,
@@ -21,6 +22,7 @@ class NavMapView extends StatelessWidget {
 
   final NavigationController controller;
   final MapController mapController;
+  final TileProvider? tileProvider;
   final VoidCallback? onTapMap;
   final PositionCallback? onPositionChanged;
 
@@ -55,6 +57,7 @@ class NavMapView extends StatelessWidget {
         // 1. Tile Layer
         TileLayer(
           urlTemplate: controller.isTopoLayer ? _openTopoUrl : _osmStandardUrl,
+          tileProvider: tileProvider,
           userAgentPackageName: 'com.camp.moto',
           maxZoom: 19,
           errorTileCallback: (tile, error, stackTrace) {},

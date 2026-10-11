@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/camp_bottom_nav.dart';
 import '../widgets/active_bike_card_widget.dart';
@@ -77,18 +78,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     // 2. Cockpit Status Card (Hero)
                     CockpitStatusCardWidget(
-                      onProfilePressed: () => Navigator.of(context).pushNamed('/profile'),
-                      onCtaPressed: () => Navigator.of(context).pushNamed('/mechanics/map'),
+                      onProfilePressed: () => Navigator.of(context).pushNamed(CampRoutes.profile),
+                      onCtaPressed: () => Navigator.of(context).pushNamed(CampRoutes.navigationMap),
                     ),
 
                     const SizedBox(height: AppColors.cardGap),
 
                     // 3. Voice Copilot Input Bar
                     VoiceCopilotBarWidget(
-                      onVoicePressed: () => Navigator.of(context).pushNamed('/mechanics/voice-assistant'),
-                      onAiPressed: () => Navigator.of(context).pushNamed('/mechanics/voice-assistant'),
+                      onVoicePressed: () => Navigator.of(context).pushNamed(CampRoutes.voiceCopilot),
+                      onAiPressed: () => Navigator.of(context).pushNamed(CampRoutes.voiceCopilot),
                       onSubmitted: (query) {
-                        Navigator.of(context).pushNamed('/mechanics/voice-assistant');
+                        Navigator.of(context).pushNamed(CampRoutes.voiceCopilot);
                       },
                     ),
 
@@ -97,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     // 4. Maintenance Alert Card (dismissible)
                     if (!_maintenanceAlertDismissed) ...[
                       MaintenanceAlertCardWidget(
-                        onScheduleService: () => Navigator.of(context).pushNamed('/mechanics'),
+                        onScheduleService: () => Navigator.of(context).pushNamed(CampRoutes.mechanics),
                         onDismiss: () {
                           setState(() => _maintenanceAlertDismissed = true);
                           _showNotification('Maintenance alert dismissed');
@@ -108,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     // 5. Active Motorcycle Overview Card
                     ActiveBikeCardWidget(
-                      onDetailsPressed: () => Navigator.of(context).pushNamed('/garage'),
+                      onDetailsPressed: () => Navigator.of(context).pushNamed(CampRoutes.garage),
                     ),
 
                     const SizedBox(height: AppColors.cardGap),
@@ -116,8 +117,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     // 6. Recent Updates Feed
                     RecentUpdatesFeedWidget(
                       onMarkAllRead: () => _showNotification('All updates marked as read'),
-                      onViewRadar: () => Navigator.of(context).pushNamed('/mechanics/map'),
-                      onLocateBeacon: () => Navigator.of(context).pushNamed('/mechanics/map'),
+                      onViewRadar: () => Navigator.of(context).pushNamed(CampRoutes.navigationMap),
+                      onLocateBeacon: () => Navigator.of(context).pushNamed(CampRoutes.navigationMap),
                       onDismissTpms: () => _showNotification('TPMS notification cleared'),
                     ),
                   ],

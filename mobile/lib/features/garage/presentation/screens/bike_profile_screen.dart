@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -994,7 +995,7 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
-              Navigator.of(context).pushNamed('/finances-rig-health');
+              Navigator.of(context).pushNamed(CampRoutes.financesRigHealth);
             },
             child: Container(
               width: double.infinity,

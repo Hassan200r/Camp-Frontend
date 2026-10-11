@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -117,7 +118,7 @@ class AddMotorcycleScreen extends StatelessWidget {
       onTap: () {
         HapticFeedback.lightImpact();
         // TODO: Point to the new camera screen when it exists.
-        Navigator.of(context).pushNamed('/bike-scan');
+        Navigator.of(context).pushNamed(CampRoutes.bikeScan);
       },
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -193,7 +194,7 @@ class AddMotorcycleScreen extends StatelessWidget {
       shadows: AppColors.skeuRaised,
       onTap: () {
         HapticFeedback.lightImpact();
-        Navigator.of(context).pushNamed('/garage');
+        Navigator.of(context).pushNamed(CampRoutes.garage);
       },
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,

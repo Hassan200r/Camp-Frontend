@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../controllers/navigation_controller.dart';
 
@@ -43,7 +44,7 @@ class NavActiveNavigationOverlay extends StatelessWidget {
   }
 
   void _openOfflineMaps(BuildContext context) {
-    Navigator.of(context).pushNamed('/route-packs');
+    Navigator.of(context).pushNamed(CampRoutes.routePacks);
   }
 
   void _recenter() {

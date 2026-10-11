@@ -122,11 +122,11 @@ class Bike {
       currentFuelLiters: (json['currentFuelLiters'] as num?)?.toDouble(),
       lastOilChange: json['lastOilChange'] != null
           ? ServiceRecord.fromJson(
-              json['lastOilChange'] as Map<String, dynamic>)
+              Map<String, dynamic>.from(json['lastOilChange'] as Map))
           : null,
       lastTuneUp: json['lastTuneUp'] != null
           ? ServiceRecord.fromJson(
-              json['lastTuneUp'] as Map<String, dynamic>)
+              Map<String, dynamic>.from(json['lastTuneUp'] as Map))
           : null,
       vin: json['vin'] as String?,
       nickname: json['nickname'] as String?,
@@ -251,6 +251,56 @@ class Bike {
   @override
   String toString() =>
       'Bike(id: $id, make: $make, modelName: $modelName, year: $modelYear, odo: $odometerKm)';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Bike &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          make == other.make &&
+          modelName == other.modelName &&
+          modelYear == other.modelYear &&
+          displacement == other.displacement &&
+          bikeType == other.bikeType &&
+          fuelSystem == other.fuelSystem &&
+          carburetorType == other.carburetorType &&
+          fuelTankCapacityLiters == other.fuelTankCapacityLiters &&
+          fuelAverageKmPerLiter == other.fuelAverageKmPerLiter &&
+          listEquals(ridingTerrain, other.ridingTerrain) &&
+          edition == other.edition &&
+          imagePath == other.imagePath &&
+          odometerKm == other.odometerKm &&
+          currentFuelLiters == other.currentFuelLiters &&
+          lastOilChange == other.lastOilChange &&
+          lastTuneUp == other.lastTuneUp &&
+          vin == other.vin &&
+          nickname == other.nickname &&
+          lastUpdated == other.lastUpdated;
+
+  @override
+  int get hashCode => Object.hashAll([
+        id,
+        make,
+        modelName,
+        modelYear,
+        displacement,
+        bikeType,
+        fuelSystem,
+        carburetorType,
+        fuelTankCapacityLiters,
+        fuelAverageKmPerLiter,
+        ridingTerrain == null ? null : Object.hashAll(ridingTerrain!),
+        edition,
+        imagePath,
+        odometerKm,
+        currentFuelLiters,
+        lastOilChange,
+        lastTuneUp,
+        vin,
+        nickname,
+        lastUpdated,
+      ]);
 
   Map<String, dynamic> toJson() => {
         'id': id,

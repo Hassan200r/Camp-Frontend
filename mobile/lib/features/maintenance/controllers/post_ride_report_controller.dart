@@ -64,6 +64,12 @@ class PostRideReportController extends ChangeNotifier {
     save();
   }
 
+  /// Reset in-memory state for unit testing without writing to storage.
+  void resetForTesting() {
+    _reports.clear();
+    notifyListeners();
+  }
+
   /// Load post-ride reports from persistent store.
   Future<void> load([LocalStore? store]) async {
     final localStore = store ?? LocalStore.instance;

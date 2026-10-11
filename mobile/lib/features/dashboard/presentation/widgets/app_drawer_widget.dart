@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/utils/skeuomorphic_container.dart';
@@ -37,9 +38,9 @@ class AppDrawerWidget extends StatelessWidget {
                 padding: EdgeInsets.zero,
                 physics: const BouncingScrollPhysics(),
                 children: [
-                  _menuItem(context, icon: Icons.person_outline_rounded, title: 'User Profile', route: '/profile'),
-                  _menuItem(context, icon: Icons.garage_rounded, iconColor: _orange, title: 'My Garage', subtitle: 'Manage Fleet & Active Rig', badge: 'Garage', orangeBadge: true, route: '/garage'),
-                  _menuItem(context, icon: Icons.directions_bike_rounded, title: 'Bike Profile', badge: 'Active', route: '/bike-profile'),
+                  _menuItem(context, icon: Icons.person_outline_rounded, title: 'User Profile', route: CampRoutes.profile),
+                  _menuItem(context, icon: Icons.garage_rounded, iconColor: _orange, title: 'My Garage', subtitle: 'Manage Fleet & Active Rig', badge: 'Garage', orangeBadge: true, route: CampRoutes.garage),
+                  _menuItem(context, icon: Icons.directions_bike_rounded, title: 'Bike Profile', badge: 'Active', route: CampRoutes.bikeProfile),
                   _menuItem(
                     context,
                     icon: Icons.cloud_download_outlined,
@@ -47,19 +48,19 @@ class AppDrawerWidget extends StatelessWidget {
                     subtitle: 'Offline Topo & Telemetry',
                     badge: '5 Available',
                     orangeBadge: true,
-                    route: '/route-packs',
+                    route: CampRoutes.routePacks,
                   ),
-                  _menuItem(context, icon: Icons.access_time_rounded, title: 'Ride History', subtitle: 'GPS Tracks & Stats', badge: '24 Logged', route: '/ride-history'),
-                  _menuItem(context, icon: Icons.compass_calibration_rounded, title: 'Predictive Maintenance', notification: '1', route: '/predictive-maintenance'),
-                  _menuItem(context, icon: Icons.handyman_rounded, iconColor: _orange, title: 'Find a Mechanic', subtitle: 'Community Pitstops & Roadside', badge: 'Active', orangeBadge: true, route: '/mechanics'),
-                  _menuItem(context, icon: Icons.build_outlined, iconColor: _orange, title: 'Add a Mechanic', subtitle: 'Community Pitstops', badge: '+ Contributor', orangeBadge: true, route: '/add-mechanic'),
-                  _menuItem(context, icon: Icons.settings_outlined, title: 'Settings', route: '/settings'),
+                  _menuItem(context, icon: Icons.access_time_rounded, title: 'Ride History', subtitle: 'GPS Tracks & Stats', badge: '24 Logged', route: CampRoutes.rideHistory),
+                  _menuItem(context, icon: Icons.compass_calibration_rounded, title: 'Predictive Maintenance', notification: '1', route: CampRoutes.predictiveMaintenance),
+                  _menuItem(context, icon: Icons.handyman_rounded, iconColor: _orange, title: 'Find a Mechanic', subtitle: 'Community Pitstops & Roadside', badge: 'Active', orangeBadge: true, route: CampRoutes.mechanics),
+                  _menuItem(context, icon: Icons.build_outlined, iconColor: _orange, title: 'Add a Mechanic', subtitle: 'Community Pitstops', badge: '+ Contributor', orangeBadge: true, route: CampRoutes.addMechanic),
+                  _menuItem(context, icon: Icons.settings_outlined, title: 'Settings', route: CampRoutes.settings),
                   _menuItem(
                     context,
                     icon: Icons.emergency_rounded,
                     iconColor: AppColors.alertRed,
                     title: 'Emergency SOS & Telematics',
-                    route: '/emergency-sos',
+                    route: CampRoutes.emergencySos,
                   ),
                 ],
               ),
@@ -98,7 +99,7 @@ class AppDrawerWidget extends StatelessWidget {
             behavior: HitTestBehavior.opaque,
             onTap: () {
               Navigator.of(context).pop();
-              Navigator.of(context).pushNamed('/profile');
+              Navigator.of(context).pushNamed(CampRoutes.profile);
             },
             child: SkeuomorphicContainer(
               borderRadius: AppColors.radiusTile,
@@ -247,7 +248,7 @@ class AppDrawerWidget extends StatelessWidget {
               duration: const Duration(milliseconds: 2000),
             ),
           );
-          Navigator.of(context).pushNamed('/sign-in');
+          Navigator.of(context).pushNamed(CampRoutes.signIn);
         },
         child: SkeuomorphicContainer(
           borderRadius: AppColors.radiusTile,

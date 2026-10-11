@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -32,15 +33,11 @@ class FinanceRigHealthScreen extends StatefulWidget {
 class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  late TripBudget _tripBudget;
-  late List<Expense> _expenses;
   late List<MaintenanceItem> _maintenanceItems;
 
   @override
   void initState() {
     super.initState();
-    _tripBudget = TripBudgetController.instance.budget;
-    _expenses = List.from(TripBudgetController.instance.expenses);
     _maintenanceItems = List.from(MaintenanceItem.defaultSampleItems);
   }
 
@@ -66,15 +63,14 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
   Future<void> _pushEditTripBudget() async {
     final result = await Navigator.of(context).push<TripBudget>(
       MaterialPageRoute(
-        builder: (context) => EditTripBudgetScreen(initialBudget: _tripBudget),
+        builder: (context) => EditTripBudgetScreen(
+          initialBudget: TripBudgetController.instance.budget,
+        ),
       ),
     );
     if (result != null && mounted) {
       TripBudgetController.instance.setBudget(result);
-      setState(() {
-        _tripBudget = TripBudgetController.instance.budget;
-      });
-      _showNotification('Budget updated for ${_tripBudget.tripName}');
+      _showNotification('Budget updated for ${result.tripName}');
     }
   }
 
@@ -84,10 +80,6 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
     );
     if (result != null && mounted) {
       TripBudgetController.instance.addExpense(result);
-      setState(() {
-        _expenses = List.from(TripBudgetController.instance.expenses);
-        _tripBudget = TripBudgetController.instance.budget;
-      });
       _showNotification(
         'Added ${result.title} (\$${result.amount.toStringAsFixed(2)})',
       );
@@ -108,10 +100,6 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
 
   void _handleDeleteTrip() {
     TripBudgetController.instance.deleteTrip();
-    setState(() {
-      _tripBudget = TripBudgetController.instance.budget;
-      _expenses = List.from(TripBudgetController.instance.expenses);
-    });
     _showNotification('Trip deleted. Maintenance records preserved.');
   }
 
@@ -228,17 +216,20 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                     const SizedBox(height: AppColors.cardGap),
 
                     // 4. Trip Budget & Fuel Economics Card
-                    TripBudgetCardWidget(
-                      tripBudget: _tripBudget,
-                      expenses: _expenses,
-                      onEditTrip: _pushEditTripBudget,
-                      onDeleteTrip: _handleDeleteTrip,
-                      onAddExpense: _pushAddExpense,
-                      onExpenseTapped: (exp) {
-                        _showNotification(
-                          '${exp.title}: \$${exp.amount.toStringAsFixed(2)}',
-                        );
-                      },
+                    ListenableBuilder(
+                      listenable: TripBudgetController.instance,
+                      builder: (context, _) => TripBudgetCardWidget(
+                        tripBudget: TripBudgetController.instance.budget,
+                        expenses: TripBudgetController.instance.expenses,
+                        onEditTrip: _pushEditTripBudget,
+                        onDeleteTrip: _handleDeleteTrip,
+                        onAddExpense: _pushAddExpense,
+                        onExpenseTapped: (exp) {
+                          _showNotification(
+                            '${exp.title}: \$${exp.amount.toStringAsFixed(2)}',
+                          );
+                        },
+                      ),
                     ),
 
                     const SizedBox(height: AppColors.cardGap),
@@ -275,7 +266,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                       onCallDealer: () =>
                           _showNotification('Calling Peak Moto Dealership...'),
                       onDirections: () =>
-                          Navigator.of(context).pushNamed('/mechanics/map'),
+                          Navigator.of(context).pushNamed(CampRoutes.navigationMap),
                     ),
                   ],
                 ),

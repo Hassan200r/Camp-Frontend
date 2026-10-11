@@ -61,6 +61,17 @@ class TripBudgetController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Reset in-memory budget and expenses for testing.
+  void resetForTesting() {
+    _budget = const TripBudget(
+      tripName: '',
+      capAmount: 0.0,
+      allocatedSoFar: 0.0,
+    );
+    _expenses.clear();
+    notifyListeners();
+  }
+
   /// Load budget and expenses from persistent store.
   Future<void> load([LocalStore? store]) async {
     final localStore = store ?? LocalStore.instance;

@@ -509,6 +509,7 @@ class NavigationController extends ChangeNotifier {
         waypoints: waypoints,
         requestAlternatives: true,
       );
+      if (_disposed) return;
 
       _route = res;
       _remainingDistanceMeters = res.distanceMeters;
@@ -518,6 +519,7 @@ class NavigationController extends ChangeNotifier {
       _isCalculatingRoute = false;
       notifyListeners();
     } catch (e) {
+      if (_disposed) return;
       _isCalculatingRoute = false;
       _routeError = e.toString().replaceAll('Exception: ', '');
       notifyListeners();

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../app/routes.dart';
 import '../../app/theme/app_colors.dart';
 
 /// Navigation item definition for [CampBottomNav]
@@ -45,31 +46,31 @@ class CampBottomNav extends StatelessWidget {
         if (Navigator.of(context).canPop()) {
           Navigator.of(context).popUntil((route) => route.isFirst);
         } else {
-          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+          Navigator.of(context).pushNamedAndRemoveUntil(CampRoutes.home, (route) => false);
         }
         break;
       case 1:
         Navigator.of(context).pushNamedAndRemoveUntil(
-          '/add-bike',
-          (route) => route.settings.name == '/',
+          CampRoutes.addBike,
+          (route) => route.settings.name == CampRoutes.home,
         );
         break;
       case 2:
         Navigator.of(context).pushNamedAndRemoveUntil(
-          '/navigation/map',
-          (route) => route.settings.name == '/',
+          CampRoutes.navigationMap,
+          (route) => route.settings.name == CampRoutes.home,
         );
         break;
       case 3:
         Navigator.of(context).pushNamedAndRemoveUntil(
-          '/mechanics',
-          (route) => route.settings.name == '/',
+          CampRoutes.mechanics,
+          (route) => route.settings.name == CampRoutes.home,
         );
         break;
       case 4:
         Navigator.of(context).pushNamedAndRemoveUntil(
-          '/finances-rig-health',
-          (route) => route.settings.name == '/',
+          CampRoutes.financesRigHealth,
+          (route) => route.settings.name == CampRoutes.home,
         );
         break;
     }

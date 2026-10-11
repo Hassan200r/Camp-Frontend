@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:camp/core/widgets/camp_bottom_nav.dart';
 import 'package:camp/features/navigation/controllers/navigation_controller.dart';
 import 'package:camp/features/navigation/domain/geocoding_service.dart';
@@ -12,7 +14,21 @@ import 'package:camp/features/navigation/presentation/widgets/nav_route_preview_
 import 'package:camp/features/navigation/presentation/widgets/nav_route_preview_sheet.dart';
 import 'package:camp/features/navigation/presentation/widgets/nav_turn_banner.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class FakeTileProvider extends TileProvider {
+  FakeTileProvider();
+
+  static const String _whiteTile =
+      'iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAAXNSR0IB2cksfwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAANQTFRF////p8QbyAAAAB9JREFUeJztwQENAAAAwqD3T20ON6AAAAAAAAAAAL4NIQAAAfFnIe4AAAAASUVORK5CYII=';
+  static final _whiteTileBytes = base64Decode(_whiteTile);
+
+  @override
+  ImageProvider<Object> getImage(TileCoordinates coordinates, TileLayer options) {
+    return MemoryImage(_whiteTileBytes);
+  }
+}
 
 void main() {
   Widget buildTestScreen({
@@ -27,6 +43,7 @@ void main() {
       home: NavigationMapScreen(
         controller: controller,
         locationService: locationService,
+        tileProvider: FakeTileProvider(),
       ),
     );
   }

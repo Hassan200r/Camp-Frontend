@@ -102,6 +102,11 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Reset in-memory preferences for testing.
+  void resetForTesting() {
+    reset();
+  }
+
   /// Load user settings from persistent store.
   Future<void> load([LocalStore? store]) async {
     final localStore = store ?? LocalStore.instance;

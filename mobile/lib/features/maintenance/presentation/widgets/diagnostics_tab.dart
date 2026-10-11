@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/camp_card.dart';
 import '../../../../core/widgets/inset_tile.dart';
@@ -469,7 +470,7 @@ class DiagnosticsTab extends StatelessWidget {
   Widget _buildFinancesBanner(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => Navigator.of(context).pushNamed('/finance-rig-health'),
+      onTap: () => Navigator.of(context).pushNamed(CampRoutes.financeRigHealth),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.clay,

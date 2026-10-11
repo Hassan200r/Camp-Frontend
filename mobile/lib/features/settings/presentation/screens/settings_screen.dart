@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/camp_app_bar.dart';
@@ -624,7 +625,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.of(ctx).pop();
               AuthController.instance.signOut();
               Navigator.of(context).pushNamedAndRemoveUntil(
-                '/sign-in',
+                CampRoutes.signIn,
                 (route) => false,
               );
             },
@@ -768,7 +769,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildHeroRow() {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => Navigator.of(context).pushNamed('/profile'),
+      onTap: () => Navigator.of(context).pushNamed(CampRoutes.profile),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
@@ -928,7 +929,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SettingsRowWidget(
             icon: Icons.badge_outlined,
             title: 'Edit Personal Info',
-            onTap: () => Navigator.of(context).pushNamed('/edit-profile'),
+            onTap: () => Navigator.of(context).pushNamed(CampRoutes.editProfile),
           ),
           const Divider(height: 1, color: Color(0x10000000)),
           SettingsRowWidget(
@@ -1047,7 +1048,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
-            onTap: () => Navigator.of(context).pushNamed('/route-packs'),
+            onTap: () => Navigator.of(context).pushNamed(CampRoutes.routePacks),
           ),
           const Divider(height: 1, color: Color(0x10000000)),
           SettingsRowWidget(

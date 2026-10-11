@@ -96,6 +96,13 @@ class ActiveBikeController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Reset in-memory state for testing without persisting.
+  void resetForTesting() {
+    _bikes.clear();
+    _activeBikeId = null;
+    notifyListeners();
+  }
+
   /// Load garage fleet and active bike selection from persistent store.
   Future<void> load([LocalStore? store]) async {
     final localStore = store ?? LocalStore.instance;

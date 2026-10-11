@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -130,7 +131,7 @@ class PitstopCardWidget extends StatelessWidget {
                     color: AppColors.tacticalOrangeDark,
                     onTap: onDirections ??
                         () {
-                          Navigator.of(context).pushNamed('/mechanics/map');
+                          Navigator.of(context).pushNamed(CampRoutes.navigationMap);
                         },
                   ),
                 ),

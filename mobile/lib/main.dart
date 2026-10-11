@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'app/routes.dart';
 import 'app/theme/app_theme.dart';
+import 'core/storage/local_store.dart';
 import 'features/auth/presentation/screens/forgot_password_screen.dart';
 import 'features/auth/presentation/screens/sign_in_screen.dart';
 import 'features/auth/presentation/screens/sign_up_screen.dart';
@@ -11,8 +13,11 @@ import 'features/dashboard/presentation/screens/edit_profile_screen.dart';
 import 'features/dashboard/presentation/screens/home_screen.dart';
 import 'features/dashboard/presentation/screens/profile_screen.dart';
 import 'features/emergency_sos/presentation/screens/emergency_sos_screen.dart';
+import 'features/garage/controllers/active_bike_controller.dart';
 import 'features/garage/presentation/screens/bike_profile_screen.dart';
 import 'features/garage/presentation/screens/garage_screen.dart';
+import 'features/maintenance/controllers/post_ride_report_controller.dart';
+import 'features/maintenance/controllers/trip_budget_controller.dart';
 import 'features/maintenance/presentation/screens/carburetor_tuning_screen.dart';
 import 'features/maintenance/presentation/screens/finance_rig_health_screen.dart';
 import 'features/maintenance/presentation/screens/maintenance_screen.dart';
@@ -21,24 +26,34 @@ import 'features/mechanics/presentation/screens/mechanics_home_screen.dart';
 import 'features/navigation/presentation/screens/navigation_map_screen.dart';
 import 'features/navigation/presentation/screens/route_packs_screen.dart';
 import 'features/ride_history/presentation/screens/ride_history_screen.dart';
-import 'features/settings/presentation/screens/settings_screen.dart';
-import 'core/storage/local_store.dart';
-import 'features/garage/controllers/active_bike_controller.dart';
-import 'features/maintenance/controllers/post_ride_report_controller.dart';
-import 'features/maintenance/controllers/trip_budget_controller.dart';
 import 'features/settings/controllers/settings_controller.dart';
+import 'features/settings/presentation/screens/settings_screen.dart';
 import 'features/voice_copilot/presentation/screens/voice_assistant_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final store = LocalStore.instance;
-  await store.init();
-  await ActiveBikeController.instance.load(store);
-  await SettingsController.instance.load(store);
-  await PostRideReportController.instance.load(store);
-  await TripBudgetController.instance.load(store);
-  if (await store.isFirstRun()) {
-    await store.markFirstRunCompleted();
+  try {
+    final store = LocalStore.instance;
+    await store.init();
+    try {
+      await ActiveBikeController.instance.load(store);
+    } catch (_) {}
+    try {
+      await SettingsController.instance.load(store);
+    } catch (_) {}
+    try {
+      await PostRideReportController.instance.load(store);
+    } catch (_) {}
+    try {
+      await TripBudgetController.instance.load(store);
+    } catch (_) {}
+    try {
+      if (await store.isFirstRun()) {
+        await store.markFirstRunCompleted();
+      }
+    } catch (_) {}
+  } catch (_) {
+    // If storage system initialization fails, app gracefully proceeds with in-memory defaults
   }
   runApp(const CampApp());
 }
@@ -52,43 +67,43 @@ class CampApp extends StatelessWidget {
       title: 'CAMP',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      initialRoute: '/sign-in',
+      initialRoute: CampRoutes.signIn,
       routes: {
-        '/': (context) => const HomeScreen(),
-        '/sign-in': (context) => const SignInScreen(),
-        '/login': (context) => const SignInScreen(),
-        '/auth': (context) => const SignInScreen(),
-        '/sign-up': (context) => const SignUpScreen(),
-        '/register': (context) => const SignUpScreen(),
-        '/forgot-password': (context) => const ForgotPasswordScreen(),
-        '/add-bike': (context) => const AddMotorcycleScreen(),
-        '/add-motorcycle': (context) => const AddMotorcycleScreen(),
-        '/add_bike': (context) => const AddMotorcycleScreen(),
-        '/add_motorcycle': (context) => const AddMotorcycleScreen(),
-        '/bike-details': (context) => const BikeDetailsScreen(),
-        '/bike-scan': (context) => const BikeScanScreen(),
-        '/bike-profile': (context) => const BikeProfileScreen(),
-        '/garage': (context) => const GarageScreen(),
-        '/profile': (context) => const ProfileScreen(),
-        '/edit-profile': (context) => const EditProfileScreen(),
-        '/mechanics': (context) => const MechanicsHomeScreen(),
-        '/mechanics/add': (context) => const AddMechanicScreen(),
-        '/add-mechanic': (context) => const AddMechanicScreen(),
-        '/navigation/map': (context) => const NavigationMapScreen(),
+        CampRoutes.home: (context) => const HomeScreen(),
+        CampRoutes.signIn: (context) => const SignInScreen(),
+        CampRoutes.login: (context) => const SignInScreen(),
+        CampRoutes.auth: (context) => const SignInScreen(),
+        CampRoutes.signUp: (context) => const SignUpScreen(),
+        CampRoutes.register: (context) => const SignUpScreen(),
+        CampRoutes.forgotPassword: (context) => const ForgotPasswordScreen(),
+        CampRoutes.addBike: (context) => const AddMotorcycleScreen(),
+        CampRoutes.addMotorcycle: (context) => const AddMotorcycleScreen(),
+        CampRoutes.addBikeUnderscore: (context) => const AddMotorcycleScreen(),
+        CampRoutes.addMotorcycleUnderscore: (context) => const AddMotorcycleScreen(),
+        CampRoutes.bikeDetails: (context) => const BikeDetailsScreen(),
+        CampRoutes.bikeScan: (context) => const BikeScanScreen(),
+        CampRoutes.bikeProfile: (context) => const BikeProfileScreen(),
+        CampRoutes.garage: (context) => const GarageScreen(),
+        CampRoutes.profile: (context) => const ProfileScreen(),
+        CampRoutes.editProfile: (context) => const EditProfileScreen(),
+        CampRoutes.mechanics: (context) => const MechanicsHomeScreen(),
+        CampRoutes.mechanicsAdd: (context) => const AddMechanicScreen(),
+        CampRoutes.addMechanic: (context) => const AddMechanicScreen(),
+        CampRoutes.navigationMap: (context) => const NavigationMapScreen(),
         // TODO: Legacy route aliases — kept for temporary backward compatibility during team branch merges. Remove once confirmed unused across all teammate branches.
-        '/mechanics/map': (context) => const NavigationMapScreen(),
-        '/voice-copilot': (context) => const VoiceAssistantScreen(),
-        '/voice-assistant': (context) => const VoiceAssistantScreen(),
-        '/mechanics/voice-assistant': (context) => const VoiceAssistantScreen(),
-        '/route-packs': (context) => const RoutePacksScreen(),
-        '/ride-history': (context) => const RideHistoryScreen(),
-        '/finance-rig-health': (context) => const FinanceRigHealthScreen(),
-        '/finances-rig-health': (context) => const FinanceRigHealthScreen(),
-        '/maintenance': (context) => const MaintenanceScreen(),
-        '/predictive-maintenance': (context) => const MaintenanceScreen(),
-        '/carburetor-tuning': (context) => const CarburetorTuningScreen(),
-        '/settings': (context) => const SettingsScreen(),
-        '/emergency-sos': (context) => const EmergencySosScreen(),
+        CampRoutes.legacyMechanicsMap: (context) => const NavigationMapScreen(),
+        CampRoutes.voiceCopilot: (context) => const VoiceAssistantScreen(),
+        CampRoutes.voiceAssistant: (context) => const VoiceAssistantScreen(),
+        CampRoutes.legacyMechanicsVoiceAssistant: (context) => const VoiceAssistantScreen(),
+        CampRoutes.routePacks: (context) => const RoutePacksScreen(),
+        CampRoutes.rideHistory: (context) => const RideHistoryScreen(),
+        CampRoutes.financeRigHealth: (context) => const FinanceRigHealthScreen(),
+        CampRoutes.financesRigHealth: (context) => const FinanceRigHealthScreen(),
+        CampRoutes.maintenance: (context) => const MaintenanceScreen(),
+        CampRoutes.predictiveMaintenance: (context) => const MaintenanceScreen(),
+        CampRoutes.carburetorTuning: (context) => const CarburetorTuningScreen(),
+        CampRoutes.settings: (context) => const SettingsScreen(),
+        CampRoutes.emergencySos: (context) => const EmergencySosScreen(),
       },
       onUnknownRoute: (settings) => MaterialPageRoute<void>(
         settings: settings,
