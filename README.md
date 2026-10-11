@@ -1,151 +1,177 @@
-# About CAMP
+# CAMP — Context-Aware Motorcycle Platform
 
-A comprehensive full-stack monorepo for the **CAMP** smart mobility, navigation, and vehicle care platform.
-Monorepo for CAMP (Context-Aware Predictive Maintenance): a Flutter app for motorcyclists with vision-based bike scanning, offline navigation, predictive maintenance, crash SOS, and a voice copilot. Firebase + Node.js backend.
-flutter dart firebase predictive-maintenance motorcycle mobile-app offline-first computer-vision voice-assistant monorepo final-year-project
+[![Flutter](https://img.shields.io/badge/Flutter-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
+[![Dart](https://img.shields.io/badge/Dart_%5E3.13.4-0175C2?logo=dart&logoColor=white)](https://dart.dev)
+[![Firebase](https://img.shields.io/badge/Firebase-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com)
+[![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![Tests](https://img.shields.io/badge/mobile%20tests-114%20passing-22C55E)](mobile/test/)
+[![Analyze](https://img.shields.io/badge/flutter%20analyze-0%20issues-22C55E)](mobile/analysis_options.yaml)
 
+A full-stack monorepo for **CAMP** — a smart motorcycle companion app. CAMP provides vision-based bike scanning, offline GPS navigation, software-driven predictive maintenance, trip budget tracking, a mechanics finder, emergency SOS dispatch, and a hands-free voice copilot.
 
-# CAMP Workspace
-![Flutter](https://img.shields.io/badge/Flutter-02569B?logo=flutter&logoColor=white)
-![Dart](https://img.shields.io/badge/Dart-0175C2?logo=dart&logoColor=white)
-![Firebase](https://img.shields.io/badge/Firebase-FFCA28?logo=firebase&logoColor=black)
-![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
+> **100% Software-Based** — No OBD-II, no ECU polling, no hardware sensor pairing. All wear indicators and maintenance guidance are deterministic software calculations derived from rider-logged data and standard smartphone GPS.
 
 ---
 
-## 📁 Monorepo Architecture
+## Monorepo Structure
 
 ```
-CAMP/
-├── mobile/                  # Flutter mobile application
-│   ├── android/             # Android native configuration and build scripts
-│   ├── ios/                 # iOS native configuration and Xcode workspace
-│   ├── assets/              # App assets and static resources
-│   │   ├── ai/              # AI models, offline embeddings, and prompts
-│   │   ├── icons/           # UI & system icon sets
-│   │   ├── images/          # Illustration & raster graphics
-│   │   ├── map/             # Map styles, vector tiles & markers
-│   │   └── seed_data/       # Mock data and offline catalog seeds
+Camp-Frontend/
+├── mobile/              ← Flutter mobile application (primary deliverable)
 │   ├── lib/
-│   │   ├── app/             # Application lifecycle & global setups
-│   │   │   ├── config/      # Environment & runtime configurations
-│   │   │   ├── router/      # Navigation routing & deep links
-│   │   │   └── theme/       # Design tokens, themes & typography
-│   │   ├── core/            # Shared cross-cutting modules
-│   │   │   ├── constants/   # App-wide constants & assets references
-│   │   │   ├── database/    # Local persistence (Drift / Floor / SQLite)
-│   │   │   │   ├── daos/    # Data Access Objects
-│   │   │   │   └── tables/  # Database schema definitions
-│   │   │   ├── network/     # HTTP clients, interceptors & error handlers
-│   │   │   ├── services/    # Location, Bluetooth, Sensor & Background services
-│   │   │   └── utils/       # Formatters, loggers, validation helpers
-│   │   ├── features/        # Feature-first modular domain slices
-│   │   │   ├── auth/            # Sign In, Sign Up, Forgot Password
-│   │   │   ├── dashboard/       # Cockpit landing, user profile, profile editor
-│   │   │   ├── bike_scan/       # Vision AI vehicle scanner & spec details
-│   │   │   ├── garage/          # Fleet manager, active bike controller, bike profile
-│   │   │   ├── navigation/      # Navigation map & offline route packs
-│   │   │   ├── mechanics/       # Workshop finder & add mechanic directory
-│   │   │   ├── maintenance/     # Rig health, predictive maintenance & carburetor tuning
-│   │   │   ├── ride_history/    # Trip history, telemetry logs & rider stats
-│   │   │   ├── emergency_sos/   # Crash detection, medical ID & SOS dispatch
-│   │   │   ├── voice_copilot/   # Hands-free AI audio copilot & voice queries
-│   │   │   └── settings/        # Units, notifications, cache & settings screen
-│   │   └── main.dart        # Flutter entrypoint & app router
-│   ├── test/                # Unit, widget, and integration tests
-│   ├── pubspec.yaml         # Flutter dependencies
-│   └── analysis_options.yaml# Dart static analysis configuration
+│   │   ├── main.dart    ← App root, lifecycle observer, route map, eager loads
+│   │   ├── app/         ← Routes (CampRoutes), theme tokens, typography
+│   │   ├── core/        ← LocalStore (SharedPreferences), shared widgets
+│   │   └── features/    ← 11 feature modules (auth, garage, maintenance …)
+│   ├── test/            ← 14 test files · 114 tests · 0 failures
+│   ├── android/
+│   ├── ios/
+│   ├── assets/          ← images/, icons/
+│   ├── pubspec.yaml
+│   └── README.md        ← Mobile-specific documentation
 │
-├── backend/                 # Backend API services & functions
-│   ├── config/              # Server configuration & environment validation
-│   ├── functions/           # Cloud Functions / Serverless handlers
-│   │   └── src/
-│   │       ├── maintenance_rules/ # Automated maintenance triggers
-│   │       └── sync/        # Cloud-to-local bidirectional sync
-│   └── src/
-│       ├── middlewares/     # Auth, validation, error-handling middlewares
-│       ├── modules/         # Domain modules (elevation, mechanics, routes)
-│       └── routes/          # REST & WebSocket endpoint definitions
+├── backend/             ← Node.js / Cloud Functions API (in development)
+│   ├── config/          ← Server configuration & environment
+│   ├── functions/src/   ← Cloud Function handlers (maintenance, sync)
+│   └── src/             ← Express middlewares, domain modules, REST routes
 │
-├── firebase/                # Firebase configs, rules, and deployment specs
-├── .gitignore               # Root monorepo Git exclusion rules
-└── README.md                # Project documentation
+├── firebase/            ← Firebase config, security rules, deploy specs
+│
+├── PROGRESS.md          ← Engineering task log (stability & persistence phases)
+└── README.md            ← This file
 ```
 
 ---
 
-## 🚀 Key Modules & Implemented Features
+## Mobile App — Feature Matrix
 
-| Feature Module | Key Screens & Capabilities |
-| :--- | :--- |
-| **Authentication** | Sign In, Sign Up, Forgot Password screens with field validation |
-| **Dashboard & Profile** | Tactical cockpit homepage, live telemetry widgets, user profile & profile editing |
-| **Bike Scanner & Specs** | Vision AI motorcycle camera scanner, bike details spec editor, manual entry |
-| **Garage & Fleet** | Active fleet management, bike profile sheet, single-tap active bike switcher |
-| **Navigation & Maps** | Interactive map screen (`NavigationMapScreen`) & off-grid route packs (`RoutePacksScreen`) |
-| **Mechanics Finder** | Workshop directory, nearby specialist locator, add mechanic submission screen |
-| **Maintenance Suite** | Trip budget & component health, predictive maintenance engine, carburetor tuning guide |
-| **Ride History** | Ride telemetry tracking, trip statistics, and historical logs |
-| **Emergency SOS** | Crash detection simulation, medical ID, and emergency contact dispatch |
-| **Voice Copilot** | Hands-free tactical audio assistant for rider voice queries |
-| **Settings** | Units toggle (Metric/Imperial), notification preferences, storage/cache manager |
+| Feature | Screens | State Owner |
+|---|---|---|
+| **Authentication** | SignIn · SignUp · ForgotPassword | Mock (backend pending) |
+| **Dashboard** | HomeScreen · ProfileScreen · EditProfileScreen | `ActiveBikeController` |
+| **Bike Scanner** | AddMotorcycle · BikeScan · BikeDetails | `ActiveBikeController` |
+| **Garage & Fleet** | GarageScreen · BikeProfileScreen | `ActiveBikeController` (persisted) |
+| **Maintenance Hub** | MaintenanceScreen (4 tabs) | `PostRideReportController` (persisted) |
+| **Finances & Rig Health** | FinanceRigHealth + 3 sub-screens | `TripBudgetController` (persisted) |
+| **Mechanics Finder** | MechanicsHome · AddMechanic | Local widget state (not yet persisted) |
+| **Navigation & Maps** | NavigationMap · RoutePacks | `NavigationController` (per-screen) |
+| **Ride History** | RideHistoryScreen | Static samples (controller integration pending) |
+| **Voice Copilot** | VoiceAssistantScreen | — |
+| **Emergency SOS** | EmergencySosScreen | — |
+| **Settings** | SettingsScreen | `SettingsController` (persisted) |
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
-### 1. Mobile Application (Flutter)
-
-Navigate to the `mobile/` directory to run the Flutter application:
+### 1. Flutter Mobile App
 
 ```bash
 cd mobile
-
-# Fetch Flutter dependencies
 flutter pub get
-
-# Run on an attached device or emulator
 flutter run
 ```
 
-### 2. Backend Services
+**Verify:**
+```bash
+flutter analyze    # 0 issues expected
+flutter test       # 114 / 114 passing
+```
 
-Navigate to the `backend/` directory to set up API services:
+### 2. Backend Services *(in development)*
 
 ```bash
 cd backend
-
-# Install dependencies (when package.json is initialized)
 npm install
-
-# Run in development mode
 npm run dev
 ```
 
-### 3. Firebase Suite
-
-Ensure you have the [Firebase CLI](https://firebase.google.com/docs/cli) installed:
+### 3. Firebase *(in development)*
 
 ```bash
+# Install Firebase CLI first: https://firebase.google.com/docs/cli
 cd firebase
-
-# Authenticate & initialize targets
 firebase login
 firebase use --add
 ```
 
 ---
 
-## 🏛 Feature-First Architecture
+## Architecture
 
-Each mobile feature under `mobile/lib/features/` follows a strict three-tier separation of concerns:
+### Mobile State Management
 
-- **`domain/`**: Pure Dart models, entities, and business logic / repository interfaces. Independent of Flutter UI.
-- **`controllers/`**: State management (BLoC, Riverpod, or Cubits) mediating between domain logic and views.
-- **`presentation/`**: Flutter widgets, screens, custom painters, and user interaction layers.
+The Flutter app uses **ChangeNotifier singletons** as the single source of truth for all persistent user data. They are loaded before `runApp` and flushed to `SharedPreferences` on every app lifecycle `paused / inactive / detached` event via `WidgetsBindingObserver`.
 
+```
+main() → LocalStore.init()
+       → ActiveBikeController.load()       bikes[], activeBike
+       → SettingsController.load()         units, notifications, privacy
+       → PostRideReportController.load()   ride debrief logs per bike
+       → TripBudgetController.load()       trip budget + expense ledger
+       → runApp(CampApp)
+```
+
+### Feature Module Pattern
+
+Each feature under `mobile/lib/features/<name>/` follows a strict three-layer split:
+
+```
+features/<name>/
+├── domain/        ← Pure Dart models & business logic (no Flutter imports)
+├── controllers/   ← ChangeNotifier state managers mediating domain ↔ UI
+└── presentation/
+    ├── screens/   ← Full-page widget trees
+    └── widgets/   ← Decomposed sub-components
+```
+
+### Persistence (`LocalStore`)
+
+`core/storage/local_store.dart` wraps `SharedPreferences` with:
+- **Ordered write queue** — chained futures prevent out-of-order writes
+- **`flush()`** — awaits all pending writes; called on app background
+- **Schema versioning** — guards against loading data from a future schema
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Mobile framework | Flutter · Dart `^3.13.4` |
+| State management | `ChangeNotifier` singleton controllers |
+| Offline persistence | `SharedPreferences` via `LocalStore` |
+| Maps & navigation | `flutter_map` (OSM) · OSRM routing · Nominatim geocoding |
+| Location | `geolocator` |
+| Camera | `camera` · `image_picker` |
+| Typography | Google Fonts — Manrope · Teko · Share Tech Mono |
+| UI design | Skeuomorphic clay design system (AppColors, AppTextStyles) |
+| Backend | Node.js · Firebase Cloud Functions *(in development)* |
+| Auth | Firebase Authentication *(planned)* |
+| Database | Cloud Firestore *(planned)* · SQLite/Drift *(planned local cache)* |
+
+---
+
+## Current Status
+
+| Area | Status |
+|---|---|
+| Mobile UI (all screens) | ✅ Complete |
+| Offline persistence (SharedPreferences) | ✅ Complete |
+| Route constants & navigation | ✅ Complete |
+| Lifecycle save-on-exit | ✅ Complete |
+| Flutter analyze | ✅ 0 issues |
+| Unit + widget tests | ✅ 114 / 114 passing |
+| Backend API (Node.js) | 🔧 In development |
+| Firebase Auth integration | 🔧 In development |
+| Cloud Firestore sync | 🔧 In development |
+| HTTP client layer (`core/network/`) | 🔧 In development |
+| Service abstractions (`core/services/`) | 🔧 In development |
+
+See [`PROGRESS.md`](PROGRESS.md) for the detailed engineering task log and [`mobile/CODE_REVIEW_REPORT.md`](mobile/CODE_REVIEW_REPORT.md) for the full list of known issues and planned fixes.
+
+---
 
 ## License
-![License](https://img.shields.io/github/license/Hassan200r/Camp-Frontend)
 
+![License](https://img.shields.io/github/license/Hassan200r/Camp-Frontend)
