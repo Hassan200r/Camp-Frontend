@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
-import '../../../../core/widgets/camp_bottom_nav.dart';
-import '../../../dashboard/presentation/widgets/tactical_bottom_dock_widget.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../../../navigation/presentation/widgets/topographic_map_canvas.dart';
+import '../../controllers/mechanic_controller.dart';
 import '../../domain/mechanic_model.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/filter_chips_widget.dart';
@@ -34,16 +34,10 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
   String _searchQuery = '';
   int _currentNavIndex = 3; // 3 is the active Mechanic (Wrench) hub
   final TextEditingController _searchController = TextEditingController();
-  late List<Mechanic> _mechanicsList;
-
-  @override
-  void initState() {
-    super.initState();
-    _mechanicsList = List.from(Mechanic.sampleMechanics);
-  }
 
   List<Mechanic> get _filteredMechanics {
-    return _mechanicsList.where((mechanic) {
+    final allMechanics = MechanicController.instance.mechanics;
+    return allMechanics.where((mechanic) {
       // Filter logic
       if (_selectedFilter == 'verified' &&
           mechanic.badgeType != BadgeType.verified) {
@@ -87,23 +81,187 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
     super.dispose();
   }
 
-  Future<void> _navigateToAddMechanic() async {
-    final newMechanic = await Navigator.pushNamed<Mechanic>(
-      context,
-      CampRoutes.addMechanic,
-    );
+  void _showAddMechanicBottomSheet() {
+    final nameCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    final addressCtrl = TextEditingController();
+    final notesCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
 
-    if (mounted) {
-      setState(() {
-        _currentNavIndex = 3;
-        _isListView = true;
-      });
-      if (newMechanic != null) {
-        setState(() {
-          _mechanicsList.insert(0, newMechanic);
-        });
-      }
-    }
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: BoxDecoration(
+            color: AppColors.clay,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            boxShadow: AppColors.dockShadow,
+          ),
+          padding: EdgeInsets.fromLTRB(
+            20,
+            16,
+            20,
+            MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.mutedLight,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('+ Add Mechanic', style: AppTextStyles.cardTitle),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded,
+                            color: AppColors.mutedText),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  LabeledTextField(
+                    label: 'Mechanic / Workshop Name',
+                    controller: nameCtrl,
+                    placeholder: 'e.g. Peak Moto Prep',
+                  ),
+                  const SizedBox(height: 12),
+                  LabeledTextField(
+                    label: 'Phone Number',
+                    controller: phoneCtrl,
+                    placeholder: '+1 (555) 482-9921',
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 12),
+                  LabeledTextField(
+                    label: 'Address / Location',
+                    controller: addressCtrl,
+                    placeholder: 'e.g. 42 Timberline Rd, High Pass',
+                  ),
+                  const SizedBox(height: 12),
+                  LabeledTextField(
+                    label: 'Notes / Specialties',
+                    controller: notesCtrl,
+                    placeholder: 'e.g. Carburetor tuning, valve adjust, tires',
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 20),
+                  PrimaryButton(
+                    label: 'Save Mechanic',
+                    icon: Icons.check_rounded,
+                    isFullWidth: true,
+                    onTap: () {
+                      if (nameCtrl.text.trim().isEmpty ||
+                          phoneCtrl.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Name and phone are required'),
+                            backgroundColor: AppColors.alertRed,
+                          ),
+                        );
+                        return;
+                      }
+                      final newMech = Mechanic(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          name: nameCtrl.text.trim(),
+                          phone: phoneCtrl.text.trim(),
+                          distance: 'Local Workshop',
+                          durationOrLocation: addressCtrl.text.trim().isNotEmpty
+                              ? addressCtrl.text.trim()
+                              : 'Added by Rider',
+                          badgeType: BadgeType.verified,
+                          badgeLabel: 'Verified Shop',
+                          beaconStatus: 'Active',
+                          beaconColor: AppColors.statusGreen,
+                          categoryTitle1: 'SERVICES',
+                          tags1: notesCtrl.text.trim().isNotEmpty
+                              ? [notesCtrl.text.trim()]
+                              : const ['General Moto Repair'],
+                          categoryTitle2: 'LOCATION',
+                          tags2: addressCtrl.text.trim().isNotEmpty
+                              ? [addressCtrl.text.trim()]
+                              : const ['Local Area'],
+                          rating: 5.0,
+                          reviewCount: 1,
+                          openStatus: 'OPEN NOW',
+                          address: addressCtrl.text.trim(),
+                          notes: notesCtrl.text.trim(),
+                        );
+                        MechanicController.instance.addMechanic(newMech);
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Saved ${newMech.name}'),
+                            backgroundColor: AppColors.darkCharcoal,
+                          ),
+                        );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteMechanic(Mechanic mechanic) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.clay,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Delete Mechanic?', style: AppTextStyles.cardTitle),
+        content: Text(
+          'Are you sure you want to remove ${mechanic.name} from your saved mechanics?',
+          style: AppTextStyles.bodySecondary,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              MechanicController.instance.deleteMechanic(mechanic.id);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Removed ${mechanic.name}'),
+                  backgroundColor: AppColors.darkCharcoal,
+                ),
+              );
+            },
+            child: Text(
+              'Delete',
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.alertRed,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _navigateToMapScreen() async {
@@ -293,7 +451,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
                         ),
                       ),
                       Text(
-                        'Estimated time: ${mechanic.durationOrLocation}',
+                        'Location: ${mechanic.durationOrLocation}',
                         style: AppTextStyles.caption.copyWith(
                           color: AppColors.mutedText,
                         ),
@@ -319,7 +477,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              _navigateToMapScreen();
+              Navigator.pushNamed(context, CampRoutes.navigationMap);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.tacticalOrange,
@@ -328,7 +486,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
               ),
             ),
             child: const Text(
-              'Start GPS',
+              'Start Guidance',
               style: TextStyle(
                 fontWeight: FontWeight.w800,
                 color: Colors.white,
@@ -342,144 +500,123 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.clay,
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
-          children: [
-            // Main Content Area
-            Column(
-              children: [
-                // Top Custom App Bar
-                CustomAppBar(
-                  onBackTap: () {
-                    if (Navigator.of(context).canPop()) {
-                      Navigator.of(context).pop();
-                    } else {
-                      Navigator.of(context).pushReplacementNamed('/');
-                    }
-                  },
-                  onGpsTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('GPS Status: Calibrated (Accuracy: ±2m)'),
-                        duration: Duration(milliseconds: 1400),
+    return ListenableBuilder(
+      listenable: MechanicController.instance,
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: AppColors.clay,
+          body: Stack(
+            children: [
+              Column(
+                children: [
+                  // Custom AppBar with Recessed Search & Filter
+                  CustomAppBar(
+                    onBackTap: () => Navigator.pop(context),
+                  ),
+
+                  // Tactile Skeuomorphic Search Bar
+                  SearchBarWidget(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
+                    },
+                  ),
+
+                  // View Toggle (List View vs Map View)
+                  ViewToggleWidget(
+                    isListView: _isListView,
+                    onToggle: (isList) {
+                      setState(() {
+                        _isListView = isList;
+                        _currentNavIndex = 3;
+                      });
+                    },
+                  ),
+
+                  // Filter Chips
+                  FilterChipsWidget(
+                    selectedFilter: _selectedFilter,
+                    onFilterSelected: (filterId) {
+                      setState(() {
+                        _selectedFilter = filterId;
+                      });
+                    },
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Content View (List vs Map)
+                  Expanded(
+                    child: _isListView ? _buildListView() : _buildMapView(),
+                  ),
+                ],
+              ),
+
+              // Floating "+ Add Mechanic" Button (FAB bottom: 96, does not overlap bottom dock at bottom: 24)
+              if (_currentNavIndex == 3 || _isListView)
+                Positioned(
+                  right: 16,
+                  bottom: 96,
+                  child: GestureDetector(
+                    onTap: _showAddMechanicBottomSheet,
+                    child: Container(
+                      height: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      decoration: BoxDecoration(
+                        gradient: _orangeGradient,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: AppColors.orangeGlow,
                       ),
-                    );
-                  },
-                ),
-
-                // Search Bar
-                SearchBarWidget(
-                  controller: _searchController,
-                  onChanged: (val) {
-                    setState(() {
-                      _searchQuery = val;
-                    });
-                  },
-                  onMicTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Listening for voice command...'),
-                        duration: Duration(milliseconds: 1200),
-                      ),
-                    );
-                  },
-                ),
-
-                // View Toggle (List View vs Map View)
-                ViewToggleWidget(
-                  isListView: _isListView,
-                  onToggle: (isList) {
-                    setState(() {
-                      _isListView = isList;
-                      _currentNavIndex = 3;
-                    });
-                  },
-                ),
-
-                // Filter Chips
-                FilterChipsWidget(
-                  selectedFilter: _selectedFilter,
-                  onFilterSelected: (filterId) {
-                    setState(() {
-                      _selectedFilter = filterId;
-                    });
-                  },
-                ),
-
-                const SizedBox(height: 8),
-
-                // Content View (List vs Map)
-                Expanded(
-                  child: _isListView ? _buildListView() : _buildMapView(),
-                ),
-              ],
-            ),
-
-            // Floating "+ Add Mechanic" Button
-            if (_currentNavIndex == 3 || _isListView)
-              Positioned(
-                right: 16,
-                bottom: 96,
-                child: GestureDetector(
-                  onTap: _navigateToAddMechanic,
-                  child: Container(
-                    height: 44,
-                    padding: const EdgeInsets.symmetric(horizontal: 18),
-                    decoration: BoxDecoration(
-                      gradient: _orangeGradient,
-                      borderRadius: BorderRadius.circular(22),
-                      boxShadow: AppColors.orangeGlow,
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.add_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          'Add Mechanic',
-                          style: TextStyle(
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.add_rounded,
                             color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
+                            size: 20,
                           ),
-                        ),
-                      ],
+                          SizedBox(width: 6),
+                          Text(
+                            'Add Mechanic',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-            // Floating Bottom Navigation Dock (Centered, bottom: 24)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 24,
-              child: Center(
-                child: TacticalBottomDockWidget(
-                  selectedIndex: 3,
-                  onIndexChanged: (index) {
-                    if (index == 3) {
-                      setState(() {
-                        _currentNavIndex = 3;
-                        _isListView = true;
-                      });
-                    } else {
-                      CampBottomNav.navigateToTab(context, index, currentIndex: 3);
-                    }
-                  },
+              // Floating Bottom Navigation Dock (Centered, bottom: 24)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 24,
+                child: Center(
+                  child: CampBottomNav(
+                    selectedIndex: 3,
+                    onIndexChanged: (index) {
+                      if (index == 3) {
+                        setState(() {
+                          _currentNavIndex = 3;
+                          _isListView = true;
+                        });
+                      } else {
+                        CampBottomNav.navigateToTab(context, index, currentIndex: 3);
+                      }
+                    },
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -488,22 +625,17 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
 
     if (mechanics.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.search_off_rounded,
-              size: 54,
-              color: AppColors.mutedLight.withValues(alpha: 0.6),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'No mechanics found',
-              style: AppTextStyles.cardTitle.copyWith(
-                color: AppColors.mutedText,
-              ),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: CampEmptyState(
+            icon: Icons.handyman_rounded,
+            message: 'No mechanics found',
+            subMessage: _searchQuery.isNotEmpty
+                ? 'Try a different search query or clear filters'
+                : 'Add trusted mechanics to your offline directory',
+            ctaLabel: 'Add Mechanic',
+            onCta: _showAddMechanicBottomSheet,
+          ),
         ),
       );
     }
@@ -517,6 +649,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
           mechanic: mechanic,
           onCallShop: () => _showCallModal(mechanic),
           onRouteGps: () => _showRouteModal(mechanic),
+          onDelete: () => _confirmDeleteMechanic(mechanic),
         );
       },
     );

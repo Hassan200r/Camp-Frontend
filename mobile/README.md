@@ -67,14 +67,16 @@ lib/
 
 ## State Management & Data Flow
 
-All persistent user data is managed by four **ChangeNotifier singletons**, loaded eagerly in `main()` before `runApp`:
+All persistent user data is managed by six **ChangeNotifier singletons**, loaded eagerly in `main()` before `runApp`:
 
 | Controller | Persists To | Consumed By |
 |---|---|---|
 | `ActiveBikeController` | `LocalStore` (`camp_bikes`, `camp_active_bike_id`) | Dashboard, Maintenance, Navigation, Garage, Bike Scan |
+| `ProfileController` | `LocalStore` (`camp_rider_profile`) | Dashboard, ProfileScreen, EditProfileScreen |
 | `SettingsController` | `LocalStore` (`camp_settings`) | Settings screen, NavigationController (units) |
-| `PostRideReportController` | `LocalStore` (`camp_post_ride_reports`) | MaintenanceScreen (PostRide tab, Diagnostics insight engine) |
+| `PostRideReportController` | `LocalStore` (`camp_post_ride_reports`) | MaintenanceScreen (PostRide tab, Diagnostics engine), RideHistory |
 | `TripBudgetController` | `LocalStore` (`camp_trip_budget`, `camp_trip_expenses`) | FinanceRigHealth screen and all its sub-screens |
+| `MechanicController` | `LocalStore` (`camp_mechanics_list`) | MechanicsHomeScreen, AddMechanicScreen |
 
 `NavigationController` is **not** a singleton — it is created and disposed per `NavigationMapScreen` lifecycle. It reads `ActiveBikeController` (for fuel estimates) and `SettingsController` (for metric/imperial units).
 

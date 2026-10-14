@@ -21,6 +21,8 @@ class LocalStore {
   static const String keyPostRideReports = 'camp_post_ride_reports';
   static const String keyTripBudget = 'camp_trip_budget';
   static const String keyTripExpenses = 'camp_trip_expenses';
+  static const String keyProfile = 'camp_profile';
+  static const String keyMechanics = 'camp_mechanics';
   static const String keyFirstRunCompleted = 'camp_first_run_completed';
 
   Future<SharedPreferences> get prefs async {

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,6 +12,7 @@ import '../../../../core/widgets/camp_bottom_nav.dart';
 import '../../../../core/widgets/camp_card.dart';
 import '../../../../core/widgets/icon_tile.dart';
 import '../../../auth/controllers/auth_controller.dart';
+import '../../../dashboard/controllers/profile_controller.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
 import '../../../garage/controllers/active_bike_controller.dart';
 import '../../controllers/settings_controller.dart';
@@ -187,16 +190,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               const SizedBox(height: 14),
-              _buildLinkedAccountItem(
-                title: 'BMW ConnectedRide',
-                account: 'alex@bmwmoto.com',
-                connected: true,
+              ListenableBuilder(
+                listenable: ProfileController.instance,
+                builder: (context, _) => _buildLinkedAccountItem(
+                  title: 'CAMP Cloud Backup',
+                  account: ProfileController.instance.email,
+                  connected: ProfileController.instance.email.isNotEmpty,
+                ),
               ),
               const SizedBox(height: 10),
               _buildLinkedAccountItem(
-                title: 'Google Drive Telemetry Backup',
-                account: 'alex.henderson@gmail.com',
-                connected: true,
+                title: 'Google Drive Backup',
+                account: 'Not connected',
+                connected: false,
               ),
               const SizedBox(height: 10),
               _buildLinkedAccountItem(
@@ -767,126 +773,133 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // ── 2. Compact Hero Row ───────────────────────────────────────────────────
   Widget _buildHeroRow() {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => Navigator.of(context).pushNamed(CampRoutes.profile),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.92),
-          borderRadius: BorderRadius.circular(AppColors.radiusCard),
-          boxShadow: AppColors.skeuRaised,
-        ),
-        child: Row(
-          children: [
-            // Circular Avatar + Green Dot
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.tacticalOrange,
-                      width: 2.0,
-                    ),
-                    boxShadow: AppColors.skeuRaisedSmall,
-                  ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/images/rider_avatar_alex.jpg',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: AppColors.clayDark,
-                        child: const Center(
-                          child: Icon(
-                            Icons.person_rounded,
-                            color: AppColors.terracotta,
-                            size: 28,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  right: 1,
-                  bottom: 1,
-                  child: Container(
-                    width: 13,
-                    height: 13,
-                    decoration: BoxDecoration(
-                      color: AppColors.statusGreen,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x33000000),
-                          blurRadius: 3,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+    return ListenableBuilder(
+      listenable: Listenable.merge([ProfileController.instance, ActiveBikeController.instance]),
+      builder: (context, _) {
+        final profile = ProfileController.instance;
+        final avatarPath = profile.avatarPath;
+        final displayName = profile.fullName;
+        final ridingTier = profile.ridingTier;
+        final activeBike = ActiveBikeController.instance.activeBike;
+        final bikeLabel = activeBike != null
+            ? 'Active Rig: ${activeBike.make} ${activeBike.modelName}'
+            : 'No bike added yet';
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => Navigator.of(context).pushNamed(CampRoutes.profile),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(AppColors.radiusCard),
+              boxShadow: AppColors.skeuRaised,
             ),
-            const SizedBox(width: 14),
-
-            // Rider Name + PRO Pill + Active Rig
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          'Alex Henderson',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.manrope(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.darkCharcoal,
-                          ),
+            child: Row(
+              children: [
+                // Circular Avatar + Green Dot
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.tacticalOrange,
+                          width: 2.0,
                         ),
+                        boxShadow: AppColors.skeuRaisedSmall,
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                      child: ClipOval(
+                        child: avatarPath != null && File(avatarPath).existsSync()
+                            ? Image.file(File(avatarPath), fit: BoxFit.cover)
+                            : Container(
+                                color: AppColors.clayDark,
+                                child: Center(
+                                  child: Text(
+                                    profile.firstName.isNotEmpty
+                                        ? profile.firstName[0].toUpperCase()
+                                        : 'R',
+                                    style: GoogleFonts.manrope(
+                                      color: AppColors.terracotta,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 1,
+                      bottom: 1,
+                      child: Container(
+                        width: 13,
+                        height: 13,
                         decoration: BoxDecoration(
-                          color: AppColors.tacticalOrange.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(AppColors.radiusPill),
-                          border: Border.all(
-                            color: AppColors.tacticalOrange.withValues(alpha: 0.35),
-                            width: 1,
-                          ),
-                        ),
-                        child: Text(
-                          'PRO',
-                          style: GoogleFonts.manrope(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.5,
-                            color: AppColors.tacticalOrangeDark,
-                          ),
+                          color: AppColors.statusGreen,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x33000000),
+                              blurRadius: 3,
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  ListenableBuilder(
-                    listenable: ActiveBikeController.instance,
-                    builder: (context, _) {
-                      final activeBike = ActiveBikeController.instance.activeBike;
-                      final bikeName = activeBike != null
-                          ? '${activeBike.make} ${activeBike.modelName}'
-                          : 'BMW R 1250 GS Adventure';
-                      return Text(
-                        'Active Rig: $bikeName',
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 14),
+
+                // Rider Name + Tier Pill + Active Rig
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.manrope(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.darkCharcoal,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                            decoration: BoxDecoration(
+                              color: AppColors.tacticalOrange.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(AppColors.radiusPill),
+                              border: Border.all(
+                                color: AppColors.tacticalOrange.withValues(alpha: 0.35),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              ridingTier,
+                              style: GoogleFonts.manrope(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
+                                color: AppColors.tacticalOrangeDark,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        bikeLabel,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.manrope(
@@ -894,12 +907,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fontWeight: FontWeight.w500,
                           color: AppColors.mutedText,
                         ),
-                      );
-                    },
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
             const SizedBox(width: 8),
             const Icon(
               Icons.chevron_right_rounded,
@@ -909,6 +920,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
+    );
+      },
     );
   }
 
@@ -938,11 +951,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: _showChangePasswordDialog,
           ),
           const Divider(height: 1, color: Color(0x10000000)),
-          SettingsRowWidget(
-            icon: Icons.link_rounded,
-            title: 'Linked Accounts',
-            subtitle: 'Connected as alex@bmwmoto.com',
-            onTap: _showLinkedAccountsBottomSheet,
+          ListenableBuilder(
+            listenable: ProfileController.instance,
+            builder: (context, _) => SettingsRowWidget(
+              icon: Icons.link_rounded,
+              title: 'Linked Accounts',
+              subtitle: 'Connected as ${ProfileController.instance.email}',
+              onTap: _showLinkedAccountsBottomSheet,
+            ),
           ),
         ],
       ),

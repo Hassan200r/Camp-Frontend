@@ -54,11 +54,24 @@ void main() {
     expect(find.text('FINANCES & RIG HEALTH'), findsOneWidget);
     expect(find.text('EXPEDITION TELEMETRY'), findsOneWidget);
     expect(find.text('Finances & Rig Health'), findsOneWidget);
-    expect(find.text('SYNCD 2m ago'), findsOneWidget);
+    expect(find.text('LOCAL'), findsOneWidget);
 
     // Verify hero photo overlay
-    expect(find.text('🏍 KTM 890 Adventure R'), findsOneWidget);
-    expect(find.text('VIN ••9482'), findsOneWidget);
+    final activeBike = ActiveBikeController.instance.activeBike;
+    if (activeBike != null) {
+      expect(
+        find.text('🏍 ${activeBike.make} ${activeBike.modelName}'),
+        findsOneWidget,
+      );
+      if (activeBike.vin != null && activeBike.vin!.isNotEmpty) {
+        final vinSub = activeBike.vin!.substring(
+          activeBike.vin!.length >= 4 ? activeBike.vin!.length - 4 : 0,
+        );
+        expect(find.text('VIN ••$vinSub'), findsOneWidget);
+      }
+    } else {
+      expect(find.text('🏍 No Active Motorcycle'), findsOneWidget);
+    }
 
     // Verify trip budget card elements
     expect(find.text('🏔 Alpine Ridge Tour'), findsOneWidget);

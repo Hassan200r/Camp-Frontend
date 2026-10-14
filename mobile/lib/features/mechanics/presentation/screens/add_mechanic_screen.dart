@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/camp_bottom_nav.dart';
-import '../../../dashboard/presentation/widgets/tactical_bottom_dock_widget.dart';
 import '../../domain/mechanic_model.dart';
 
 class AddMechanicScreen extends StatefulWidget {
@@ -253,7 +252,7 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
               right: 0,
               bottom: 24,
               child: Center(
-                child: TacticalBottomDockWidget(
+                child: CampBottomNav(
                   selectedIndex: 3,
                   onIndexChanged: (index) {
                     if (index == 3) {

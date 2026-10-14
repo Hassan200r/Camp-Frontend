@@ -7,7 +7,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
-import '../../../dashboard/presentation/widgets/tactical_bottom_dock_widget.dart';
+import '../../../garage/controllers/active_bike_controller.dart';
 import '../../../garage/domain/bike_model.dart';
 import '../../controllers/bike_onboarding_controller.dart';
 
@@ -187,6 +187,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
 
     HapticFeedback.mediumImpact();
     final completedBike = _controller.buildBike();
+    ActiveBikeController.instance.addBike(completedBike, setActive: true);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -205,7 +206,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
       ),
     );
 
-    // Proceed to Garage screen with newly registered bike telemetry
+    // Proceed to Garage screen with newly registered bike
     Navigator.of(context).pushNamed(CampRoutes.garage);
   }
 
@@ -369,7 +370,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
               right: 0,
               bottom: 24,
               child: Center(
-                child: TacticalBottomDockWidget(
+                child: CampBottomNav(
                   selectedIndex: 1,
                   onIndexChanged: (index) {
                     CampBottomNav.navigateToTab(

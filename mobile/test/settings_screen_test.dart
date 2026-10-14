@@ -1,3 +1,4 @@
+import 'package:camp/features/dashboard/controllers/profile_controller.dart';
 import 'package:camp/features/garage/controllers/active_bike_controller.dart';
 import 'package:camp/features/settings/controllers/settings_controller.dart';
 import 'package:camp/features/settings/domain/units_system.dart';
@@ -9,6 +10,7 @@ void main() {
   setUp(() {
     SettingsController.instance.reset();
     ActiveBikeController.instance.reset();
+    ProfileController.instance.resetForTesting();
   });
 
   group('SettingsController Unit Tests', () {
@@ -89,18 +91,20 @@ void main() {
       // 1. Header
       expect(find.text('SETTINGS'), findsOneWidget);
 
-      // 2. Hero Row with Rider & Active Rig read from ActiveBikeController
-      expect(find.text('Alex Henderson'), findsOneWidget);
-      expect(find.text('PRO'), findsOneWidget);
-      final activeBike = ActiveBikeController.instance.activeBike!;
-      expect(find.text('Active Rig: ${activeBike.make} ${activeBike.modelName}'), findsOneWidget);
+      // 2. Hero Row with Rider & Active Rig read from ProfileController
+      final riderName = ProfileController.instance.fullName;
+      final riderTier = ProfileController.instance.ridingTier;
+      expect(find.text(riderName), findsOneWidget);
+      expect(find.text(riderTier), findsOneWidget);
 
       // 3. Card Account
       expect(find.text('ACCOUNT'), findsOneWidget);
       expect(find.text('Edit Personal Info'), findsOneWidget);
       expect(find.text('Change Password'), findsOneWidget);
       expect(find.text('Linked Accounts'), findsOneWidget);
-      expect(find.text('Connected as alex@bmwmoto.com'), findsOneWidget);
+      // Linked Accounts subtitle shows user's email dynamically
+      final email = ProfileController.instance.email;
+      expect(find.text('Connected as $email'), findsOneWidget);
 
       // 4. Card Preferences
       expect(find.text('PREFERENCES'), findsOneWidget);
@@ -229,7 +233,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Alex Henderson'));
+      await tester.tap(find.text(ProfileController.instance.fullName));
       await tester.pumpAndSettle();
 
       expect(find.text('Profile Screen View'), findsOneWidget);

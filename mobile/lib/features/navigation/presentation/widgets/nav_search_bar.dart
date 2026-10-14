@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../dashboard/controllers/profile_controller.dart';
 import '../../controllers/navigation_controller.dart';
 import '../../domain/geocoding_service.dart';
 
@@ -168,23 +171,63 @@ class _NavSearchBarState extends State<NavSearchBar> {
               // Profile Avatar
               GestureDetector(
                 onTap: widget.onOpenProfile,
-                child: Container(
-                  width: 34,
-                  height: 34,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF141416),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: const Text(
-                    'C',
-                    style: TextStyle(
-                      color: AppColors.tacticalOrange,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
+                child: ListenableBuilder(
+                  listenable: ProfileController.instance,
+                  builder: (context, _) {
+                    final profile = ProfileController.instance;
+                    final firstName = profile.firstName;
+                    final initial = firstName.isNotEmpty
+                        ? firstName[0].toUpperCase()
+                        : (profile.fullName.isNotEmpty
+                            ? profile.fullName[0].toUpperCase()
+                            : 'R');
+
+                    Widget avatarChild;
+                    if (profile.avatarPath != null &&
+                        profile.avatarPath!.isNotEmpty) {
+                      final file = File(profile.avatarPath!);
+                      if (file.existsSync()) {
+                        avatarChild = ClipOval(
+                          child: Image.file(
+                            file,
+                            width: 34,
+                            height: 34,
+                            fit: BoxFit.cover,
+                          ),
+                        );
+                      } else {
+                        avatarChild = Text(
+                          initial,
+                          style: const TextStyle(
+                            color: AppColors.tacticalOrange,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        );
+                      }
+                    } else {
+                      avatarChild = Text(
+                        initial,
+                        style: const TextStyle(
+                          color: AppColors.tacticalOrange,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      );
+                    }
+
+                    return Container(
+                      width: 34,
+                      height: 34,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF141416),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: avatarChild,
+                    );
+                  },
                 ),
               ),
             ],

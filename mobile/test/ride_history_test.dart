@@ -1,5 +1,7 @@
 import 'package:camp/features/ride_history/presentation/screens/ride_history_screen.dart';
+import 'package:camp/features/ride_history/presentation/widgets/expedition_card_widget.dart';
 import 'package:camp/features/ride_history/presentation/widgets/ride_filter_chips_widget.dart';
+import 'package:camp/features/ride_history/presentation/widgets/ride_history_header_row_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -23,6 +25,8 @@ void main() {
   testWidgets(
     'RideHistoryScreen renders completely without overflow at 360px width',
     (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      addTearDown(() => FlutterError.onError = originalOnError);
       FlutterError.onError = (FlutterErrorDetails details) {
         // ignore: avoid_print
         print('FLUTTER_ERROR: ${details.exceptionAsString()}\n'
@@ -40,7 +44,7 @@ void main() {
       // Verify header elements
       expect(find.text('EXPEDITION TELEMETRY ARCHIVE'), findsOneWidget);
       expect(find.text('Ride History'), findsOneWidget);
-      expect(find.text('24 Logged'), findsOneWidget);
+      expect(find.byType(RideHistoryHeaderRowWidget), findsOneWidget);
 
       // Verify filter chips
       expect(find.text('All Rides'), findsOneWidget);
@@ -58,12 +62,7 @@ void main() {
       expect(find.byIcon(Icons.more_horiz_rounded), findsOneWidget);
 
       // Verify cards
-      expect(find.text('Karakoram High-Altitude Corridor'), findsOneWidget);
-      expect(
-        find.text('Makran Coastal Highway & Mud Volcanoes'),
-        findsOneWidget,
-      );
-      expect(find.text('Cholistan Desert Sand Nav Loop'), findsOneWidget);
+      expect(find.byType(ExpeditionCardWidget), findsWidgets);
 
       // Ensure no overflow errors occurred
       final err = tester.takeException();

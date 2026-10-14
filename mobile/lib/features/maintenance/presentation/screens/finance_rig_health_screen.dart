@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,6 +8,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
+import '../../../garage/controllers/active_bike_controller.dart';
 import '../../controllers/trip_budget_controller.dart';
 import '../../domain/expense_model.dart';
 import '../../domain/maintenance_item_model.dart';
@@ -38,7 +40,9 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
   @override
   void initState() {
     super.initState();
-    _maintenanceItems = List.from(MaintenanceItem.defaultSampleItems);
+    _maintenanceItems = kDebugMode
+        ? List.from(MaintenanceItem.defaultSampleItems)
+        : <MaintenanceItem>[];
   }
 
   void _showNotification(String message) {
@@ -188,7 +192,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                                   ),
                                   const SizedBox(width: 5),
                                   Text(
-                                    'SYNCD 2m ago',
+                                    'LOCAL',
                                     style: GoogleFonts.manrope(
                                       color: AppColors.darkCharcoal,
                                       fontSize: 10,
@@ -206,11 +210,26 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
 
                     const SizedBox(height: 14),
 
-                    // 3. Hero Photo Widget (KTM 890 Adventure R + masked VIN)
-                    const HeroPhotoWidget(
-                      bikeName: '🏍 KTM 890 Adventure R',
-                      vinSnippet: 'VIN ••9482',
-                      imagePath: 'assets/images/bmw_r1250_scan_placeholder.jpg',
+                    // 3. Hero Photo Widget (Active Rig + masked VIN)
+                    ListenableBuilder(
+                      listenable: ActiveBikeController.instance,
+                      builder: (context, _) {
+                        final bike = ActiveBikeController.instance.activeBike;
+                        return HeroPhotoWidget(
+                          bikeName: bike != null
+                              ? '🏍 ${bike.make} ${bike.modelName}'
+                              : '🏍 No Active Motorcycle',
+                          vinSnippet: bike != null &&
+                                  bike.vin != null &&
+                                  bike.vin!.isNotEmpty
+                              ? 'VIN ••${bike.vin!.substring(bike.vin!.length >= 4 ? bike.vin!.length - 4 : 0)}'
+                              : 'GARAGE FLEET',
+                          imagePath: (bike?.imagePath != null &&
+                                  bike!.imagePath!.isNotEmpty)
+                              ? bike.imagePath!
+                              : 'assets/images/bmw_r1250_scan_placeholder.jpg',
+                        );
+                      },
                     ),
 
                     const SizedBox(height: AppColors.cardGap),

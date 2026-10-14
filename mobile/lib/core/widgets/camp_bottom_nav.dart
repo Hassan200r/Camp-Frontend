@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/routes.dart';
 import '../../app/theme/app_colors.dart';
+import '../utils/keyboard_visibility.dart';
 
 /// Navigation item definition for [CampBottomNav]
 class CampNavItem {
@@ -15,8 +16,9 @@ class CampNavItem {
 }
 
 /// CAMP Bottom Navigation Dock
-/// Floating dark pill container with 5 icons and active indicator rendered
+/// Floating dark pill container with 6 distinct icons and active indicator rendered
 /// as a tactical orange skeuomorphic gradient circle.
+/// Automatically hides when keyboard is visible (via [KeyboardVisibilityBuilder]).
 class CampBottomNav extends StatelessWidget {
   const CampBottomNav({
     required this.selectedIndex,
@@ -35,6 +37,7 @@ class CampBottomNav extends StatelessWidget {
     CampNavItem(icon: Icons.navigation_rounded, label: 'Navigation'),
     CampNavItem(icon: Icons.handyman_rounded, label: 'Mechanic'),
     CampNavItem(icon: Icons.account_balance_wallet_rounded, label: 'Finances & Rig Health'),
+    CampNavItem(icon: Icons.person_rounded, label: 'Profile'),
   ];
 
   /// Standard tab navigation helper across all screens
@@ -73,12 +76,48 @@ class CampBottomNav extends StatelessWidget {
           (route) => route.settings.name == CampRoutes.home,
         );
         break;
+      case 5:
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          CampRoutes.profile,
+          (route) => route.settings.name == CampRoutes.home,
+        );
+        break;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    return KeyboardVisibilityBuilder(
+      builder: (context, isKeyboardVisible, _) {
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          reverseDuration: const Duration(milliseconds: 150),
+          transitionBuilder: (child, animation) {
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 1.2),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+              )),
+              child: FadeTransition(
+                opacity: animation,
+                child: child,
+              ),
+            );
+          },
+          child: isKeyboardVisible
+              ? const SizedBox.shrink(key: ValueKey('camp_bottom_nav_hidden'))
+              : _buildNavContent(context),
+        );
+      },
+    );
+  }
+
+  Widget _buildNavContent(BuildContext context) {
     return Container(
+      key: const ValueKey('camp_bottom_nav_visible'),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.dockBackground,

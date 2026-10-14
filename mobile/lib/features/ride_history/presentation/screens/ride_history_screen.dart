@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../maintenance/controllers/post_ride_report_controller.dart';
 import '../../domain/expedition_log_model.dart';
 import '../widgets/expedition_card_widget.dart';
 import '../widgets/latest_expedition_card_widget.dart';
@@ -53,65 +56,116 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
 
                 // ── Scrollable body ─────────────────────────────────────────
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
-                    children: [
-                      // 1. Header row
-                      RideHistoryHeaderRowWidget(
-                        count: 24,
-                        onDownload: () {},
-                      ),
+                  child: ListenableBuilder(
+                    listenable: PostRideReportController.instance,
+                    builder: (context, _) {
+                      final reports =
+                          PostRideReportController.instance.reports;
+                      final bool showSamples =
+                          reports.isEmpty && kDebugMode;
+                      final int totalCount = reports.isNotEmpty
+                          ? reports.length
+                          : (showSamples ? ExpeditionLog.samples.length : 0);
 
-                      const SizedBox(height: 14),
-
-                      // 2. Filter chips (no horizontal padding — widget handles
-                      //    its own scrollable Row internally)
-                      Padding(
-                        padding: EdgeInsets.zero,
-                        child: RideFilterChipsWidget(
-                          initialSelected: _activeFilter,
-                          onFilterChanged: (i) =>
-                              setState(() => _activeFilter = i),
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // 3. Season summary
-                      const SeasonSummaryCardWidget(),
-
-                      const SizedBox(height: 16),
-
-                      // 4. Latest expedition hero card
-                      LatestExpeditionCardWidget(
-                        onMenuActionSelected: (_) {},
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // 5. Section label for past expeditions
-                      SectionHeader(
-                        title: 'Past Expeditions',
-                        actionLabel: 'See All',
-                        onAction: () {},
-                        padding: const EdgeInsets.only(bottom: 10),
-                      ),
-
-                      // 6. Three expedition cards
-                      ...ExpeditionLog.samples.map(
-                        (log) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: ExpeditionCardWidget(
-                            log: log,
-                            onMoreTap: () {},
-                            onLinkTap: () {},
+                      return ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
+                        children: [
+                          // 1. Header row
+                          RideHistoryHeaderRowWidget(
+                            count: totalCount,
+                            onDownload: () {},
                           ),
-                        ),
-                      ),
 
-                      // 7. Load more CTA
-                      LoadMoreButtonWidget(onTap: () {}),
-                    ],
+                          const SizedBox(height: 14),
+
+                          // 2. Filter chips
+                          Padding(
+                            padding: EdgeInsets.zero,
+                            child: RideFilterChipsWidget(
+                              initialSelected: _activeFilter,
+                              onFilterChanged: (i) =>
+                                  setState(() => _activeFilter = i),
+                            ),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // 3. Season summary
+                          const SeasonSummaryCardWidget(),
+
+                          const SizedBox(height: 16),
+
+                          // 4. Latest expedition hero card
+                          LatestExpeditionCardWidget(
+                            onMenuActionSelected: (_) {},
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // 5. Section label for past expeditions
+                          SectionHeader(
+                            title: 'Past Expeditions',
+                            actionLabel: totalCount > 0 ? 'See All' : null,
+                            onAction: totalCount > 0 ? () {} : null,
+                            padding: const EdgeInsets.only(bottom: 10),
+                          ),
+
+                          // 6. Expedition cards or empty state
+                          if (totalCount == 0) ...[
+                            CampEmptyState(
+                              icon: Icons.history_rounded,
+                              message: 'No expedition logs recorded yet',
+                              ctaLabel: 'Plan a ride',
+                              onCta: () => Navigator.of(context)
+                                  .pushNamed(CampRoutes.navigationMap),
+                            ),
+                          ] else if (showSamples) ...[
+                            ...ExpeditionLog.samples.map(
+                              (log) => Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: ExpeditionCardWidget(
+                                  log: log,
+                                  onMoreTap: () {},
+                                  onLinkTap: () {},
+                                ),
+                              ),
+                            ),
+                            LoadMoreButtonWidget(onTap: () {}),
+                          ] else ...[
+                            ...reports.map(
+                              (report) => Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: ExpeditionCardWidget(
+                                  log: ExpeditionLog(
+                                    date:
+                                        '${report.date.month}/${report.date.day}/${report.date.year}',
+                                    tag: report.terrainTags.isNotEmpty
+                                        ? report.terrainTags.first
+                                        : 'Ride',
+                                    tagVariant: StatusChipVariant.success,
+                                    icon: Icons.terrain_rounded,
+                                    title: report.notes?.isNotEmpty == true
+                                        ? report.notes!
+                                        : 'Ride on ${report.date.month}/${report.date.day}',
+                                    route:
+                                        '${report.distanceKm.round()} km',
+                                    bike: 'Logged Ride',
+                                    stats: const [],
+                                    footer: ExpeditionFooterChips(
+                                        report.terrainTags.isNotEmpty
+                                            ? report.terrainTags
+                                            : const ['Ride']),
+                                    footerLink: 'View Log',
+                                  ),
+                                  onMoreTap: () {},
+                                  onLinkTap: () {},
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
                   ),
                 ),
               ],

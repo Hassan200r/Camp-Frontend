@@ -11,9 +11,11 @@ import 'features/auth/presentation/screens/sign_up_screen.dart';
 import 'features/bike_scan/presentation/screens/add_motorcycle_screen.dart';
 import 'features/bike_scan/presentation/screens/bike_details_screen.dart';
 import 'features/bike_scan/presentation/screens/bike_scan_screen.dart';
+import 'features/dashboard/controllers/profile_controller.dart';
 import 'features/dashboard/presentation/screens/edit_profile_screen.dart';
 import 'features/dashboard/presentation/screens/home_screen.dart';
 import 'features/dashboard/presentation/screens/profile_screen.dart';
+import 'features/dashboard/presentation/screens/weather_detail_screen.dart';
 import 'features/emergency_sos/presentation/screens/emergency_sos_screen.dart';
 import 'features/garage/controllers/active_bike_controller.dart';
 import 'features/garage/presentation/screens/bike_profile_screen.dart';
@@ -22,6 +24,7 @@ import 'features/maintenance/controllers/post_ride_report_controller.dart';
 import 'features/maintenance/controllers/trip_budget_controller.dart';
 import 'features/maintenance/presentation/screens/finance_rig_health_screen.dart';
 import 'features/maintenance/presentation/screens/maintenance_screen.dart';
+import 'features/mechanics/controllers/mechanic_controller.dart';
 import 'features/mechanics/presentation/screens/add_mechanic_screen.dart';
 import 'features/mechanics/presentation/screens/mechanics_home_screen.dart';
 import 'features/navigation/presentation/screens/navigation_map_screen.dart';
@@ -47,6 +50,12 @@ void main() async {
     } catch (_) {}
     try {
       await TripBudgetController.instance.load(store);
+    } catch (_) {}
+    try {
+      await ProfileController.instance.load(store);
+    } catch (_) {}
+    try {
+      await MechanicController.instance.load(store);
     } catch (_) {}
     try {
       if (await store.isFirstRun()) {
@@ -124,6 +133,7 @@ class _CampAppState extends State<CampApp> with WidgetsBindingObserver {
             const MaintenanceScreen(initialTab: MaintenanceTab.carburetor),
         CampRoutes.settings: (context) => const SettingsScreen(),
         CampRoutes.emergencySos: (context) => const EmergencySosScreen(),
+        CampRoutes.weatherDetail: (context) => const WeatherDetailScreen(),
       },
       onUnknownRoute: (settings) => MaterialPageRoute<void>(
         settings: settings,

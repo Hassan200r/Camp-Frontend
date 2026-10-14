@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -362,18 +364,32 @@ class GarageScreen extends StatelessWidget {
                   DecoratedBox(
                     decoration: const BoxDecoration(color: AppColors.clayDark),
                     child: bike.imagePath != null
-                        ? Image.asset(
-                            bike.imagePath!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Center(
-                              child: Icon(
-                                Icons.two_wheeler_rounded,
-                                size: 64,
-                                color: AppColors.mutedLight,
-                              ),
-                            ),
-                          )
+                        ? (File(bike.imagePath!).existsSync()
+                            ? Image.file(
+                                File(bike.imagePath!),
+                                fit: BoxFit.cover,
+                              )
+                            : (bike.imagePath!.startsWith('assets/')
+                                ? Image.asset(
+                                    bike.imagePath!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            const Center(
+                                      child: Icon(
+                                        Icons.two_wheeler_rounded,
+                                        size: 64,
+                                        color: AppColors.mutedLight,
+                                      ),
+                                    ),
+                                  )
+                                : const Center(
+                                    child: Icon(
+                                      Icons.two_wheeler_rounded,
+                                      size: 64,
+                                      color: AppColors.mutedLight,
+                                    ),
+                                  )))
                         : const Center(
                             child: Icon(
                               Icons.two_wheeler_rounded,

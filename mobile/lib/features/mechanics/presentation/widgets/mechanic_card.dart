@@ -7,13 +7,16 @@ import '../../domain/mechanic_model.dart';
 class MechanicCard extends StatelessWidget {
 
   const MechanicCard({
-    required this.mechanic, super.key,
+    required this.mechanic,
+    super.key,
     this.onCallShop,
     this.onRouteGps,
+    this.onDelete,
   });
   final Mechanic mechanic;
   final VoidCallback? onCallShop;
   final VoidCallback? onRouteGps;
+  final VoidCallback? onDelete;
 
   static const LinearGradient _orangeGradient = LinearGradient(
     begin: Alignment.topLeft,
@@ -35,7 +38,7 @@ class MechanicCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: Title & Badge
+          // Header: Title, Badge & Delete Action
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -51,7 +54,26 @@ class MechanicCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              _buildBadge(),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildBadge(),
+                  if (onDelete != null) ...[
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline_rounded,
+                        size: 19,
+                        color: AppColors.mutedText,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints:
+                          const BoxConstraints(minWidth: 28, minHeight: 28),
+                      onPressed: onDelete,
+                    ),
+                  ],
+                ],
+              ),
             ],
           ),
 

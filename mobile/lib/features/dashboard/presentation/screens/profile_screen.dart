@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,11 +8,11 @@ import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
-import '../../../auth/controllers/auth_controller.dart';
+import '../../../garage/controllers/active_bike_controller.dart';
 import '../../../settings/controllers/settings_controller.dart';
 import '../../../settings/domain/units_system.dart';
+import '../../controllers/profile_controller.dart';
 import '../widgets/app_drawer_widget.dart';
-import '../widgets/tactical_bottom_dock_widget.dart';
 
 /// CAMP Rider Profile Screen
 /// High-fidelity skeuomorphic cockpit profile displaying telemetry records,
@@ -169,17 +171,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
 
-            // ── Floating Bottom Dock (Index 4: Profile Active) ───────────────
+            // ── Floating Bottom Dock (Index 5: Profile Active) ───────────────
             Positioned(
               left: 0,
               right: 0,
               bottom: _kNavBottomMargin,
               child: Center(
-                child: TacticalBottomDockWidget(
-                  selectedIndex: 4, // Profile tab active
+                child: CampBottomNav(
+                  selectedIndex: 5, // Profile tab active
                   onIndexChanged: (index) {
-                    if (index == 4) return;
-                    CampBottomNav.navigateToTab(context, index, currentIndex: 4);
+                    if (index == 5) return;
+                    CampBottomNav.navigateToTab(context, index, currentIndex: 5);
                   },
                 ),
               ),
@@ -192,7 +194,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ── 2. Cockpit Hero Card ───────────────────────────────────────────────────
   Widget _buildCockpitHeroCard() {
-    return CockpitHeroCard(
+    return ListenableBuilder(
+      listenable: Listenable.merge([ProfileController.instance, ActiveBikeController.instance]),
+      builder: (context, _) {
+        final profile = ProfileController.instance;
+        final avatarPath = profile.avatarPath;
+        final displayName = profile.fullName;
+        final firstName = profile.firstName;
+        final ridingTier = profile.ridingTier;
+        final activeBike = ActiveBikeController.instance.activeBike;
+        final bikeSubtitle = activeBike != null
+            ? 'Cockpit Link Active • ${activeBike.name}'
+            : 'No bike added yet';
+        return CockpitHeroCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -202,53 +216,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Avatar with orange border and verified badge
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.tacticalOrange,
-                          width: 2.2,
-                        ),
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFF4A3223), Color(0xFF2B1A10)],
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Elena',
-                          style: GoogleFonts.manrope(
-                            color: const Color(0xFFFDE68A),
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w800,
+                // Avatar with orange border
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.tacticalOrange,
+                      width: 2.2,
+                    ),
+                    gradient: avatarPath == null
+                        ? const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF4A3223), Color(0xFF2B1A10)],
+                          )
+                        : null,
+                  ),
+                  child: ClipOval(
+                    child: avatarPath != null && File(avatarPath).existsSync()
+                        ? Image.file(File(avatarPath), fit: BoxFit.cover)
+                        : Center(
+                            child: Text(
+                              firstName.isNotEmpty
+                                  ? firstName[0].toUpperCase()
+                                  : 'R',
+                              style: GoogleFonts.manrope(
+                                color: const Color(0xFFFDE68A),
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: -1,
-                      right: -1,
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(0xFF0F172A),
-                        ),
-                        child: const Icon(
-                          Icons.check_circle_rounded,
-                          size: 13,
-                          color: AppColors.statusYellow,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
                 const SizedBox(width: 14),
 
@@ -261,7 +262,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           Flexible(
                             child: Text(
-                              AuthController.instance.riderDisplayName,
+                              displayName,
                               style: GoogleFonts.manrope(
                                 color: Colors.white,
                                 fontSize: 17,
@@ -278,7 +279,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
-                              'ADV PRO',
+                              ridingTier,
                               style: GoogleFonts.manrope(
                                 color: const Color(0xFFFCD34D),
                                 fontSize: 9.5,
@@ -291,7 +292,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        'Cockpit Link Active • BMW R 1250 GS',
+                        bikeSubtitle,
                         style: GoogleFonts.manrope(
                           color: const Color(0xFF94A3B8),
                           fontSize: 12,
@@ -545,6 +546,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
+    );
+      },
     );
   }
 
@@ -991,14 +994,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   height: 120,
                   width: double.infinity,
                   color: const Color(0xFFE2E8F0),
-                  child: imagePath != null
-                      ? Image.asset(
-                          imagePath,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const Center(
-                            child: Icon(Icons.two_wheeler_rounded, size: 48, color: AppColors.mutedText),
-                          ),
-                        )
+                  child: imagePath != null && imagePath.isNotEmpty
+                      ? (File(imagePath).existsSync()
+                          ? Image.file(
+                              File(imagePath),
+                              fit: BoxFit.cover,
+                            )
+                          : (imagePath.startsWith('assets/')
+                              ? Image.asset(
+                                  imagePath,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Center(
+                                    child: Icon(Icons.two_wheeler_rounded,
+                                        size: 48, color: AppColors.mutedText),
+                                  ),
+                                )
+                              : const Center(
+                                  child: Icon(Icons.two_wheeler_rounded,
+                                      size: 48, color: AppColors.mutedText),
+                                )))
                       : Container(
                           decoration: const BoxDecoration(
                             gradient: LinearGradient(
@@ -1626,7 +1641,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildInfoKeyValueRow(
             label: 'Emergency ICE:',
             valueWidget: Text(
-              'Sarah Henderson (Spouse) • +1 (555) 019-4821',
+              ProfileController.instance.emergencyContactName.isNotEmpty
+                  ? '${ProfileController.instance.emergencyContactName} (${ProfileController.instance.emergencyContactRelation}) • ${ProfileController.instance.emergencyContactPhone}'
+                  : 'Emergency Contact Not Set',
               style: GoogleFonts.manrope(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w700,

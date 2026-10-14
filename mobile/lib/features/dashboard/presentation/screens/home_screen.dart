@@ -10,7 +10,6 @@ import '../widgets/app_header_widget.dart';
 import '../widgets/cockpit_status_card_widget.dart';
 import '../widgets/maintenance_alert_card_widget.dart';
 import '../widgets/recent_updates_feed_widget.dart';
-import '../widgets/tactical_bottom_dock_widget.dart';
 import '../widgets/voice_copilot_bar_widget.dart';
 
 /// CAMP Explore Home / Dashboard Screen
@@ -35,6 +34,46 @@ class _HomeScreenState extends State<HomeScreen> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: const Duration(milliseconds: 2000),
+      ),
+    );
+  }
+
+  void _showGroupBeaconDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.clay,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppColors.radiusCard),
+        ),
+        title: const Text(
+          'Group Beacon',
+          style: TextStyle(
+            color: AppColors.darkCharcoal,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        content: const Text(
+          'Coming in a future update',
+          style: TextStyle(
+            color: Color(0xFF4B5563),
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text(
+              'OK',
+              style: TextStyle(
+                color: AppColors.tacticalOrange,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -117,9 +156,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     // 6. Recent Updates Feed
                     RecentUpdatesFeedWidget(
                       onMarkAllRead: () => _showNotification('All updates marked as read'),
-                      onViewRadar: () => Navigator.of(context).pushNamed(CampRoutes.navigationMap),
-                      onLocateBeacon: () => Navigator.of(context).pushNamed(CampRoutes.navigationMap),
-                      onDismissTpms: () => _showNotification('TPMS notification cleared'),
+                      onViewRadar: () => Navigator.of(context).pushNamed(CampRoutes.weatherDetail),
+                      onLocateBeacon: _showGroupBeaconDialog,
                     ),
                   ],
                 ),
@@ -132,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
               right: 0,
               bottom: 24,
               child: Center(
-                child: TacticalBottomDockWidget(
+                child: CampBottomNav(
                   selectedIndex: 0,
                   onIndexChanged: (index) {
                     CampBottomNav.navigateToTab(context, index, currentIndex: 0);

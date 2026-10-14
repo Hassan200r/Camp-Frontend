@@ -61,7 +61,15 @@ void main() {
 
     ActiveBikeController.instance.addBike(testBike, setActive: true);
 
-    // Simulate app entering paused state
+    addTearDown(() {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    });
+
+    // Simulate app entering paused state through valid Flutter lifecycle transitions
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     await tester.pumpAndSettle();
 
@@ -86,6 +94,10 @@ void main() {
 
     await tester.pumpWidget(const CampApp());
     await tester.pump();
+
+    addTearDown(() {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    });
 
     const bikeInactive = Bike(
       id: 'inactive-bike',

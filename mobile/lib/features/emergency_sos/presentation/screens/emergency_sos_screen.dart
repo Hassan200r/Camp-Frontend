@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../dashboard/presentation/widgets/tactical_bottom_dock_widget.dart';
+import '../../../../core/widgets/camp_bottom_nav.dart';
 import '../widgets/auto_crash_detection_card.dart';
 import '../widgets/emergency_bottom_actions.dart';
 import '../widgets/emergency_contact_card.dart';
@@ -88,7 +88,7 @@ class EmergencySosScreen extends StatelessWidget {
               right: 0,
               bottom: 24,
               child: Center(
-                child: TacticalBottomDockWidget(
+                child: CampBottomNav(
                   selectedIndex: -1,
                 ),
               ),

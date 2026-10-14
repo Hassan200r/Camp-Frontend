@@ -1,10 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../controllers/profile_controller.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  CAMP Edit Profile Screen
@@ -20,12 +24,12 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   // ── Personal Info controllers ─────────────────────────────────────────────
-  final _fullNameCtrl = TextEditingController(text: 'Alex Henderson');
-  final _usernameCtrl = TextEditingController(text: '@alex_adv_rider');
-  final _emailCtrl = TextEditingController(text: 'alex@tmmemoto.com');
-  final _phoneCtrl = TextEditingController(text: '+1(555) 919-263K');
-  final _homeCityCtrl = TextEditingController(text: 'Boulder, Colorado');
-  final _dobCtrl = TextEditingController(text: 'March 14, 1991');
+  final _fullNameCtrl = TextEditingController();
+  final _usernameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _homeCityCtrl = TextEditingController();
+  final _dobCtrl = TextEditingController();
 
   // ── Riding Profile state ──────────────────────────────────────────────────
   int _experienceIndex = 2; // 0=Beginner 1=Intermediate 2=Advanced
@@ -33,10 +37,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   int _unitIndex = 0; // 0=Metric 1=Imperial
 
   // ── Emergency Contact controllers ─────────────────────────────────────────
-  final _ecNameCtrl = TextEditingController(text: 'Sarah Henderson');
-  final _ecRelCtrl = TextEditingController(text: 'Spouse / Partner');
-  final _ecPhoneCtrl = TextEditingController(text: '+1 (555) 842-6819');
+  final _ecNameCtrl = TextEditingController();
+  final _ecRelCtrl = TextEditingController();
+  final _ecPhoneCtrl = TextEditingController();
   String _bloodGroup = 'O+ (Universal Donor)';
+  String? _avatarPath;
 
   static const List<String> _bloodGroups = [
     'A+ (Type A Positive)',
@@ -49,6 +54,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     'O- (Universal Donor)',
     'Unknown',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    final profile = ProfileController.instance;
+    _fullNameCtrl.text = profile.fullName;
+    _usernameCtrl.text = profile.username;
+    _emailCtrl.text = profile.email;
+    _phoneCtrl.text = profile.phone;
+    _homeCityCtrl.text = profile.homeCity;
+    _dobCtrl.text = profile.dob;
+    _experienceIndex = profile.experienceIndex;
+    _ridingStyles.clear();
+    _ridingStyles.addAll(profile.ridingStyles);
+    _unitIndex = profile.unitIndex;
+    _ecNameCtrl.text = profile.emergencyContactName;
+    _ecRelCtrl.text = profile.emergencyContactRelation;
+    _ecPhoneCtrl.text = profile.emergencyContactPhone;
+    _bloodGroup = profile.bloodGroup;
+    _avatarPath = profile.avatarPath;
+  }
 
   @override
   void dispose() {
@@ -64,6 +90,89 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (picked != null) {
+        setState(() {
+          _avatarPath = picked.path;
+        });
+        ProfileController.instance.setAvatarPath(picked.path);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Camera or storage access was not available ($e)',
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: AppColors.darkCharcoal,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showPhotoOptions() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.clay,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: AppColors.dockShadow,
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.mutedLight,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('Change Profile Photo', style: AppTextStyles.cardTitle),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_rounded,
+                    color: AppColors.tacticalOrange),
+                title: Text('Take Photo with Camera',
+                    style: AppTextStyles.itemTitle),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_rounded,
+                    color: AppColors.tacticalOrange),
+                title: Text('Choose from Gallery',
+                    style: AppTextStyles.itemTitle),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // ── Date picker for Date of Birth ─────────────────────────────────────────
   Future<void> _pickDob() async {
     final picked = await showDatePicker(
@@ -73,7 +182,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       lastDate: DateTime.now(),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.tacticalOrange),
+          colorScheme:
+              const ColorScheme.light(primary: AppColors.tacticalOrange),
         ),
         child: child!,
       ),
@@ -91,6 +201,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _onSave() {
+    ProfileController.instance.updateProfile(
+      fullName: _fullNameCtrl.text.trim(),
+      username: _usernameCtrl.text.trim(),
+      email: _emailCtrl.text.trim(),
+      phone: _phoneCtrl.text.trim(),
+      homeCity: _homeCityCtrl.text.trim(),
+      dob: _dobCtrl.text.trim(),
+      avatarPath: _avatarPath,
+      experienceIndex: _experienceIndex,
+      ridingStyles: _ridingStyles,
+      unitIndex: _unitIndex,
+      emergencyContactName: _ecNameCtrl.text.trim(),
+      emergencyContactRelation: _ecRelCtrl.text.trim(),
+      emergencyContactPhone: _ecPhoneCtrl.text.trim(),
+      bloodGroup: _bloodGroup,
+    );
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -261,58 +388,86 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   //  2. Avatar Section
   // ─────────────────────────────────────────────────────────────────────────
   Widget _buildAvatarSection() {
+    Widget avatarChild;
+    if (_avatarPath != null && _avatarPath!.isNotEmpty) {
+      final file = File(_avatarPath!);
+      if (file.existsSync()) {
+        avatarChild = Image.file(
+          file,
+          width: 90,
+          height: 90,
+          fit: BoxFit.cover,
+        );
+      } else {
+        avatarChild = Center(
+          child: Text(
+            _fullNameCtrl.text.isNotEmpty ? _fullNameCtrl.text[0] : 'R',
+            style: GoogleFonts.manrope(
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
+              color: AppColors.tacticalOrange,
+            ),
+          ),
+        );
+      }
+    } else {
+      avatarChild = const Center(
+        child: Icon(
+          Icons.person_rounded,
+          size: 50,
+          color: AppColors.mutedLight,
+        ),
+      );
+    }
+
     return Column(
       children: [
         // Avatar circle with orange camera badge overlapping bottom-right
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              width: 90,
-              height: 90,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.clayDark,
-                boxShadow: AppColors.skeuRaised,
-                border: Border.all(color: Colors.white, width: 3),
-              ),
-              child: const ClipOval(
-                child: Center(
-                  child: Icon(
-                    Icons.person_rounded,
-                    size: 50,
-                    color: AppColors.mutedLight,
-                  ),
-                ),
-              ),
-            ),
-            // Camera badge
-            Positioned(
-              bottom: 0,
-              right: -2,
-              child: Container(
-                width: 30,
-                height: 30,
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _showPhotoOptions,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 90,
+                height: 90,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      AppColors.tacticalOrangeLight,
-                      AppColors.tacticalOrangeDark
-                    ],
-                  ),
-                  boxShadow: AppColors.orangeGlow,
-                  border: Border.all(color: Colors.white, width: 2),
+                  color: AppColors.clayDark,
+                  boxShadow: AppColors.skeuRaised,
+                  border: Border.all(color: Colors.white, width: 3),
                 ),
-                child: const Center(
-                  child: Icon(Icons.camera_alt_rounded,
-                      color: Colors.white, size: 14),
+                child: ClipOval(child: avatarChild),
+              ),
+              // Camera badge
+              Positioned(
+                bottom: 0,
+                right: -2,
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        AppColors.tacticalOrangeLight,
+                        AppColors.tacticalOrangeDark
+                      ],
+                    ),
+                    boxShadow: AppColors.orangeGlow,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.camera_alt_rounded,
+                        color: Colors.white, size: 14),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
 
         const SizedBox(height: 10),
@@ -320,7 +475,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         // "Change Photo" orange link
         GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () {},
+          onTap: _showPhotoOptions,
           child: Text('Change Photo', style: AppTextStyles.orangeLink),
         ),
 
@@ -552,7 +707,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
             title: 'Linked Accounts',
-            subtitle: 'Connected as alex@tmmemoto.com',
+            subtitle: 'Connected as ${_emailCtrl.text.isNotEmpty ? _emailCtrl.text : "rider@camp.io"}',
             onTap: () {},
           ),
         ],

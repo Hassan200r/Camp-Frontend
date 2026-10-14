@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -87,7 +89,7 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
     ),
   ];
 
-  Bike _resolveCurrentBike() {
+  Bike? _resolveCurrentBike() {
     // 1. Check if bike ID was provided in constructor or via route arguments
     final argId = widget.bikeId ??
         (ModalRoute.of(context)?.settings.arguments is String
@@ -106,23 +108,7 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
     }
 
     // 3. Fallback to current active rig
-    return _bikeController.activeBike ??
-        const Bike(
-          id: 'bike-default',
-          make: 'BMW',
-          modelName: 'R 1250 GS Adventure',
-          modelYear: 2023,
-          displacement: 1254,
-          bikeType: 'Adventure',
-          fuelSystem: FuelSystem.efi,
-          carburetorType: null,
-          fuelTankCapacityLiters: 30.0,
-          fuelAverageKmPerLiter: 22.5,
-          ridingTerrain: ['City', 'Highway', 'Off-road'],
-          edition: 'Triple Black',
-          imagePath: 'assets/images/bmw_r1250_scan_placeholder.jpg',
-          odometerKm: 14820,
-        );
+    return _bikeController.activeBike;
   }
 
   void _showNotification(String message) {
@@ -245,12 +231,19 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(AppColors.radiusCard),
                 child: bike.imagePath != null
-                    ? Image.asset(
-                        bike.imagePath!,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) =>
-                            _photoFallback(),
-                      )
+                    ? (File(bike.imagePath!).existsSync()
+                        ? Image.file(
+                            File(bike.imagePath!),
+                            fit: BoxFit.contain,
+                          )
+                        : (bike.imagePath!.startsWith('assets/')
+                            ? Image.asset(
+                                bike.imagePath!,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    _photoFallback(),
+                              )
+                            : _photoFallback()))
                     : _photoFallback(),
               ),
               Positioned(
@@ -300,6 +293,62 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
       listenable: _bikeController,
       builder: (context, _) {
         final bike = _resolveCurrentBike();
+        if (bike == null) {
+          return AnnotatedRegion<SystemUiOverlayStyle>(
+            value: const SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Brightness.dark,
+              systemNavigationBarColor: AppColors.background,
+              systemNavigationBarIconBrightness: Brightness.dark,
+            ),
+            child: Scaffold(
+              backgroundColor: AppColors.clay,
+              body: Stack(
+                children: [
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppColors.screenPadding,
+                        vertical: 16.0,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const CampAppBar(
+                            leading: CampAppBarLeading.back,
+                            titleText: 'BIKE PROFILE',
+                          ),
+                          const Spacer(),
+                          CampEmptyState(
+                            icon: Icons.two_wheeler_rounded,
+                            message: 'No motorcycle active in your garage',
+                            ctaLabel: 'Add your bike',
+                            onCta: () => Navigator.of(context)
+                                .pushNamed(CampRoutes.addBike),
+                          ),
+                          const Spacer(),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: _kNavBottomMargin,
+                    child: Center(
+                      child: CampBottomNav(
+                        selectedIndex: 1,
+                        onIndexChanged: (idx) =>
+                            CampBottomNav.navigateToTab(context, idx),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
         final isActive = _bikeController.isActive(bike.id);
 
         return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -492,12 +541,19 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
                   width: double.infinity,
                   color: AppColors.clayDark,
                   child: bike.imagePath != null
-                      ? Image.asset(
-                          bike.imagePath!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              _photoFallback(),
-                        )
+                      ? (File(bike.imagePath!).existsSync()
+                          ? Image.file(
+                              File(bike.imagePath!),
+                              fit: BoxFit.cover,
+                            )
+                          : (bike.imagePath!.startsWith('assets/')
+                              ? Image.asset(
+                                  bike.imagePath!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      _photoFallback(),
+                                )
+                              : _photoFallback()))
                       : _photoFallback(),
                 ),
               ),

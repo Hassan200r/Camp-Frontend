@@ -31,9 +31,8 @@ class TripBudgetCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double underBudget = tripBudget.underBudgetAmount > 0
-        ? tripBudget.underBudgetAmount
-        : 42.00;
+    final double underBudget = tripBudget.underBudgetAmount;
+    final bool isUnder = underBudget >= 0;
 
     return CampCard(
       child: Column(
@@ -157,24 +156,26 @@ class TripBudgetCardWidget extends StatelessWidget {
 
           const SizedBox(height: 4),
 
-          // ── Green Under-Budget Indicator ──────────────────────────────────
+          // ── Under/Over-Budget Indicator ──────────────────────────────────
           Row(
             children: [
-              const Text(
-                '↘ ',
+              Text(
+                isUnder ? '↘ ' : '↗ ',
                 style: TextStyle(
-                  color: AppColors.statusGreen,
+                  color: isUnder ? AppColors.statusGreen : AppColors.alertRed,
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               Expanded(
                 child: Text(
-                  '\$${underBudget.toStringAsFixed(2)} under target budget',
+                  isUnder
+                      ? '\$${underBudget.toStringAsFixed(2)} under target budget'
+                      : '\$${(-underBudget).toStringAsFixed(2)} over target budget',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.manrope(
-                    color: AppColors.statusGreen,
+                    color: isUnder ? AppColors.statusGreen : AppColors.alertRed,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
                   ),

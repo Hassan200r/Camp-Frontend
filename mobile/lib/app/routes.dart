@@ -29,6 +29,7 @@ abstract final class CampRoutes {
   static const String carburetorTuning = '/carburetor-tuning';
   static const String settings = '/settings';
   static const String emergencySos = '/emergency-sos';
+  static const String weatherDetail = '/weather-detail';
 
   // Legacy route aliases
   // TODO: Legacy route aliases — kept for temporary backward compatibility during team branch merges. Remove once confirmed unused across all teammate branches.
@@ -60,6 +61,7 @@ abstract final class CampRoutes {
     carburetorTuning,
     settings,
     emergencySos,
+    weatherDetail,
   ];
 
   /// Documented legacy route aliases.

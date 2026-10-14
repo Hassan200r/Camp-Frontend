@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -6,7 +8,8 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/utils/skeuomorphic_container.dart';
 import '../../../../core/widgets/widgets.dart';
-import '../../../auth/controllers/auth_controller.dart';
+import '../../../garage/controllers/active_bike_controller.dart';
+import '../../controllers/profile_controller.dart';
 
 /// CAMP's soft-tactile side navigation overlay.
 class AppDrawerWidget extends StatelessWidget {
@@ -92,9 +95,53 @@ class AppDrawerWidget extends StatelessWidget {
       ]);
 
   Widget _riderSummary(BuildContext context) => ListenableBuilder(
-        listenable: AuthController.instance,
+        listenable: Listenable.merge([
+          ProfileController.instance,
+          ActiveBikeController.instance,
+        ]),
         builder: (context, _) {
-          final riderName = AuthController.instance.riderDisplayName;
+          final profile = ProfileController.instance;
+          final riderName = profile.fullName;
+          final riderFirstName = profile.firstName;
+          final activeBike = ActiveBikeController.instance.activeBike;
+          final bikeName = activeBike?.name ?? 'No active bike';
+          final loggedKm = activeBike != null
+              ? '${activeBike.odometerKm} km logged'
+              : '0 km logged';
+
+          Widget avatarContent;
+          if (profile.avatarPath != null && profile.avatarPath!.isNotEmpty) {
+            final file = File(profile.avatarPath!);
+            if (file.existsSync()) {
+              avatarContent = ClipOval(
+                child:
+                    Image.file(file, width: 50, height: 50, fit: BoxFit.cover),
+              );
+            } else {
+              avatarContent = Text(
+                riderFirstName.isNotEmpty
+                    ? riderFirstName[0].toUpperCase()
+                    : 'R',
+                style: GoogleFonts.manrope(
+                  color: AppColors.terracotta,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                ),
+              );
+            }
+          } else {
+            avatarContent = Text(
+              riderFirstName.isNotEmpty
+                  ? riderFirstName[0].toUpperCase()
+                  : 'R',
+              style: GoogleFonts.manrope(
+                color: AppColors.terracotta,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+              ),
+            );
+          }
+
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
@@ -117,31 +164,44 @@ class AppDrawerWidget extends StatelessWidget {
                         color: AppColors.clay,
                         border: Border.all(color: _orange, width: 2),
                       ),
-                      child: const Icon(Icons.person_rounded, color: AppColors.terracotta, size: 29),
+                      child: avatarContent,
                     ),
-                    const Positioned(right: -1, bottom: 1, child: _StatusDot(color: AppColors.statusGreen)),
+                    const Positioned(
+                        right: -1,
+                        bottom: 1,
+                        child: _StatusDot(color: AppColors.statusGreen)),
                   ]),
                   const SizedBox(width: 12),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(riderName, style: AppTextStyles.cardTitle),
-                    const SizedBox(height: 3),
-                    Text('BMW R 1250 GS Adventure', style: AppTextStyles.caption),
-                  ])),
+                  Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                        Text(riderName, style: AppTextStyles.cardTitle),
+                        const SizedBox(height: 3),
+                        Text(bikeName, style: AppTextStyles.caption),
+                      ])),
                 ]),
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Divider(height: 1, color: Color(0x11000000)),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(height: 1, color: Color(0x11000000)),
+                ),
+                Row(children: [
+                  _pill(
+                      profile.ridingTier.isNotEmpty
+                          ? profile.ridingTier
+                          : 'Rider',
+                      icon: Icons.emoji_events_rounded,
+                      orange: true),
+                  const Spacer(),
+                  Text(loggedKm,
+                      style: AppTextStyles.body
+                          .copyWith(fontWeight: FontWeight.w700, fontSize: 11)),
+                ]),
+              ]),
             ),
-            Row(children: [
-              _pill('PRO Touring', icon: Icons.emoji_events_rounded, orange: true),
-              const Spacer(),
-              Text('14,820 km logged', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700, fontSize: 11)),
-            ]),
-          ]),
-        ),
+          );
+        },
       );
-    },
-  );
 
   Widget _menuItem(
     BuildContext context, {

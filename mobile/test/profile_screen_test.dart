@@ -29,7 +29,7 @@ void main() {
     // 2. Cockpit Hero Card
     expect(find.text('Elena Vance'), findsOneWidget);
     expect(find.text('ADV PRO'), findsOneWidget);
-    expect(find.text('Cockpit Link Active • BMW R 1250 GS'), findsOneWidget);
+    expect(find.textContaining('Cockpit Link Active •'), findsOneWidget);
     expect(find.text('ONLINE'), findsOneWidget);
     expect(find.text('08:42 AM'), findsOneWidget);
     expect(find.text('GPS Locked'), findsOneWidget);

@@ -196,6 +196,13 @@ class Bike {
   /// Timestamp of when the motorcycle profile/mileage/service was last updated.
   final DateTime? lastUpdated;
 
+  /// Friendly display name (nickname if present, else "$make $modelName").
+  String get name =>
+      nickname?.isNotEmpty == true ? nickname! : '$make $modelName';
+
+  /// Convenience getter for modelYear.
+  int get year => modelYear;
+
   /// Fallback getter ensuring a non-null timestamp for relative time display.
   DateTime get lastUpdatedAt =>
       lastUpdated ?? DateTime.now().subtract(const Duration(hours: 2, minutes: 15));
