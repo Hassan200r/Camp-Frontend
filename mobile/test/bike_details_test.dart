@@ -153,8 +153,8 @@ void main() {
 
       // Card 4: Current Status
       expect(find.text('CURRENT STATUS'), findsOneWidget);
-      expect(find.text('Current Odometer Reading *'), findsOneWidget);
-      expect(find.text('REQUIRED'), findsOneWidget);
+      expect(find.text('Current Odometer Reading'), findsOneWidget);
+      expect(find.text('Leave blank to start from 0'), findsOneWidget);
       expect(find.text('Current Fuel Level (Optional)'), findsOneWidget);
       expect(find.text('Last Oil Change'), findsOneWidget);
       expect(find.text('Last Tune-Up'), findsOneWidget);
@@ -181,9 +181,19 @@ void main() {
 
       // Footnote
       expect(
-        find.textContaining('Required fields: Make, Model Name, Model Year, Current Odometer'),
+        find.textContaining('Required fields: Make, Model Name, Model Year'),
         findsOneWidget,
       );
+
+      // Fuel Average field should be present in Engine & Fuel System card
+      await tester.scrollUntilVisible(
+        find.text('Fuel Average (km/L)'),
+        -200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Fuel Average (km/L)'), findsOneWidget);
+      expect(find.text('Used to estimate range and fuel cost'), findsOneWidget);
 
       // Info banner & link
       expect(
@@ -194,7 +204,7 @@ void main() {
       expect(find.text('Continue'), findsOneWidget);
     });
 
-    testWidgets('Gating validation: Continue requires Make, Model Name, Model Year, Current Odometer',
+  testWidgets('Gating validation: Continue requires Make, Model Name, Model Year only (odometer is optional)',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 2.0;
@@ -210,7 +220,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Currently Model Name and Odometer are empty -> form is not valid
+      // Initially Model Name is empty -> form is not valid
       expect(BikeOnboardingController.instance.isFormValid, isFalse);
 
       // Fill in Model Name
@@ -218,25 +228,7 @@ void main() {
       await tester.enterText(modelField.first, 'Africa Twin');
       await tester.pumpAndSettle();
 
-      // Still invalid because Odometer is empty
-      expect(BikeOnboardingController.instance.isFormValid, isFalse);
-
-      // Scroll to Odometer field
-      final odoFinder = find.byWidgetPredicate(
-        (widget) => widget is TextField && widget.decoration?.hintText == 'e.g. 14,820',
-      );
-      await tester.scrollUntilVisible(
-        odoFinder,
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
-
-      expect(odoFinder, findsOneWidget);
-      await tester.enterText(odoFinder, '14820');
-      await tester.pumpAndSettle();
-
-      // Now all 4 (Make: 'Honda', Model: 'Africa Twin', Year: 2024, Odo: 14820) are filled!
+      // Now Make='Honda', ModelName='Africa Twin', Year=2024 -> valid (odometer not required)
       expect(BikeOnboardingController.instance.isFormValid, isTrue);
 
       // Scroll to Continue button

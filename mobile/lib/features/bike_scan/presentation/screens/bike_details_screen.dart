@@ -39,6 +39,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
   late TextEditingController _fuelTankCapacityController;
   late TextEditingController _odometerController;
   late TextEditingController _currentFuelController;
+  late TextEditingController _fuelAverageController;
   late TextEditingController _vinController;
   late TextEditingController _nicknameController;
 
@@ -93,6 +94,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
       _controller.setFuelSystem(b.fuelSystem);
       _controller.setCarburetorType(b.carburetorType);
       _controller.setFuelTankCapacity(b.fuelTankCapacityLiters);
+      _controller.setFuelAverageKmpl(b.fuelAverageKmPerLiter);
       _controller.setOdometerKm(b.odometerKm);
       _controller.setCurrentFuelLiters(b.currentFuelLiters);
       if (b.lastOilChange != null) _controller.setLastOilChange(b.lastOilChange!);
@@ -134,6 +136,11 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
           ? _controller.currentFuelLiters.toString()
           : '',
     );
+    _fuelAverageController = TextEditingController(
+      text: _controller.fuelAverageKmpl != null
+          ? _controller.fuelAverageKmpl.toString()
+          : '',
+    );
     _vinController = TextEditingController(text: _controller.vin ?? '');
     _nicknameController =
         TextEditingController(text: _controller.nickname ?? '');
@@ -154,6 +161,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
     _fuelTankCapacityController.dispose();
     _odometerController.dispose();
     _currentFuelController.dispose();
+    _fuelAverageController.dispose();
     _vinController.dispose();
     _nicknameController.dispose();
     super.dispose();
@@ -311,7 +319,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
                           children: [
                             TextSpan(
                               text:
-                                  'Required fields: Make, Model Name, Model Year, Current Odometer',
+                                  'Required fields: Make, Model Name, Model Year',
                               style: AppTextStyles.caption.copyWith(
                                 color: AppColors.mutedText,
                                 fontWeight: FontWeight.w500,
@@ -870,6 +878,26 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
               _controller.setFuelTankCapacity(parsed);
             },
           ),
+          const SizedBox(height: 14),
+
+          // Fuel Average
+          LabeledTextField(
+            label: 'Fuel Average (km/L)',
+            controller: _fuelAverageController,
+            placeholder: 'e.g. 40',
+            suffixText: 'km/L',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            helperText: 'Used to estimate range and fuel cost',
+            onChanged: (val) {
+              final parsed = double.tryParse(val.trim());
+              // Validate 1–100 range
+              if (parsed != null && parsed >= 1 && parsed <= 100) {
+                _controller.setFuelAverageKmpl(parsed);
+              } else {
+                _controller.setFuelAverageKmpl(null);
+              }
+            },
+          ),
         ],
       ),
     );
@@ -877,9 +905,6 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
 
   // ── Card 4: Current Status ────────────────────────────────────────────────
   Widget _buildCurrentStatusCard() {
-    final bool isOdoEmpty =
-        _submittedOnce && (_controller.odometerKm == null || _controller.odometerKm! < 0);
-
     return CampCard(
       padding: const EdgeInsets.all(AppColors.cardPadding),
       borderRadius: AppColors.radiusCard,
@@ -912,24 +937,14 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Current Odometer Reading (Required)
+          // Current Odometer Reading (Optional, defaults to 0)
           LabeledTextField(
-            label: 'Current Odometer Reading *',
+            label: 'Current Odometer Reading',
             controller: _odometerController,
             placeholder: 'e.g. 14,820',
             suffixText: 'km',
             keyboardType: TextInputType.number,
-            isError: isOdoEmpty,
-            errorText: isOdoEmpty ? 'Current odometer reading is required' : null,
-            rightLabelWidget: Text(
-              'REQUIRED',
-              style: GoogleFonts.manrope(
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.8,
-                color: AppColors.alertRed,
-              ),
-            ),
+            helperText: 'Leave blank to start from 0',
             onChanged: (val) {
               final cleaned = val.replaceAll(RegExp(r'[^\d]'), '');
               final parsed = int.tryParse(cleaned);

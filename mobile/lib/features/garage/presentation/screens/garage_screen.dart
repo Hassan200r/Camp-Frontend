@@ -235,8 +235,8 @@ class GarageScreen extends StatelessWidget {
     final curFuel = bike.currentFuelLiters ?? (tankCap * 0.78);
     final fuelPct =
         tankCap > 0 ? ((curFuel / tankCap) * 100).clamp(0, 100).toInt() : 78;
-    final avgKmpl = bike.fuelAverageKmPerLiter ?? 22.5;
-    final rangeKm = (curFuel * avgKmpl).round();
+    final fuelAvg = bike.fuelAverageKmPerLiter;
+    final rangeKm = fuelAvg != null ? (curFuel * fuelAvg).round() : null;
 
     return CampCard(
       color: Colors.white,
@@ -593,7 +593,9 @@ class GarageScreen extends StatelessWidget {
                       ],
                     ),
                     Text(
-                      '$fuelPct% ($rangeKm km)',
+                      rangeKm != null
+                          ? '$fuelPct% ($rangeKm km)'
+                          : '$fuelPct%',
                       style: GoogleFonts.manrope(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
@@ -620,11 +622,15 @@ class GarageScreen extends StatelessWidget {
                 Align(
                   alignment: Alignment.centerRight,
                   child: Text(
-                    'Fuel Avg: ${bike.fuelAverageKmPerLiter?.toStringAsFixed(1) ?? '22.5'} km/L',
+                    bike.fuelAverageKmPerLiter != null
+                        ? 'Fuel Avg: ${bike.fuelAverageKmPerLiter!.toStringAsFixed(1)} km/L'
+                        : 'Add fuel avg',
                     style: GoogleFonts.manrope(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.mutedText,
+                      color: bike.fuelAverageKmPerLiter != null
+                          ? AppColors.mutedText
+                          : AppColors.tacticalOrange,
                     ),
                   ),
                 ),

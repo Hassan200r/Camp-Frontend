@@ -21,6 +21,7 @@ class BikeOnboardingController extends ChangeNotifier {
   double? _fuelTankCapacityLiters;
   int? _odometerKm;
   double? _currentFuelLiters;
+  double? _fuelAverageKmpl;
   ServiceRecord _lastOilChange = const ServiceRecord(
     mode: TrackingMode.byDistance,
     km: 3200,
@@ -44,23 +45,22 @@ class BikeOnboardingController extends ChangeNotifier {
   double? get fuelTankCapacityLiters => _fuelTankCapacityLiters;
   int? get odometerKm => _odometerKm;
   double? get currentFuelLiters => _currentFuelLiters;
+  double? get fuelAverageKmpl => _fuelAverageKmpl;
   ServiceRecord get lastOilChange => _lastOilChange;
   ServiceRecord get lastTuneUp => _lastTuneUp;
   String? get vin => _vin;
   String? get nickname => _nickname;
   String? get imagePath => _imagePath;
 
-  /// Whether the 4 mandatory gating fields are populated and valid:
+  /// Whether the 3 mandatory gating fields are populated and valid:
   /// 1. Make
   /// 2. Model Name
   /// 3. Model Year
-  /// 4. Current Odometer
+  /// Odometer is optional and defaults to 0.
   bool get isFormValid {
     return _make.trim().isNotEmpty &&
         _modelName.trim().isNotEmpty &&
-        _modelYear > 1900 &&
-        _odometerKm != null &&
-        _odometerKm! >= 0;
+        _modelYear > 1900;
   }
 
   // ── Setters & Updaters ─────────────────────────────────────────────────────
@@ -124,6 +124,12 @@ class BikeOnboardingController extends ChangeNotifier {
   void setCurrentFuelLiters(double? value) {
     if (_currentFuelLiters == value) return;
     _currentFuelLiters = value;
+    notifyListeners();
+  }
+
+  void setFuelAverageKmpl(double? value) {
+    if (_fuelAverageKmpl == value) return;
+    _fuelAverageKmpl = value;
     notifyListeners();
   }
 
@@ -238,6 +244,7 @@ class BikeOnboardingController extends ChangeNotifier {
       fuelSystem: _fuelSystem,
       carburetorType: _fuelSystem == FuelSystem.carburetor ? _carburetorType : null,
       fuelTankCapacityLiters: _fuelTankCapacityLiters,
+      fuelAverageKmPerLiter: _fuelAverageKmpl,
       odometerKm: _odometerKm ?? 0,
       currentFuelLiters: _currentFuelLiters,
       lastOilChange: _lastOilChange,
@@ -260,6 +267,7 @@ class BikeOnboardingController extends ChangeNotifier {
     _fuelTankCapacityLiters = null;
     _odometerKm = null;
     _currentFuelLiters = null;
+    _fuelAverageKmpl = null;
     _lastOilChange = const ServiceRecord(
       mode: TrackingMode.byDistance,
       km: 3200,

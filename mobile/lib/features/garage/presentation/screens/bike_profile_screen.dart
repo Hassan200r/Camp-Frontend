@@ -670,8 +670,11 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
     final gallons = (tankCapacity * 0.264172).toStringAsFixed(1);
     final tankSubtitle = '$gallons gal cap';
 
-    final fuelAvg = bike.fuelAverageKmPerLiter ?? 22.5;
-    final fuelAvgTitle = '${fuelAvg.toStringAsFixed(1)} km/L';
+    final fuelAvgValue = bike.fuelAverageKmPerLiter;
+    final fuelAvgTitle = fuelAvgValue != null
+        ? '${fuelAvgValue.toStringAsFixed(1)} km/L'
+        : 'Add fuel average';
+    final fuelAvgSubtitle = fuelAvgValue != null ? 'User Reported' : 'Tap Edit to set';
 
     final odometerTitle = '${_formatNumber(bike.odometerKm)} km';
 
@@ -755,7 +758,8 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
                 child: _buildSpecStatTile(
                   label: 'FUEL AVG',
                   value: fuelAvgTitle,
-                  subtitle: 'User Reported',
+                  subtitle: fuelAvgSubtitle,
+                  valueColor: fuelAvgValue == null ? AppColors.tacticalOrange : null,
                 ),
               ),
             ],
@@ -789,6 +793,7 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
     required String label,
     required String value,
     required String subtitle,
+    Color? valueColor,
   }) {
     return InsetTile(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -811,7 +816,7 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
             style: GoogleFonts.manrope(
               fontSize: 16,
               fontWeight: FontWeight.w900,
-              color: AppColors.darkCharcoal,
+              color: valueColor ?? AppColors.darkCharcoal,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
