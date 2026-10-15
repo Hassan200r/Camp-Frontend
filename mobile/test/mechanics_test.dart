@@ -9,7 +9,9 @@ import 'package:camp/features/mechanics/controllers/mechanic_controller.dart';
 import 'package:camp/features/mechanics/domain/mechanic_model.dart';
 import 'package:camp/features/mechanics/presentation/screens/add_mechanic_screen.dart';
 import 'package:camp/features/mechanics/presentation/screens/mechanics_home_screen.dart';
+import 'package:camp/features/mechanics/presentation/widgets/custom_app_bar.dart';
 import 'package:camp/features/mechanics/presentation/widgets/mechanic_card.dart';
+import 'package:camp/features/mechanics/presentation/widgets/search_bar_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -393,9 +395,16 @@ void main() {
 
       expect(find.text('Delete Me Garage'), findsOneWidget);
 
-      // Tap delete icon on card
-      final deleteIcon = find.byIcon(Icons.delete_outline_rounded).first;
-      await tester.tap(deleteIcon);
+      // Tap overflow menu on card
+      final overflowIcon = find.byIcon(Icons.more_vert_rounded).first;
+      await tester.tap(overflowIcon);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Tap Delete in overflow menu
+      final deleteMenuItem = find.text('Delete');
+      expect(deleteMenuItem, findsOneWidget);
+      await tester.tap(deleteMenuItem);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
@@ -415,6 +424,130 @@ void main() {
       // Verified removed from controller and screen
       expect(MechanicController.instance.mechanics.isEmpty, isTrue);
       expect(find.text('Delete Me Garage'), findsNothing);
+    });
+
+    testWidgets('Honest badges: user-added mechanic hides unearned badges and shows Added by you tag',
+        (tester) async {
+      const userAddedMech = Mechanic(
+        id: 'user-added-custom-id-99',
+        name: 'Karakoram Custom Workshop',
+        distance: 'Nearby',
+        durationOrLocation: 'Pass Road',
+        badgeType: BadgeType.verified,
+        badgeLabel: 'Verified Shop',
+        beaconStatus: 'Active',
+        beaconColor: AppColors.statusGreen,
+        categoryTitle1: 'SERVICES',
+        tags1: ['Engine Rebuild'],
+        categoryTitle2: 'LOCATION',
+        tags2: ['Pass Road'],
+        rating: 5.0,
+        reviewCount: 1,
+        openStatus: 'OPEN NOW',
+        phone: '03001234567',
+      );
+
+      await tester.pumpWidget(
+        noAnimApp(const Scaffold(body: MechanicCard(mechanic: userAddedMech))),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Must show "Added by you" tag
+      expect(find.text('Added by you'), findsOneWidget);
+
+      // Must NOT show unearned badges or stats
+      expect(find.text('Verified Shop'), findsNothing);
+      expect(find.text('CAMP Verified'), findsNothing);
+      expect(find.byIcon(Icons.star_rounded), findsNothing);
+      expect(find.text('OPEN NOW'), findsNothing);
+      expect(find.text('Active'), findsNothing);
+
+      // Sample mechanics MUST show verified badge and ratings
+      final sampleMech = Mechanic.sampleMechanics.first;
+      await tester.pumpWidget(
+        noAnimApp(Scaffold(body: MechanicCard(mechanic: sampleMech))),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('Added by you'), findsNothing);
+      expect(find.text(sampleMech.badgeLabel), findsWidgets);
+      expect(find.byIcon(Icons.star_rounded), findsWidgets);
+    });
+
+    testWidgets('360 px width layout has no overflow warnings and header/buttons do not overlap',
+        (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      const longNameMech = Mechanic(
+        id: 'user-long-name-mech',
+        name: 'Super Long Mountain Ridge Motobike Pitstop & Emergency Overhaul Garage',
+        distance: '4.8 km',
+        durationOrLocation: 'High Altitude Pass Mile Marker 102',
+        badgeType: BadgeType.verified,
+        badgeLabel: 'Verified Shop',
+        beaconStatus: 'Active',
+        beaconColor: AppColors.statusGreen,
+        categoryTitle1: 'SPECIALTIES',
+        tags1: ['Suspension Tuning', 'Engine Overhaul'],
+        categoryTitle2: 'LOCATION',
+        tags2: ['High Pass'],
+        rating: 5.0,
+        reviewCount: 1,
+        openStatus: 'OPEN NOW',
+        phone: '03000000000',
+      );
+
+      MechanicController.instance.addMechanic(longNameMech);
+
+      await tester.pumpWidget(noAnimApp(const MechanicsHomeScreen()));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      final err = tester.takeException();
+      if (err != null) {
+        print('OVERFLOW ERROR DETAILS: $err');
+        if (err is FlutterError) {
+          print('DIAGNOSTICS: ${err.diagnostics}');
+        }
+      }
+      expect(err, isNull);
+
+      // Full header row is visible and tappable
+      expect(find.byType(CustomAppBar), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+      expect(find.byType(SearchBarWidget), findsOneWidget);
+
+      // Floating Add Mechanic button does not overlap
+      expect(find.text('+ Add Mechanic'), findsOneWidget);
+
+      // Route GPS button is present on the card
+      expect(find.text('Route GPS'), findsOneWidget);
+    });
+
+    testWidgets('411 px width layout has no overflow warnings', (tester) async {
+      tester.view.physicalSize = const Size(411, 891);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      MechanicController.instance.resetForTesting();
+      for (final mech in Mechanic.sampleMechanics) {
+        MechanicController.instance.addMechanic(mech);
+      }
+
+      await tester.pumpWidget(noAnimApp(const MechanicsHomeScreen()));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // No RenderFlex or layout overflows
+      expect(tester.takeException(), isNull);
+      expect(find.byType(CustomAppBar), findsOneWidget);
+      expect(find.text('+ Add Mechanic'), findsOneWidget);
     });
 
     testWidgets('Bottom nav is present in AddMechanicScreen when keyboard is closed', (tester) async {

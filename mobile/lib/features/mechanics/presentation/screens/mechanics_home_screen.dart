@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
+import '../../../../core/utils/keyboard_visibility.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../navigation/presentation/widgets/topographic_map_canvas.dart';
 import '../../controllers/mechanic_controller.dart';
@@ -377,115 +378,124 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
       builder: (context, _) {
         return Scaffold(
           backgroundColor: AppColors.clay,
-          body: Stack(
-            children: [
-              Column(
-                children: [
-                  // Custom AppBar with Recessed Search & Filter
-                  CustomAppBar(
-                    onBackTap: () => Navigator.pop(context),
-                  ),
+          body: SafeArea(
+            bottom: false,
+            child: Stack(
+              children: [
+                Column(
+                  children: [
+                    // Custom AppBar with Recessed Search & Filter
+                    CustomAppBar(
+                      onBackTap: () => Navigator.pop(context),
+                    ),
 
-                  // Tactile Skeuomorphic Search Bar
-                  SearchBarWidget(
-                    controller: _searchController,
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value;
-                      });
-                    },
-                  ),
+                    // Tactile Skeuomorphic Search Bar
+                    SearchBarWidget(
+                      controller: _searchController,
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
+                      },
+                    ),
 
-                  // View Toggle (List View vs Map View)
-                  ViewToggleWidget(
-                    isListView: _isListView,
-                    onToggle: (isList) {
-                      setState(() {
-                        _isListView = isList;
-                        _currentNavIndex = 3;
-                      });
-                    },
-                  ),
+                    // View Toggle (List View vs Map View)
+                    ViewToggleWidget(
+                      isListView: _isListView,
+                      onToggle: (isList) {
+                        setState(() {
+                          _isListView = isList;
+                          _currentNavIndex = 3;
+                        });
+                      },
+                    ),
 
-                  // Filter Chips
-                  FilterChipsWidget(
-                    selectedFilter: _selectedFilter,
-                    onFilterSelected: (filterId) {
-                      setState(() {
-                        _selectedFilter = filterId;
-                      });
-                    },
-                  ),
+                    // Filter Chips
+                    FilterChipsWidget(
+                      selectedFilter: _selectedFilter,
+                      onFilterSelected: (filterId) {
+                        setState(() {
+                          _selectedFilter = filterId;
+                        });
+                      },
+                    ),
 
-                  const SizedBox(height: 8),
+                    const SizedBox(height: 8),
 
-                  // Content View (List vs Map)
-                  Expanded(
-                    child: _isListView ? _buildListView() : _buildMapView(),
-                  ),
-                ],
-              ),
+                    // Content View (List vs Map)
+                    Expanded(
+                      child: _isListView ? _buildListView() : _buildMapView(),
+                    ),
+                  ],
+                ),
 
-              // Floating "+ Add Mechanic" Button (FAB bottom: 96, does not overlap bottom dock at bottom: 24)
-              if (_currentNavIndex == 3 || _isListView)
-                Positioned(
-                  right: 16,
-                  bottom: 96,
-                  child: GestureDetector(
-                    onTap: _navigateToAddMechanic,
-                    child: Container(
-                      height: 44,
-                      padding: const EdgeInsets.symmetric(horizontal: 18),
-                      decoration: BoxDecoration(
-                        gradient: _orangeGradient,
-                        borderRadius: BorderRadius.circular(22),
-                        boxShadow: AppColors.orangeGlow,
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.add_rounded,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                          SizedBox(width: 6),
-                          Text(
-                            '+ Add Mechanic',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
+                // Floating "+ Add Mechanic" Button (FAB bottom: 96, does not overlap bottom dock at bottom: 24)
+                // Automatically hides when keyboard is open via KeyboardVisibilityBuilder
+                if (_currentNavIndex == 3 || _isListView)
+                  Positioned(
+                    right: 16,
+                    bottom: 96,
+                    child: KeyboardVisibilityBuilder(
+                      builder: (context, isKeyboardVisible, _) {
+                        if (isKeyboardVisible) return const SizedBox.shrink();
+                        return GestureDetector(
+                          onTap: _navigateToAddMechanic,
+                          child: Container(
+                            height: 44,
+                            padding: const EdgeInsets.symmetric(horizontal: 18),
+                            decoration: BoxDecoration(
+                              gradient: _orangeGradient,
+                              borderRadius: BorderRadius.circular(22),
+                              boxShadow: AppColors.orangeGlow,
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.add_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  '+ Add Mechanic',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
+                        );
+                      },
+                    ),
+                  ),
+
+                // Floating Bottom Navigation Dock (Centered, bottom: 24)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 24,
+                  child: Center(
+                    child: CampBottomNav(
+                      selectedIndex: 3,
+                      onIndexChanged: (index) {
+                        if (index == 3) {
+                          setState(() {
+                            _currentNavIndex = 3;
+                            _isListView = true;
+                          });
+                        } else {
+                          CampBottomNav.navigateToTab(context, index, currentIndex: 3);
+                        }
+                      },
                     ),
                   ),
                 ),
-
-              // Floating Bottom Navigation Dock (Centered, bottom: 24)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 24,
-                child: Center(
-                  child: CampBottomNav(
-                    selectedIndex: 3,
-                    onIndexChanged: (index) {
-                      if (index == 3) {
-                        setState(() {
-                          _currentNavIndex = 3;
-                          _isListView = true;
-                        });
-                      } else {
-                        CampBottomNav.navigateToTab(context, index, currentIndex: 3);
-                      }
-                    },
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -512,7 +522,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 160),
+      padding: const EdgeInsets.only(bottom: 180),
       itemCount: mechanics.length,
       itemBuilder: (context, index) {
         final mechanic = mechanics[index];

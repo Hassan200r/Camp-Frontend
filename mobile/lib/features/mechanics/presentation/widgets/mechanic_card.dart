@@ -30,6 +30,9 @@ class MechanicCard extends StatelessWidget {
     colors: [AppColors.tacticalOrangeLight, AppColors.tacticalOrange],
   );
 
+  bool get _isSample => Mechanic.sampleMechanics.any((s) => s.id == mechanic.id);
+  bool get _isUserAdded => !_isSample;
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -43,86 +46,42 @@ class MechanicCard extends StatelessWidget {
           border: Border.all(color: AppColors.clayDark, width: 1.2),
           boxShadow: AppColors.skeuRaised,
         ),
-        padding: const EdgeInsets.all(18.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header: Rounded Photo Thumbnail + Title & Actions
+            // Row 1: Fixed 56px Thumbnail + Name & Location & Badge Column + Overflow Menu
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Rounded Photo Thumbnail slot (or fallback icon)
-                _buildPhotoThumbnail(mechanic.photoPath, size: 54),
+                // Fixed 56px photo thumbnail slot (or fallback icon)
+                _buildPhotoThumbnail(mechanic.photoPath, size: 56),
                 const SizedBox(width: 14),
 
-                // Name & Badges
+                // Name Column: Full-width shop name (max 2 lines, ellipsis) + location + badge under name
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              mechanic.name,
-                              style: AppTextStyles.cardTitle.copyWith(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.3,
-                                height: 1.2,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _buildBadge(),
-                              if (onEdit != null) ...[
-                                const SizedBox(width: 2),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.edit_outlined,
-                                    size: 18,
-                                    color: AppColors.mutedText,
-                                  ),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(
-                                    minWidth: 26,
-                                    minHeight: 26,
-                                  ),
-                                  onPressed: onEdit,
-                                ),
-                              ],
-                              if (onDelete != null) ...[
-                                const SizedBox(width: 2),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.delete_outline_rounded,
-                                    size: 18,
-                                    color: AppColors.mutedText,
-                                  ),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(
-                                    minWidth: 26,
-                                    minHeight: 26,
-                                  ),
-                                  onPressed: onDelete,
-                                ),
-                              ],
-                            ],
-                          ),
-                        ],
+                      Text(
+                        mechanic.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.cardTitle.copyWith(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                          height: 1.25,
+                        ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 5),
 
-                      // Distance, Duration & Beacon Status
+                      // Location & Distance line
                       Row(
                         children: [
                           const Icon(
                             Icons.location_on_outlined,
-                            size: 15,
+                            size: 14,
                             color: AppColors.tacticalOrange,
                           ),
                           const SizedBox(width: 4),
@@ -130,41 +89,49 @@ class MechanicCard extends StatelessWidget {
                             child: Text(
                               '${mechanic.distance}  •  ${mechanic.durationOrLocation}',
                               style: AppTextStyles.bodySecondary.copyWith(
-                                fontSize: 12.5,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const SizedBox(width: 6),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: mechanic.beaconColor,
-                                ),
+                          if (!_isUserAdded && mechanic.beaconStatus.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: mechanic.beaconColor,
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                mechanic.beaconStatus,
-                                style: AppTextStyles.caption.copyWith(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: mechanic.beaconColor,
-                                ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              mechanic.beaconStatus,
+                              style: AppTextStyles.caption.copyWith(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: mechanic.beaconColor,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ],
                       ),
+                      const SizedBox(height: 6),
+
+                      // Badge: "Added by you" tag for user-added; Verified badge for sample data
+                      if (_isUserAdded)
+                        _buildAddedByYouTag()
+                      else if (mechanic.badgeLabel.isNotEmpty)
+                        _buildBadge(),
                     ],
                   ),
                 ),
+
+                // Single overflow (three-dot) menu at top right
+                if (onEdit != null || onDelete != null)
+                  _buildOverflowMenu(context),
               ],
             ),
 
@@ -214,58 +181,88 @@ class MechanicCard extends StatelessWidget {
               const SizedBox(height: 12),
             ],
 
-            // Rating & Open Status
-            Row(
-              children: [
-                const Icon(
-                  Icons.star_rounded,
-                  size: 18,
-                  color: AppColors.statusYellow,
-                ),
-                const SizedBox(width: 4),
-                RichText(
-                  text: TextSpan(
+            // Rating & Open Status (Honest Badges: Show only for sample data or when real values exist)
+            if (!_isUserAdded) ...[
+              Row(
+                children: [
+                  const Icon(
+                    Icons.star_rounded,
+                    size: 18,
+                    color: AppColors.statusYellow,
+                  ),
+                  const SizedBox(width: 4),
+                  RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '${mechanic.rating} ',
+                          style: AppTextStyles.body.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        TextSpan(
+                          text: '(${mechanic.reviewCount} reviews)',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.mutedLight,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      TextSpan(
-                        text: '${mechanic.rating} ',
-                        style: AppTextStyles.body.copyWith(
-                          fontWeight: FontWeight.w800,
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.statusGreen,
                         ),
                       ),
-                      TextSpan(
-                        text: '(${mechanic.reviewCount} reviews)',
+                      const SizedBox(width: 5),
+                      Text(
+                        mechanic.openStatus,
                         style: AppTextStyles.caption.copyWith(
-                          color: AppColors.mutedLight,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.statusGreen,
                         ),
                       ),
                     ],
                   ),
-                ),
-                const Spacer(),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.statusGreen,
-                      ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ] else if (mechanic.openStatus.isNotEmpty &&
+                mechanic.openStatus != 'OPEN NOW' &&
+                mechanic.openStatus != 'OPEN') ...[
+              // If real custom hours are set on user-added shop
+              Row(
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.statusGreen,
                     ),
-                    const SizedBox(width: 5),
-                    Text(
-                      mechanic.openStatus,
-                      style: AppTextStyles.caption.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.statusGreen,
-                      ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    mechanic.openStatus,
+                    style: AppTextStyles.caption.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.statusGreen,
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+            ] else ...[
+              const SizedBox(height: 4),
+            ],
 
             const SizedBox(height: 16),
 
@@ -359,7 +356,7 @@ class MechanicCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPhotoThumbnail(String? photoPath, {double size = 48}) {
+  Widget _buildPhotoThumbnail(String? photoPath, {double size = 56}) {
     final file = photoPath != null && photoPath.isNotEmpty ? File(photoPath) : null;
     final exists = file != null && file.existsSync();
 
@@ -473,6 +470,107 @@ class MechanicCard extends StatelessWidget {
         ),
       );
     }
+  }
+
+  Widget _buildAddedByYouTag() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.clayDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.clayDark, width: 1.0),
+        boxShadow: AppColors.skeuRaisedSmall,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.person_pin_circle_outlined,
+            size: 12,
+            color: AppColors.charcoalLight,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            'Added by you',
+            style: AppTextStyles.caption.copyWith(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: AppColors.charcoalLight,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverflowMenu(BuildContext context) {
+    return PopupMenuButton<String>(
+      icon: const Icon(
+        Icons.more_vert_rounded,
+        size: 20,
+        color: AppColors.mutedLight,
+      ),
+      padding: EdgeInsets.zero,
+      color: AppColors.clay,
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: AppColors.clayDark, width: 1),
+      ),
+      onSelected: (value) {
+        if (value == 'edit') {
+          onEdit?.call();
+        } else if (value == 'delete') {
+          onDelete?.call();
+        }
+      },
+      itemBuilder: (ctx) => [
+        if (onEdit != null)
+          PopupMenuItem<String>(
+            value: 'edit',
+            height: 38,
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.edit_outlined,
+                  size: 16,
+                  color: AppColors.charcoalLight,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Edit',
+                  style: AppTextStyles.caption.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.charcoalLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (onDelete != null)
+          PopupMenuItem<String>(
+            value: 'delete',
+            height: 38,
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.delete_outline_rounded,
+                  size: 16,
+                  color: AppColors.alertRed,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Delete',
+                  style: AppTextStyles.caption.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.alertRed,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
   }
 
   Widget _buildTag(String text) {
