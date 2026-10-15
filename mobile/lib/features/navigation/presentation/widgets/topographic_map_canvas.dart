@@ -101,7 +101,7 @@ class _TopographicMapCanvasState extends State<TopographicMapCanvas>
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
+    );
 
     _pulseAnimation = Tween<double>(begin: 0.85, end: 1.35).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
@@ -109,6 +109,17 @@ class _TopographicMapCanvasState extends State<TopographicMapCanvas>
 
     _centerCoord = widget.initialCenter ?? const LatLng(48.515, -120.690);
     _locationTitle = widget.locationName ?? 'Cascade Alpine Loop';
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Respect system-level "disable animations" setting (also set by tests).
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _pulseController.value = 1.0;
+    } else if (!_pulseController.isAnimating) {
+      _pulseController.repeat(reverse: true);
+    }
   }
 
   @override

@@ -27,11 +27,21 @@ class _CustomAppBarState extends State<CustomAppBar>
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
-    )..repeat(reverse: true);
-
+    );
     _pulseAnimation = Tween<double>(begin: 0.8, end: 1.3).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Respect system-level "disable animations" setting (also set by tests).
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _pulseController.value = 1.0;
+    } else if (!_pulseController.isAnimating) {
+      _pulseController.repeat(reverse: true);
+    }
   }
 
   @override

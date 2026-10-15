@@ -81,143 +81,15 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
     super.dispose();
   }
 
-  void _showAddMechanicBottomSheet() {
-    final nameCtrl = TextEditingController();
-    final phoneCtrl = TextEditingController();
-    final addressCtrl = TextEditingController();
-    final notesCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
+  void _navigateToAddMechanic() {
+    Navigator.pushNamed(context, CampRoutes.addMechanic);
+  }
 
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Container(
-          decoration: BoxDecoration(
-            color: AppColors.clay,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            boxShadow: AppColors.dockShadow,
-          ),
-          padding: EdgeInsets.fromLTRB(
-            20,
-            16,
-            20,
-            MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppColors.mutedLight,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('+ Add Mechanic', style: AppTextStyles.cardTitle),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded,
-                            color: AppColors.mutedText),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  LabeledTextField(
-                    label: 'Mechanic / Workshop Name',
-                    controller: nameCtrl,
-                    placeholder: 'e.g. Peak Moto Prep',
-                  ),
-                  const SizedBox(height: 12),
-                  LabeledTextField(
-                    label: 'Phone Number',
-                    controller: phoneCtrl,
-                    placeholder: '+1 (555) 482-9921',
-                    keyboardType: TextInputType.phone,
-                  ),
-                  const SizedBox(height: 12),
-                  LabeledTextField(
-                    label: 'Address / Location',
-                    controller: addressCtrl,
-                    placeholder: 'e.g. 42 Timberline Rd, High Pass',
-                  ),
-                  const SizedBox(height: 12),
-                  LabeledTextField(
-                    label: 'Notes / Specialties',
-                    controller: notesCtrl,
-                    placeholder: 'e.g. Carburetor tuning, valve adjust, tires',
-                    maxLines: 2,
-                  ),
-                  const SizedBox(height: 20),
-                  PrimaryButton(
-                    label: 'Save Mechanic',
-                    icon: Icons.check_rounded,
-                    isFullWidth: true,
-                    onTap: () {
-                      if (nameCtrl.text.trim().isEmpty ||
-                          phoneCtrl.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Name and phone are required'),
-                            backgroundColor: AppColors.alertRed,
-                          ),
-                        );
-                        return;
-                      }
-                      final newMech = Mechanic(
-                          id: DateTime.now().millisecondsSinceEpoch.toString(),
-                          name: nameCtrl.text.trim(),
-                          phone: phoneCtrl.text.trim(),
-                          distance: 'Local Workshop',
-                          durationOrLocation: addressCtrl.text.trim().isNotEmpty
-                              ? addressCtrl.text.trim()
-                              : 'Added by Rider',
-                          badgeType: BadgeType.verified,
-                          badgeLabel: 'Verified Shop',
-                          beaconStatus: 'Active',
-                          beaconColor: AppColors.statusGreen,
-                          categoryTitle1: 'SERVICES',
-                          tags1: notesCtrl.text.trim().isNotEmpty
-                              ? [notesCtrl.text.trim()]
-                              : const ['General Moto Repair'],
-                          categoryTitle2: 'LOCATION',
-                          tags2: addressCtrl.text.trim().isNotEmpty
-                              ? [addressCtrl.text.trim()]
-                              : const ['Local Area'],
-                          rating: 5.0,
-                          reviewCount: 1,
-                          openStatus: 'OPEN NOW',
-                          address: addressCtrl.text.trim(),
-                          notes: notesCtrl.text.trim(),
-                        );
-                        MechanicController.instance.addMechanic(newMech);
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Saved ${newMech.name}'),
-                            backgroundColor: AppColors.darkCharcoal,
-                          ),
-                        );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+  void _navigateToEditMechanic(Mechanic mechanic) {
+    Navigator.pushNamed(
+      context,
+      CampRoutes.addMechanic,
+      arguments: mechanic,
     );
   }
 
@@ -560,7 +432,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
                   right: 16,
                   bottom: 96,
                   child: GestureDetector(
-                    onTap: _showAddMechanicBottomSheet,
+                    onTap: _navigateToAddMechanic,
                     child: Container(
                       height: 44,
                       padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -579,7 +451,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
                           ),
                           SizedBox(width: 6),
                           Text(
-                            'Add Mechanic',
+                            '+ Add Mechanic',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 13,
@@ -629,12 +501,11 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: CampEmptyState(
             icon: Icons.handyman_rounded,
-            message: 'No mechanics found',
-            subMessage: _searchQuery.isNotEmpty
-                ? 'Try a different search query or clear filters'
-                : 'Add trusted mechanics to your offline directory',
-            ctaLabel: 'Add Mechanic',
-            onCta: _showAddMechanicBottomSheet,
+            message: _searchQuery.isNotEmpty
+                ? 'No mechanics match "$_searchQuery"'
+                : 'No mechanics saved yet',
+            ctaLabel: '+ Add Mechanic',
+            onCta: _navigateToAddMechanic,
           ),
         ),
       );
@@ -647,8 +518,17 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
         final mechanic = mechanics[index];
         return MechanicCard(
           mechanic: mechanic,
+          onTap: () => showMechanicDetailSheet(
+            context,
+            mechanic,
+            onCallShop: () => _showCallModal(mechanic),
+            onRouteGps: () => _showRouteModal(mechanic),
+            onEdit: () => _navigateToEditMechanic(mechanic),
+            onDelete: () => _confirmDeleteMechanic(mechanic),
+          ),
           onCallShop: () => _showCallModal(mechanic),
           onRouteGps: () => _showRouteModal(mechanic),
+          onEdit: () => _navigateToEditMechanic(mechanic),
           onDelete: () => _confirmDeleteMechanic(mechanic),
         );
       },

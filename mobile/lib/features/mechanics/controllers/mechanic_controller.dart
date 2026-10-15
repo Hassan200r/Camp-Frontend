@@ -19,6 +19,17 @@ class MechanicController extends ChangeNotifier {
     save();
   }
 
+  void updateMechanic(Mechanic mechanic) {
+    final index = _mechanics.indexWhere((m) => m.id == mechanic.id);
+    if (index != -1) {
+      _mechanics[index] = mechanic;
+      notifyListeners();
+      save();
+    }
+  }
+
+  void editMechanic(Mechanic mechanic) => updateMechanic(mechanic);
+
   void deleteMechanic(String id) {
     _mechanics.removeWhere((m) => m.id == id);
     notifyListeners();

@@ -25,6 +25,7 @@ import 'features/maintenance/controllers/trip_budget_controller.dart';
 import 'features/maintenance/presentation/screens/finance_rig_health_screen.dart';
 import 'features/maintenance/presentation/screens/maintenance_screen.dart';
 import 'features/mechanics/controllers/mechanic_controller.dart';
+import 'features/mechanics/domain/mechanic_model.dart';
 import 'features/mechanics/presentation/screens/add_mechanic_screen.dart';
 import 'features/mechanics/presentation/screens/mechanics_home_screen.dart';
 import 'features/navigation/presentation/screens/navigation_map_screen.dart';
@@ -117,7 +118,10 @@ class _CampAppState extends State<CampApp> with WidgetsBindingObserver {
         CampRoutes.profile: (context) => const ProfileScreen(),
         CampRoutes.editProfile: (context) => const EditProfileScreen(),
         CampRoutes.mechanics: (context) => const MechanicsHomeScreen(),
-        CampRoutes.addMechanic: (context) => const AddMechanicScreen(),
+        CampRoutes.addMechanic: (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          return AddMechanicScreen(mechanic: args is Mechanic ? args : null);
+        },
         CampRoutes.navigationMap: (context) => const NavigationMapScreen(),
         // TODO: Legacy route aliases — kept for temporary backward compatibility during team branch merges. Remove once confirmed unused across all teammate branches.
         CampRoutes.legacyMechanicsMap: (context) => const NavigationMapScreen(),

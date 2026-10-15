@@ -26,6 +26,7 @@ class Mechanic {
     required this.phone,
     this.address,
     this.notes,
+    this.photoPath,
   });
 
   factory Mechanic.fromJson(Map<String, dynamic> json) {
@@ -52,6 +53,7 @@ class Mechanic {
       phone: json['phone'] as String? ?? '',
       address: json['address'] as String?,
       notes: json['notes'] as String?,
+      photoPath: (json['photoPath'] ?? json['photo']) as String?,
     );
   }
 
@@ -73,6 +75,51 @@ class Mechanic {
   final String phone;
   final String? address;
   final String? notes;
+  final String? photoPath;
+
+  Mechanic copyWith({
+    String? id,
+    String? name,
+    String? distance,
+    String? durationOrLocation,
+    BadgeType? badgeType,
+    String? badgeLabel,
+    String? beaconStatus,
+    Color? beaconColor,
+    String? categoryTitle1,
+    List<String>? tags1,
+    String? categoryTitle2,
+    List<String>? tags2,
+    double? rating,
+    int? reviewCount,
+    String? openStatus,
+    String? phone,
+    String? address,
+    String? notes,
+    String? photoPath,
+  }) {
+    return Mechanic(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      distance: distance ?? this.distance,
+      durationOrLocation: durationOrLocation ?? this.durationOrLocation,
+      badgeType: badgeType ?? this.badgeType,
+      badgeLabel: badgeLabel ?? this.badgeLabel,
+      beaconStatus: beaconStatus ?? this.beaconStatus,
+      beaconColor: beaconColor ?? this.beaconColor,
+      categoryTitle1: categoryTitle1 ?? this.categoryTitle1,
+      tags1: tags1 ?? this.tags1,
+      categoryTitle2: categoryTitle2 ?? this.categoryTitle2,
+      tags2: tags2 ?? this.tags2,
+      rating: rating ?? this.rating,
+      reviewCount: reviewCount ?? this.reviewCount,
+      openStatus: openStatus ?? this.openStatus,
+      phone: phone ?? this.phone,
+      address: address ?? this.address,
+      notes: notes ?? this.notes,
+      photoPath: photoPath ?? this.photoPath,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -93,6 +140,7 @@ class Mechanic {
         'phone': phone,
         'address': address,
         'notes': notes,
+        'photoPath': photoPath,
       };
 
   static List<Mechanic> get sampleMechanics => [
