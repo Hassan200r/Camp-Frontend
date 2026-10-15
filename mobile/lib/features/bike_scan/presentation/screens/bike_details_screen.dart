@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
+import '../../../../core/constants/bike_makes.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
 import '../../../garage/controllers/active_bike_controller.dart';
@@ -50,20 +51,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
   // A field is removed from the set the first time the user edits it.
   final Set<String> _autoFilledFields = {};
 
-  static const List<String> _makes = [
-    'Honda',
-    'BMW',
-    'Ducati',
-    'KTM',
-    'Yamaha',
-    'Kawasaki',
-    'Suzuki',
-    'Harley-Davidson',
-    'Triumph',
-    'Royal Enfield',
-    'Aprilia',
-    'Husqvarna',
-  ];
+  // Makes list moved to lib/core/constants/bike_makes.dart (kCanonicalBikeMakes).
 
   static final List<int> _years = List.generate(
     47,
@@ -216,6 +204,19 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
 
     // Proceed to Garage screen with newly registered bike
     Navigator.of(context).pushNamed(CampRoutes.garage);
+  }
+
+  // ── Make validation helpers ─────────────────────────────────────────────────
+  bool get isMakeInvalid {
+    final len = _controller.make.trim().length;
+    return _submittedOnce && (len < 2 || len > 30);
+  }
+
+  String get makeError {
+    final len = _controller.make.trim().length;
+    if (len == 0) return 'Make is required';
+    if (len < 2) return 'Too short (min 2 characters)';
+    return 'Too long (max 30 characters)';
   }
 
   @override
@@ -588,19 +589,18 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Make / Manufacturer Dropdown
-          LabeledDropdown<String>(
-            label: 'Make / Manufacturer',
-            value: _makes.contains(_controller.make) ? _controller.make : _makes.first,
-            items: _makes,
+          // Make / Manufacturer — combo field (free text + autocomplete)
+          MakeComboField(
+            initialValue: _controller.make,
+            isError: isMakeInvalid,
+            errorText: isMakeInvalid ? makeError : null,
+            rightLabelWidget: _autoFilledTag('make'),
+            onUserEdited: () => setState(() => _autoFilledFields.remove('make')),
             onChanged: (val) {
-              if (val != null) {
-                _controller.setMake(val);
-                setState(() => _autoFilledFields.remove('make'));
-              }
+              final canonical = canonicaliseMake(val);
+              _controller.setMake(canonical);
             },
           ),
-          _autoFilledTag('make'),
           const SizedBox(height: 14),
 
           // Model Name

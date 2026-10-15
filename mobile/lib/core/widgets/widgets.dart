@@ -9,6 +9,7 @@ export 'icon_tile.dart';
 export 'inset_tile.dart';
 export 'labeled_dropdown.dart';
 export 'labeled_text_field.dart';
+export 'make_combo_field.dart';
 export 'multi_select_chip_row.dart';
 export 'primary_button.dart';
 export 'section_header.dart';

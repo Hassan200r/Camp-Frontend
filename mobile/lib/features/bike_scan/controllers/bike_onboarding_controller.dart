@@ -53,12 +53,14 @@ class BikeOnboardingController extends ChangeNotifier {
   String? get imagePath => _imagePath;
 
   /// Whether the 3 mandatory gating fields are populated and valid:
-  /// 1. Make
+  /// 1. Make (2–30 characters)
   /// 2. Model Name
   /// 3. Model Year
   /// Odometer is optional and defaults to 0.
   bool get isFormValid {
-    return _make.trim().isNotEmpty &&
+    final makeLen = _make.trim().length;
+    return makeLen >= 2 &&
+        makeLen <= 30 &&
         _modelName.trim().isNotEmpty &&
         _modelYear > 1900;
   }
