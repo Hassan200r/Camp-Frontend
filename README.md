@@ -48,14 +48,14 @@ Camp-Frontend/
 | Feature | Screens | State Owner |
 |---|---|---|
 | **Authentication** | SignIn · SignUp · ForgotPassword | Mock (backend pending) |
-| **Dashboard** | HomeScreen · ProfileScreen · EditProfileScreen | `ActiveBikeController` |
+| **Dashboard** | HomeScreen · ProfileScreen · EditProfileScreen | `ActiveBikeController` · `ProfileController` (persisted) |
 | **Bike Scanner** | AddMotorcycle · BikeScan · BikeDetails | `ActiveBikeController` |
 | **Garage & Fleet** | GarageScreen · BikeProfileScreen | `ActiveBikeController` (persisted) |
 | **Maintenance Hub** | MaintenanceScreen (4 tabs) | `PostRideReportController` (persisted) |
 | **Finances & Rig Health** | FinanceRigHealth + 3 sub-screens | `TripBudgetController` (persisted) |
-| **Mechanics Finder** | MechanicsHome · AddMechanic | Local widget state (not yet persisted) |
+| **Mechanics Finder** | MechanicsHome · AddMechanic | `MechanicController` (persisted) |
 | **Navigation & Maps** | NavigationMap · RoutePacks | `NavigationController` (per-screen) |
-| **Ride History** | RideHistoryScreen | Static samples (controller integration pending) |
+| **Ride History** | RideHistoryScreen | `PostRideReportController` (persisted) |
 | **Voice Copilot** | VoiceAssistantScreen | — |
 | **Emergency SOS** | EmergencySosScreen | — |
 | **Settings** | SettingsScreen | `SettingsController` (persisted) |
