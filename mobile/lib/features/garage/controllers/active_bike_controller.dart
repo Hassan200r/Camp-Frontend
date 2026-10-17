@@ -197,6 +197,8 @@ class ActiveBikeController extends ChangeNotifier {
         edition: 'Triple Black',
         imagePath: 'assets/images/bmw_r1250_scan_placeholder.jpg',
         odometerKm: 14820,
+        fuelRemainingLiters: 23.4,
+        lastFuelUpdate: DateTime(2026, 10, 1),
         currentFuelLiters: 23.4,
         lastOilChange: ServiceRecord(
           mode: TrackingMode.byDistance,
@@ -225,6 +227,8 @@ class ActiveBikeController extends ChangeNotifier {
         ridingTerrain: const ['City', 'Highway'],
         edition: 'Special Edition',
         odometerKm: 4120,
+        fuelRemainingLiters: 8.0,
+        lastFuelUpdate: DateTime(2026, 10, 1),
         currentFuelLiters: 8.0,
         lastOilChange: ServiceRecord(
           mode: TrackingMode.byDistance,

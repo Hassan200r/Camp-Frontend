@@ -302,7 +302,7 @@ class _AddMaintenanceItemScreenState extends State<AddMaintenanceItemScreen> {
                   Text('TRACKING MODE', style: AppTextStyles.overline),
                   const SizedBox(height: 6),
                   SegmentedControl(
-                    options: const ['Auto Telemetry', 'Manual Entry'],
+                    options: const ['Auto Sync', 'Manual Entry'],
                     selectedIndex: _trackingModeIndex,
                     onChanged: (idx) {
                       setState(() => _trackingModeIndex = idx);
@@ -319,7 +319,7 @@ class _AddMaintenanceItemScreenState extends State<AddMaintenanceItemScreen> {
                       const SizedBox(width: 5),
                       Expanded(
                         child: Text(
-                          'Manual entries won\'t be affected by telemetry sync.',
+                          'Manual entries won\'t be affected by auto sync.',
                           style: AppTextStyles.caption.copyWith(
                             fontSize: 11,
                           ),

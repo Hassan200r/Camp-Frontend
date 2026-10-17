@@ -9,12 +9,16 @@ import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../bike_scan/presentation/screens/bike_details_screen.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
+import '../../../maintenance/controllers/post_ride_report_controller.dart';
+import '../../../maintenance/domain/maintenance_prediction_engine.dart';
 import '../../controllers/active_bike_controller.dart';
 import '../../domain/bike_model.dart';
+import '../../domain/fuel_estimator.dart';
+import '../widgets/update_fuel_sheet.dart';
 import 'bike_profile_screen.dart';
 
 /// CAMP Garage Screen — Displays the rider's synchronized motorcycles,
-/// active rig telemetry status, and standby fleet.
+/// active rig status, and standby fleet.
 class GarageScreen extends StatelessWidget {
   const GarageScreen({super.key});
 
@@ -231,12 +235,24 @@ class GarageScreen extends StatelessWidget {
   // 3. Active Bike Card
   // ──────────────────────────────────────────────────────────────────────────
   Widget _buildActiveBikeCard(BuildContext context, Bike bike) {
-    final tankCap = bike.fuelTankCapacityLiters ?? 30.0;
-    final curFuel = bike.currentFuelLiters ?? (tankCap * 0.78);
-    final fuelPct =
-        tankCap > 0 ? ((curFuel / tankCap) * 100).clamp(0, 100).toInt() : 78;
+    final liters = bike.fuelRemainingLiters;
+    final tankCap = bike.fuelTankCapacityLiters;
     final fuelAvg = bike.fuelAverageKmPerLiter;
-    final rangeKm = fuelAvg != null ? (curFuel * fuelAvg).round() : null;
+    final rangeKm = FuelEstimator.rangeKm(liters, fuelAvg);
+    final pct = FuelEstimator.percent(liters, tankCap);
+    final fuelRatio = pct != null ? (pct / 100.0).clamp(0.0, 1.0) : 0.0;
+    final String fuelText = liters == null
+        ? 'Set fuel level'
+        : (rangeKm != null
+            ? '${liters.toStringAsFixed(1)} / ${tankCap?.toStringAsFixed(0) ?? '--'} L (est.)  •  about ${rangeKm.round()} km range'
+            : '${liters.toStringAsFixed(1)} / ${tankCap?.toStringAsFixed(0) ?? '--'} L (est.)');
+
+    final bikeReports =
+        PostRideReportController.instance.getReportsForBike(bike.id);
+    final assessment = MaintenancePredictionEngine.analyze(
+      bike: bike,
+      rideReports: bikeReports,
+    );
 
     return CampCard(
       color: Colors.white,
@@ -592,14 +608,24 @@ class GarageScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    Text(
-                      rangeKm != null
-                          ? '$fuelPct% ($rangeKm km)'
-                          : '$fuelPct%',
-                      style: GoogleFonts.manrope(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.darkCharcoal,
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        fuelText,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        textAlign: TextAlign.end,
+                        style: GoogleFonts.manrope(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: liters == null
+                              ? AppColors.tacticalOrange
+                              : (pct != null && pct < 15.0
+                                  ? AppColors.alertRed
+                                  : (pct != null && pct < 25.0
+                                      ? const Color(0xFFD97706)
+                                      : AppColors.darkCharcoal)),
+                        ),
                       ),
                     ),
                   ],
@@ -610,29 +636,69 @@ class GarageScreen extends StatelessWidget {
                   child: SizedBox(
                     height: 6,
                     child: LinearProgressIndicator(
-                      value: (fuelPct / 100).clamp(0.0, 1.0),
+                      value: fuelRatio,
                       backgroundColor: const Color(0xFFE5E7EB),
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        AppColors.tacticalOrange,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        pct == null
+                            ? AppColors.tacticalOrange
+                            : (pct < 15.0
+                                ? AppColors.alertRed
+                                : (pct < 25.0
+                                    ? const Color(0xFFD97706)
+                                    : AppColors.tacticalOrange)),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 6),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    bike.fuelAverageKmPerLiter != null
-                        ? 'Fuel Avg: ${bike.fuelAverageKmPerLiter!.toStringAsFixed(1)} km/L'
-                        : 'Add fuel avg',
-                    style: GoogleFonts.manrope(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: bike.fuelAverageKmPerLiter != null
-                          ? AppColors.mutedText
-                          : AppColors.tacticalOrange,
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => UpdateFuelSheet.show(context, bike),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.clay,
+                          borderRadius:
+                              BorderRadius.circular(AppColors.radiusPill),
+                          boxShadow: AppColors.skeuRaisedSmall,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.edit_rounded,
+                                size: 12, color: AppColors.tacticalOrange),
+                            const SizedBox(width: 4),
+                            Text(
+                              liters == null
+                                  ? 'Set fuel level'
+                                  : 'Update fuel level',
+                              style: GoogleFonts.manrope(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.tacticalOrange,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+                    Text(
+                      bike.fuelAverageKmPerLiter != null
+                          ? 'Fuel Avg: ${bike.fuelAverageKmPerLiter!.toStringAsFixed(1)} km/L'
+                          : 'Add fuel avg',
+                      style: GoogleFonts.manrope(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: bike.fuelAverageKmPerLiter != null
+                            ? AppColors.mutedText
+                            : AppColors.tacticalOrange,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -640,31 +706,60 @@ class GarageScreen extends StatelessWidget {
 
           const SizedBox(height: 14),
 
-          // Health Status Pill
+          // Health Status Pill — computed from MaintenancePredictionEngine
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFDCFCE7),
+              color: assessment.healthIndex >= 80
+                  ? const Color(0xFFDCFCE7)
+                  : (assessment.healthIndex >= 50
+                      ? const Color(0xFFFEF3C7)
+                      : const Color(0xFFFEE2E2)),
               borderRadius: BorderRadius.circular(AppColors.radiusPill),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: AppColors.statusGreen,
-                    shape: BoxShape.circle,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: assessment.healthIndex >= 80
+                            ? AppColors.statusGreen
+                            : (assessment.healthIndex >= 50
+                                ? const Color(0xFFD97706)
+                                : const Color(0xFFDC2626)),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${assessment.healthIndex}% • ${assessment.healthStatusLabel}',
+                      style: GoogleFonts.manrope(
+                        color: assessment.healthIndex >= 80
+                            ? const Color(0xFF16A34A)
+                            : (assessment.healthIndex >= 50
+                                ? const Color(0xFFB45309)
+                                : const Color(0xFFDC2626)),
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  '84% • All Systems Nominal',
-                  style: GoogleFonts.manrope(
-                    color: const Color(0xFF16A34A),
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
+                const SizedBox(height: 2),
+                Padding(
+                  padding: const EdgeInsets.only(left: 16),
+                  child: Text(
+                    'Calculated from maintenance rule engine wear & service logs',
+                    style: GoogleFonts.manrope(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.mutedText,
+                    ),
                   ),
                 ),
               ],
@@ -1272,7 +1367,7 @@ class GarageScreen extends StatelessWidget {
             : 'VIN ${bike.vin!}',
       );
     } else {
-      parts.add(bike.id);
+      parts.add(bike.make);
     }
     return parts.join(' • ');
   }

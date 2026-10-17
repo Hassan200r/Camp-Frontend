@@ -32,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
         content: Text(message, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         backgroundColor: AppColors.darkCharcoal,
         behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 96),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: const Duration(milliseconds: 2000),
       ),

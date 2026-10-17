@@ -278,7 +278,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       const SizedBox(width: 5),
                       Expanded(
                         child: Text(
-                          'Manual entries won\'t be affected by telemetry sync.',
+                          'Manual entries won\'t be affected by auto sync.',
                           style: AppTextStyles.caption.copyWith(
                             fontSize: 11,
                           ),

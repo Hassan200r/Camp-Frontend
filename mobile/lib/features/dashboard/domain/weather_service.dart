@@ -47,6 +47,9 @@ class WeatherProvider {
   static const String apiKey =
       String.fromEnvironment('WEATHER_API_KEY', defaultValue: '');
 
+  /// Shared location label matching the Home cockpit (fallback "Location off").
+  static String currentLocationLabel = 'Location off';
+
   static WeatherService get service {
     if (apiKey.isEmpty) {
       return const PlaceholderWeatherService();

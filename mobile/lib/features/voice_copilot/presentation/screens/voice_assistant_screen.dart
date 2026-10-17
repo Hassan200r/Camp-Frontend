@@ -197,7 +197,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
       badgeBg: const Color(0xFF261911),
       badgeBorder: const Color(0xFF5A2A14),
       responseMessage:
-          'Expedition telemetry query received: "$query". Cached map route and emergency mechanics notified.',
+          'Expedition status query received: "$query". Cached map route and emergency mechanics notified.',
     );
   }
 
@@ -228,7 +228,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
         _showErrorModal(
           title: 'OFFLINE CACHE LIMITATION',
           reason:
-              'Live satellite radar & online cloud telemetry require an active MESH or cellular connection. Running on local cached expedition data.',
+              'Live satellite radar & online cloud data require an active MESH or cellular connection. Running on local cached expedition data.',
           onRetry: () => _handleMicTap(),
         );
         return;
@@ -246,7 +246,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
         _showErrorModal(
           title: 'COMMAND UNRECOGNIZED',
           reason:
-              'Could not match query with expedition telemetry or local waypoint cache. Road/wind noise may have clipped audio, or the command syntax was unrecognized.',
+              'Could not match query with expedition data or local waypoint cache. Road/wind noise may have clipped audio, or the command syntax was unrecognized.',
           onRetry: () => _handleMicTap(),
         );
         return;

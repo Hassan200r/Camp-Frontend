@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -45,7 +46,10 @@ abstract class LocationService {
   Future<bool> checkPermission();
   Future<bool> requestPermission();
   Future<PositionData?> getCurrentPosition();
-  Stream<PositionData> getPositionStream({bool highAccuracy = false});
+  Stream<PositionData> getPositionStream({
+    bool highAccuracy = false,
+    bool enableForegroundNotification = false,
+  });
   Future<bool> openAppSettings();
   Future<bool> openLocationSettings();
 }
@@ -77,7 +81,10 @@ class GeolocatorLocationService implements LocationService {
   @override
   Future<bool> requestPermission() async {
     try {
-      final permission = await Geolocator.requestPermission();
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
       return permission == LocationPermission.always ||
           permission == LocationPermission.whileInUse;
     } catch (_) {
@@ -106,11 +113,31 @@ class GeolocatorLocationService implements LocationService {
   }
 
   @override
-  Stream<PositionData> getPositionStream({bool highAccuracy = false}) {
-    final settings = LocationSettings(
-      accuracy: highAccuracy ? LocationAccuracy.high : LocationAccuracy.medium,
-      distanceFilter: highAccuracy ? 2 : 10,
-    );
+  Stream<PositionData> getPositionStream({
+    bool highAccuracy = false,
+    bool enableForegroundNotification = false,
+  }) {
+    LocationSettings settings;
+    if (enableForegroundNotification &&
+        !kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.android) {
+      settings = AndroidSettings(
+        accuracy:
+            highAccuracy ? LocationAccuracy.high : LocationAccuracy.medium,
+        distanceFilter: highAccuracy ? 2 : 10,
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationTitle: 'CAMP Ride Tracking',
+          notificationText: 'CAMP is tracking this ride',
+          enableWakeLock: true,
+        ),
+      );
+    } else {
+      settings = LocationSettings(
+        accuracy:
+            highAccuracy ? LocationAccuracy.high : LocationAccuracy.medium,
+        distanceFilter: highAccuracy ? 2 : 10,
+      );
+    }
     return Geolocator.getPositionStream(locationSettings: settings)
         .map(_mapPosition);
   }
@@ -174,7 +201,10 @@ class FakeLocationService implements LocationService {
   Future<PositionData?> getCurrentPosition() async => _currentPosition;
 
   @override
-  Stream<PositionData> getPositionStream({bool highAccuracy = false}) {
+  Stream<PositionData> getPositionStream({
+    bool highAccuracy = false,
+    bool enableForegroundNotification = false,
+  }) {
     return _controller.stream;
   }
 

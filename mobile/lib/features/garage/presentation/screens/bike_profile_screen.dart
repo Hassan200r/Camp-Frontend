@@ -9,9 +9,14 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../bike_scan/presentation/screens/bike_details_screen.dart';
+import '../../../maintenance/controllers/post_ride_report_controller.dart';
 import '../../../maintenance/domain/maintenance_item_model.dart';
+import '../../../maintenance/domain/maintenance_prediction_engine.dart';
 import '../../controllers/active_bike_controller.dart';
 import '../../domain/bike_model.dart';
+import '../../domain/fuel_estimator.dart';
+import '../../services/fuel_tracker_service.dart';
+import '../widgets/update_fuel_sheet.dart';
 
 /// Lightweight data model for recent trips associated with a bike.
 class _RecentBikeTrip {
@@ -166,7 +171,7 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
             ],
           ),
           content: Text(
-            'Are you sure you want to remove "${bike.make} ${bike.modelName}" from your garage? Stored telemetry and service records will be detached.',
+            'Are you sure you want to remove "${bike.make} ${bike.modelName}" from your garage? Stored ride and service records will be detached.',
             style: GoogleFonts.manrope(
               fontSize: 14,
               color: AppColors.darkCharcoal,
@@ -290,7 +295,7 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: _bikeController,
+      listenable: Listenable.merge([_bikeController, FuelTrackerService.instance]),
       builder: (context, _) {
         final bike = _resolveCurrentBike();
         if (bike == null) {
@@ -479,14 +484,9 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
   // ── 2. Hero Card ───────────────────────────────────────────────────────────
   Widget _buildHeroCard(Bike bike, bool isActive) {
     final titleOverline =
-        isActive ? 'ACTIVE TELEMETRY RIG' : 'STANDBY TELEMETRY';
+        isActive ? 'ACTIVE RIG' : 'STANDBY FLEET';
 
-    final editionDisplay = bike.edition?.isNotEmpty == true
-        ? 'Edition ${bike.edition}'
-        : (bike.nickname?.isNotEmpty == true
-            ? bike.nickname!
-            : '${bike.make} Config');
-    final subtitleText = '$editionDisplay • ${bike.modelYear} • ${bike.id}';
+    final subtitleText = '${bike.modelYear} • ${bike.make}';
 
     return CampCard(
       padding: const EdgeInsets.all(14),
@@ -665,10 +665,16 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
             : 'Mechanical');
 
     final tankCapacity = bike.fuelTankCapacityLiters ?? 30.0;
-    final tankTitle =
-        '${tankCapacity % 1 == 0 ? tankCapacity.toInt().toString() : tankCapacity.toStringAsFixed(1)} L';
-    final gallons = (tankCapacity * 0.264172).toStringAsFixed(1);
-    final tankSubtitle = '$gallons gal cap';
+    final liters = bike.fuelRemainingLiters;
+    final range = FuelEstimator.rangeKm(liters, bike.fuelAverageKmPerLiter);
+    final tankTitle = liters != null
+        ? '${liters.toStringAsFixed(1)} / ${tankCapacity.toStringAsFixed(0)} L'
+        : '${tankCapacity % 1 == 0 ? tankCapacity.toInt().toString() : tankCapacity.toStringAsFixed(1)} L';
+    final tankSubtitle = range != null
+        ? 'about ${range.round()} km range'
+        : (liters != null
+            ? 'Tap to log refill'
+            : '${(tankCapacity * 0.264172).toStringAsFixed(1)} gal cap');
 
     final fuelAvgValue = bike.fuelAverageKmPerLiter;
     final fuelAvgTitle = fuelAvgValue != null
@@ -676,7 +682,9 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
         : 'Add fuel average';
     final fuelAvgSubtitle = fuelAvgValue != null ? 'User Reported' : 'Tap Edit to set';
 
-    final odometerTitle = '${_formatNumber(bike.odometerKm)} km';
+    final odometerTitle = bike.preciseOdometerKm != null
+        ? '${bike.preciseOdometerKm!.toStringAsFixed(1)} km'
+        : '${_formatNumber(bike.odometerKm)} km';
 
     final rigCategory = bike.bikeType ?? 'Adventure';
     final rigSubtitle = _getCategorySubtitle(rigCategory);
@@ -751,6 +759,7 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
                   label: 'FUEL TANK',
                   value: tankTitle,
                   subtitle: tankSubtitle,
+                  onTap: () => UpdateFuelSheet.show(context, bike),
                 ),
               ),
               const SizedBox(width: 10),
@@ -794,8 +803,9 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
     required String value,
     required String subtitle,
     Color? valueColor,
+    VoidCallback? onTap,
   }) {
-    return InsetTile(
+    final tile = InsetTile(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       borderRadius: AppColors.radiusTile,
       child: Column(
@@ -835,6 +845,13 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
         ],
       ),
     );
+
+    if (onTap == null) return tile;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: tile,
+    );
   }
 
   String _getCategorySubtitle(String category) {
@@ -850,7 +867,7 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
       case 'scooter':
         return 'City Runabout';
       case 'electric':
-        return 'EV Telemetry';
+        return 'EV Diagnostics';
       default:
         return 'Touring Spec';
     }
@@ -872,6 +889,10 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
 
     final oilChangeDisplay = _formatServiceRecord(bike.lastOilChange);
     final tuneUpDisplay = _formatServiceRecord(bike.lastTuneUp);
+
+    final reports = PostRideReportController.instance.getReportsForBike(bike.id);
+    final assessment = MaintenancePredictionEngine.analyze(bike: bike, rideReports: reports);
+    final healthScore = assessment.healthIndex;
 
     return CampCard(
       padding: const EdgeInsets.all(AppColors.cardPadding),
@@ -920,7 +941,7 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      '84%',
+                      '$healthScore%',
                       style: GoogleFonts.manrope(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
@@ -944,15 +965,15 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      const CircularProgressIndicator(
-                        value: 0.84,
+                      CircularProgressIndicator(
+                        value: (healthScore / 100.0).clamp(0.0, 1.0),
                         strokeWidth: 5.5,
-                        backgroundColor: Color(0xFFE2E8F0),
+                        backgroundColor: const Color(0xFFE2E8F0),
                         valueColor:
-                            AlwaysStoppedAnimation<Color>(Color(0xFF059669)),
+                            const AlwaysStoppedAnimation<Color>(Color(0xFF059669)),
                       ),
                       Text(
-                        '84%',
+                        '$healthScore%',
                         style: GoogleFonts.manrope(
                           fontSize: 13,
                           fontWeight: FontWeight.w900,
@@ -969,12 +990,15 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            'Systems Nominal',
-                            style: GoogleFonts.manrope(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.darkCharcoal,
+                          Flexible(
+                            child: Text(
+                              'Systems ${assessment.healthStatusLabel}',
+                              style: GoogleFonts.manrope(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.darkCharcoal,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -989,7 +1013,7 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
                                   BorderRadius.circular(AppColors.radiusPill),
                             ),
                             child: Text(
-                              'Good',
+                              assessment.healthStatusLabel,
                               style: GoogleFonts.manrope(
                                 fontSize: 9.5,
                                 fontWeight: FontWeight.w800,
@@ -1001,9 +1025,18 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        'Next scheduled service due in 1,180 km',
+                        'Next service due in ${assessment.nextServiceKm} km',
                         style: GoogleFonts.manrope(
                           fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.mutedText,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Calculated from maintenance rule engine wear & service logs',
+                        style: GoogleFonts.manrope(
+                          fontSize: 10,
                           fontWeight: FontWeight.w600,
                           color: AppColors.mutedText,
                         ),

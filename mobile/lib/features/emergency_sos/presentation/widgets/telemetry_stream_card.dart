@@ -12,7 +12,7 @@ class TelemetryStreamCard extends StatelessWidget {
     return ListenableBuilder(
       listenable: EmergencySosController.instance,
       builder: (context, _) {
-        final telemetry = EmergencySosController.instance.telemetry;
+        final snapshot = EmergencySosController.instance.telemetry;
 
         return Container(
           decoration: BoxDecoration(
@@ -69,7 +69,7 @@ class TelemetryStreamCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      '${telemetry.accuracy} accuracy (Cellular/GPS)',
+                      '${snapshot.accuracy} accuracy (Cellular/GPS)',
                       style: GoogleFonts.manrope(
                         color: const Color(0xFF059669),
                         fontSize: 9.5,
@@ -84,7 +84,7 @@ class TelemetryStreamCard extends StatelessWidget {
 
               // ── Location & Coordinates ─────────────────────────────────────
               Text(
-                telemetry.locationName,
+                snapshot.locationName,
                 style: GoogleFonts.manrope(
                   color: const Color(0xFF1E293B),
                   fontSize: 14.5,
@@ -93,7 +93,7 @@ class TelemetryStreamCard extends StatelessWidget {
               ),
               const SizedBox(height: 3),
               Text(
-                telemetry.coordinates,
+                snapshot.coordinates,
                 style: GoogleFonts.manrope(
                   color: const Color(0xFF64748B),
                   fontSize: 12.5,

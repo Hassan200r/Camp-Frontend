@@ -80,6 +80,7 @@ class Bike {
     required this.modelName,
     required this.modelYear,
     required this.odometerKm,
+    this.preciseOdometerKm,
     this.displacement,
     this.bikeType,
     this.fuelSystem = FuelSystem.carburetor,
@@ -89,29 +90,49 @@ class Bike {
     this.ridingTerrain,
     this.edition,
     this.imagePath,
+    this.fuelRemainingLiters,
+    this.lastFuelUpdate,
+    this.lastFullRefillOdometer,
     this.currentFuelLiters,
+    int? fuelLevelPercent,
     this.lastOilChange,
     this.lastTuneUp,
     this.vin,
     this.nickname,
     this.lastUpdated,
-  });
+  }) : _explicitFuelLevelPercent = fuelLevelPercent;
 
   factory Bike.fromJson(Map<String, dynamic> json) {
+    final tankCapacity = (json['fuelTankCapacityLiters'] as num?)?.toDouble();
+    double? remainingLiters = (json['fuelRemainingLiters'] as num?)?.toDouble();
+    if (remainingLiters == null && json['currentFuelLiters'] != null) {
+      remainingLiters = (json['currentFuelLiters'] as num?)?.toDouble();
+    }
+    final legacyPct = (json['fuelLevelPercent'] as num?)?.toDouble();
+    if (remainingLiters == null && legacyPct != null && tankCapacity != null && tankCapacity > 0) {
+      remainingLiters = (legacyPct * tankCapacity / 100.0);
+    }
+    if (remainingLiters != null && tankCapacity != null && tankCapacity > 0) {
+      remainingLiters = remainingLiters.clamp(0.0, tankCapacity);
+    }
+
+    final rawOdo = json['odometerKm'] as int? ?? 0;
+    final preciseOdo = (json['preciseOdometerKm'] as num?)?.toDouble();
+
     return Bike(
       id: json['id'] as String,
       make: json['make'] as String? ?? 'Unknown',
       modelName: json['modelName'] as String? ?? 'Unknown',
       modelYear: json['modelYear'] as int? ?? DateTime.now().year,
-      odometerKm: json['odometerKm'] as int? ?? 0,
+      odometerKm: rawOdo,
+      preciseOdometerKm: preciseOdo,
       displacement: json['displacement'] as int?,
       bikeType: json['bikeType'] as String?,
       fuelSystem: json['fuelSystem'] == 'efi'
           ? FuelSystem.efi
           : FuelSystem.carburetor,
       carburetorType: json['carburetorType'] as String?,
-      fuelTankCapacityLiters:
-          (json['fuelTankCapacityLiters'] as num?)?.toDouble(),
+      fuelTankCapacityLiters: tankCapacity,
       fuelAverageKmPerLiter:
           (json['fuelAverageKmPerLiter'] as num?)?.toDouble(),
       ridingTerrain: (json['ridingTerrain'] as List<dynamic>?)
@@ -119,7 +140,14 @@ class Bike {
           .toList(),
       edition: json['edition'] as String?,
       imagePath: json['imagePath'] as String?,
-      currentFuelLiters: (json['currentFuelLiters'] as num?)?.toDouble(),
+      fuelRemainingLiters: remainingLiters,
+      lastFuelUpdate: json['lastFuelUpdate'] != null
+          ? DateTime.tryParse(json['lastFuelUpdate'] as String)
+          : null,
+      lastFullRefillOdometer:
+          (json['lastFullRefillOdometer'] as num?)?.toDouble(),
+      currentFuelLiters: remainingLiters,
+      fuelLevelPercent: (json['fuelLevelPercent'] as num?)?.toInt(),
       lastOilChange: json['lastOilChange'] != null
           ? ServiceRecord.fromJson(
               Map<String, dynamic>.from(json['lastOilChange'] as Map))
@@ -178,8 +206,34 @@ class Bike {
   /// Mandatory operational field: current total odometer reading in km.
   final int odometerKm;
 
-  /// Current estimated fuel volume in liters.
+  /// High-precision odometer reading in km (e.g. 14820.4 km).
+  final double? preciseOdometerKm;
+
+  /// Current estimated fuel volume in liters (clamped 0..fuelTankCapacityLiters).
+  final double? fuelRemainingLiters;
+
+  /// Timestamp of the last fuel level update (refill or manual adjustment).
+  final DateTime? lastFuelUpdate;
+
+  /// Odometer reading in km at the last full tank refill, used for full-to-full learning.
+  final double? lastFullRefillOdometer;
+
+  /// Legacy field kept for backward compatibility; mirrors fuelRemainingLiters.
   final double? currentFuelLiters;
+
+  final int? _explicitFuelLevelPercent;
+
+  /// User-set or estimated fuel level percentage (0 to 100).
+  int? get fuelLevelPercent {
+    if (fuelRemainingLiters != null &&
+        fuelTankCapacityLiters != null &&
+        fuelTankCapacityLiters! > 0) {
+      return ((fuelRemainingLiters! / fuelTankCapacityLiters!) * 100.0)
+          .round()
+          .clamp(0, 100);
+    }
+    return _explicitFuelLevelPercent;
+  }
 
   /// Last oil change milestone (either distance in km or date).
   final ServiceRecord? lastOilChange;
@@ -222,13 +276,34 @@ class Bike {
     String? edition,
     String? imagePath,
     int? odometerKm,
+    double? preciseOdometerKm,
+    double? fuelRemainingLiters,
+    DateTime? lastFuelUpdate,
+    double? lastFullRefillOdometer,
     double? currentFuelLiters,
+    int? fuelLevelPercent,
     ServiceRecord? lastOilChange,
     ServiceRecord? lastTuneUp,
     String? vin,
     String? nickname,
     DateTime? lastUpdated,
   }) {
+    final newTankCapacity =
+        fuelTankCapacityLiters ?? this.fuelTankCapacityLiters;
+    double? newFuelLiters =
+        fuelRemainingLiters ?? currentFuelLiters ?? this.fuelRemainingLiters;
+    if (newFuelLiters == null &&
+        fuelLevelPercent != null &&
+        newTankCapacity != null &&
+        newTankCapacity > 0) {
+      newFuelLiters = fuelLevelPercent * newTankCapacity / 100.0;
+    }
+    if (newFuelLiters != null &&
+        newTankCapacity != null &&
+        newTankCapacity > 0) {
+      newFuelLiters = newFuelLiters.clamp(0.0, newTankCapacity);
+    }
+
     return Bike(
       id: id ?? this.id,
       make: make ?? this.make,
@@ -238,15 +313,20 @@ class Bike {
       bikeType: bikeType ?? this.bikeType,
       fuelSystem: fuelSystem ?? this.fuelSystem,
       carburetorType: carburetorType ?? this.carburetorType,
-      fuelTankCapacityLiters:
-          fuelTankCapacityLiters ?? this.fuelTankCapacityLiters,
+      fuelTankCapacityLiters: newTankCapacity,
       fuelAverageKmPerLiter:
           fuelAverageKmPerLiter ?? this.fuelAverageKmPerLiter,
       ridingTerrain: ridingTerrain ?? this.ridingTerrain,
       edition: edition ?? this.edition,
-      imagePath: imagePath ?? this.imagePath,
       odometerKm: odometerKm ?? this.odometerKm,
-      currentFuelLiters: currentFuelLiters ?? this.currentFuelLiters,
+      preciseOdometerKm: preciseOdometerKm ??
+          (odometerKm != null ? odometerKm.toDouble() : this.preciseOdometerKm),
+      fuelRemainingLiters: newFuelLiters,
+      lastFuelUpdate: lastFuelUpdate ?? this.lastFuelUpdate,
+      lastFullRefillOdometer:
+          lastFullRefillOdometer ?? this.lastFullRefillOdometer,
+      currentFuelLiters: newFuelLiters,
+      fuelLevelPercent: fuelLevelPercent ?? _explicitFuelLevelPercent,
       lastOilChange: lastOilChange ?? this.lastOilChange,
       lastTuneUp: lastTuneUp ?? this.lastTuneUp,
       vin: vin ?? this.vin,
@@ -278,7 +358,11 @@ class Bike {
           edition == other.edition &&
           imagePath == other.imagePath &&
           odometerKm == other.odometerKm &&
-          currentFuelLiters == other.currentFuelLiters &&
+          preciseOdometerKm == other.preciseOdometerKm &&
+          fuelRemainingLiters == other.fuelRemainingLiters &&
+          lastFuelUpdate == other.lastFuelUpdate &&
+          lastFullRefillOdometer == other.lastFullRefillOdometer &&
+          fuelLevelPercent == other.fuelLevelPercent &&
           lastOilChange == other.lastOilChange &&
           lastTuneUp == other.lastTuneUp &&
           vin == other.vin &&
@@ -301,7 +385,11 @@ class Bike {
         edition,
         imagePath,
         odometerKm,
-        currentFuelLiters,
+        preciseOdometerKm,
+        fuelRemainingLiters,
+        lastFuelUpdate,
+        lastFullRefillOdometer,
+        fuelLevelPercent,
         lastOilChange,
         lastTuneUp,
         vin,
@@ -315,6 +403,7 @@ class Bike {
         'modelName': modelName,
         'modelYear': modelYear,
         'odometerKm': odometerKm,
+        'preciseOdometerKm': preciseOdometerKm,
         'displacement': displacement,
         'bikeType': bikeType,
         'fuelSystem': fuelSystem.name,
@@ -324,7 +413,11 @@ class Bike {
         'ridingTerrain': ridingTerrain,
         'edition': edition,
         'imagePath': imagePath,
-        'currentFuelLiters': currentFuelLiters,
+        'fuelRemainingLiters': fuelRemainingLiters,
+        'lastFuelUpdate': lastFuelUpdate?.toIso8601String(),
+        'lastFullRefillOdometer': lastFullRefillOdometer,
+        'currentFuelLiters': fuelRemainingLiters,
+        'fuelLevelPercent': fuelLevelPercent,
         'lastOilChange': lastOilChange?.toJson(),
         'lastTuneUp': lastTuneUp?.toJson(),
         'vin': vin,

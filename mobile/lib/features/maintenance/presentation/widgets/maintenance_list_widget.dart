@@ -27,7 +27,7 @@ class MaintenanceListWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ── Eyebrow Overline ───────────────────────────────────────────────
-        Text('CONDITION TELEMETRY', style: AppTextStyles.overline),
+        Text('RIG CONDITION', style: AppTextStyles.overline),
         const SizedBox(height: 4),
 
         // ── Section Header with Wrench IconTile ────────────────────────────

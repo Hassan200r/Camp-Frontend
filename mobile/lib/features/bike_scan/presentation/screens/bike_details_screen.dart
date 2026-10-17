@@ -416,7 +416,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
           const SizedBox(width: 9),
           Expanded(
             child: Text(
-              'We filled in what we could from your photo. Please check the details.',
+              'Sample suggestion, please check the details',
               style: AppTextStyles.bodySecondary.copyWith(
                 color: AppColors.terracotta,
                 fontWeight: FontWeight.w600,
@@ -428,7 +428,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
     );
   }
 
-  /// A small "Auto-filled" tag shown next to pre-populated fields.
+  /// A small "Suggested" tag shown next to pre-populated fields.
   /// Disappears once the user edits that field ([fieldKey] removed from [_autoFilledFields]).
   Widget _autoFilledTag(String fieldKey) {
     if (!_autoFilledFields.contains(fieldKey)) return const SizedBox.shrink();
@@ -444,7 +444,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
         ),
       ),
       child: Text(
-        'Auto-filled',
+        'Suggested',
         style: GoogleFonts.manrope(
           fontSize: 10,
           fontWeight: FontWeight.w700,
@@ -1011,7 +1011,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
                 ),
               ),
               Text(
-                'Telemetry Sync',
+                'Fleet Sync',
                 style: GoogleFonts.manrope(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,

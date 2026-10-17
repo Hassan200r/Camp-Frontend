@@ -143,7 +143,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                           _scaffoldKey.currentState?.openDrawer(),
                       actionText: 'FINANCES & RIG HEALTH',
                       onActionPressed: () => _showNotification(
-                        'Finances & Rig Health telemetry active',
+                        'Finances & Rig Health active',
                       ),
                     ),
 
@@ -154,7 +154,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'EXPEDITION TELEMETRY',
+                          'EXPEDITION STATS',
                           style: AppTextStyles.overline,
                         ),
                         const SizedBox(height: 4),
@@ -273,7 +273,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                     // 7. Download Maintenance Report Card
                     const DownloadReportCardWidget(
                       label: 'Download Maintenance Report (PDF)',
-                      subtitle: 'Receipts, telemetry logs & schedule',
+                      subtitle: 'Receipts, service logs & schedule',
                     ),
 
                     const SizedBox(height: AppColors.cardGap),

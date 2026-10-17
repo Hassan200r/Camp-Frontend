@@ -165,7 +165,7 @@ class AuthBrandHeader extends StatelessWidget {
               ),
               const SizedBox(width: 7),
               Text(
-                'TELEMETRY • ADVENTURE',
+                'EXPEDITION • ADVENTURE',
                 style: GoogleFonts.manrope(
                   color: const Color(0xFFE2DDD7),
                   fontSize: 10.5,

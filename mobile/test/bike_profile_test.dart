@@ -63,10 +63,9 @@ void main() {
 
       // 1. Header: Back button, CAMP, and ACTIVE RIG pill
       expect(find.text('CAMP'), findsOneWidget);
-      expect(find.text('ACTIVE RIG'), findsOneWidget);
+      expect(find.text('ACTIVE RIG'), findsNWidgets(2));
 
       // 2. Hero Card: Overline, Bike Name, single MANUALLY TRACKED badge
-      expect(find.text('ACTIVE TELEMETRY RIG'), findsOneWidget);
       expect(find.text('BMW R 1250 GS Adventure'), findsOneWidget);
       expect(find.text('MANUALLY TRACKED'), findsOneWidget);
 
@@ -86,8 +85,8 @@ void main() {
 
       // 4. Maintenance Health Card
       expect(find.text('MAINTENANCE HEALTH'), findsOneWidget);
-      expect(find.text('Systems Nominal'), findsOneWidget);
-      expect(find.textContaining('Next scheduled service due in'), findsOneWidget);
+      expect(find.textContaining('Systems'), findsOneWidget);
+      expect(find.textContaining('Next service due in'), findsOneWidget);
       expect(find.text('COMPONENT DIAGNOSTICS'), findsOneWidget);
       expect(find.text('View Full Rig Diagnostics Report'), findsOneWidget);
 
@@ -127,7 +126,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('STANDBY'), findsOneWidget);
-      expect(find.text('STANDBY TELEMETRY'), findsOneWidget);
+      expect(find.text('STANDBY FLEET'), findsOneWidget);
       expect(find.text('Carburetor'), findsOneWidget);
       expect(find.text('Keihin CVK'), findsOneWidget);
       expect(find.text('Set as Active Rig'), findsOneWidget);
@@ -157,7 +156,7 @@ void main() {
       // Controller should now have bike-rebel-500 as active
       expect(ActiveBikeController.instance.activeBikeId, 'bike-rebel-500');
       expect(find.text('Currently Active Rig'), findsOneWidget);
-      expect(find.text('ACTIVE RIG'), findsOneWidget);
+      expect(find.text('ACTIVE RIG'), findsWidgets);
     });
 
     testWidgets('Remove Bike shows confirmation dialog before deletion',

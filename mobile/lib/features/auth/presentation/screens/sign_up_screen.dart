@@ -161,7 +161,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      'Start your adventure telemetry journey',
+                      'Start your adventure riding journey',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.manrope(
                         color: AuthColors.textSubtitle,

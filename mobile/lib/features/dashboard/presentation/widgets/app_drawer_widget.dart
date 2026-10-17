@@ -48,7 +48,7 @@ class AppDrawerWidget extends StatelessWidget {
                     context,
                     icon: Icons.cloud_download_outlined,
                     title: 'Route Packs',
-                    subtitle: 'Offline Topo & Telemetry',
+                    subtitle: 'Offline Topo & Maps',
                     badge: '5 Available',
                     orangeBadge: true,
                     route: CampRoutes.routePacks,

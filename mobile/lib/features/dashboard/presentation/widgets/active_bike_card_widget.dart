@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
@@ -8,8 +9,11 @@ import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../garage/controllers/active_bike_controller.dart';
 import '../../../garage/domain/bike_model.dart';
+import '../../../garage/domain/fuel_estimator.dart';
+import '../../../garage/presentation/widgets/update_fuel_sheet.dart';
+import '../../../garage/services/fuel_tracker_service.dart';
 
-/// Active Motorcycle Overview — skeuomorphic raised card bound to [ActiveBikeController].
+/// Active Motorcycle Overview — skeuomorphic raised card bound to [ActiveBikeController] and [FuelTrackerService].
 class ActiveBikeCardWidget extends StatefulWidget {
   const ActiveBikeCardWidget({super.key, this.onDetailsPressed});
 
@@ -39,12 +43,23 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
     super.dispose();
   }
 
+  Color _getFuelBarColor(double? pct) {
+    if (pct == null) return AppColors.tacticalOrange;
+    if (pct < 15.0) return AppColors.alertRed;
+    if (pct < 25.0) return const Color(0xFFD97706);
+    return AppColors.tacticalOrange;
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ActiveBikeController.instance,
+      listenable: Listenable.merge([
+        ActiveBikeController.instance,
+        FuelTrackerService.instance,
+      ]),
       builder: (context, _) {
         final bike = ActiveBikeController.instance.activeBike;
+        final fuelTracker = FuelTrackerService.instance;
 
         if (bike == null) {
           return ConstrainedBox(
@@ -109,25 +124,19 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
           );
         }
 
-        final hasFuelData = bike.currentFuelLiters != null &&
-            bike.fuelTankCapacityLiters != null &&
-            bike.fuelTankCapacityLiters! > 0;
-        final double fuelRatio = hasFuelData
-            ? (bike.currentFuelLiters! / bike.fuelTankCapacityLiters!)
-                .clamp(0.0, 1.0)
-            : 0.0;
+        final liters = bike.fuelRemainingLiters;
+        final tankCap = bike.fuelTankCapacityLiters;
+        final fuelAvg = bike.fuelAverageKmPerLiter;
+        final rangeKm = FuelEstimator.rangeKm(liters, fuelAvg);
+        final pct = FuelEstimator.percent(liters, tankCap);
+        final double fuelRatio =
+            pct != null ? (pct / 100.0).clamp(0.0, 1.0) : 0.0;
 
-        String fuelText = '';
-        if (hasFuelData) {
-          final pct = (fuelRatio * 100).round();
-          if (bike.fuelAverageKmPerLiter != null) {
-            final estKm =
-                (bike.currentFuelLiters! * bike.fuelAverageKmPerLiter!).round();
-            fuelText = '$pct%  ($estKm km est.)';
-          } else {
-            fuelText = '$pct%';
-          }
-        }
+        final String fuelText = liters == null
+            ? 'Set fuel level'
+            : (rangeKm != null
+                ? '${liters.toStringAsFixed(1)} / ${tankCap?.toStringAsFixed(0) ?? '--'} L (est.)  •  about ${rangeKm.round()} km range'
+                : '${liters.toStringAsFixed(1)} / ${tankCap?.toStringAsFixed(0) ?? '--'} L (est.)');
 
         return ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 450),
@@ -251,51 +260,216 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
                 ],
               ),
 
-              // ── Fuel Level (only shown if user entered it) ────────────────
-              if (hasFuelData) ...[
-                const SizedBox(height: 18),
-                Row(
+              // ── Ride Tracking Control ──────────────────────────────
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.clay,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: AppColors.skeuRaisedSmall,
+                ),
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
                       children: [
-                        const Icon(
-                          Icons.local_gas_station_rounded,
-                          size: 16,
-                          color: AppColors.terracotta,
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: fuelTracker.isRiding
+                                ? const Color(0xFF10B981)
+                                : AppColors.mutedText,
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                        const SizedBox(width: 6),
-                        Text('Fuel Level', style: AppTextStyles.itemTitle),
+                        const SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              fuelTracker.isRiding
+                                  ? 'RIDE IN PROGRESS'
+                                  : 'RIDE TRACKER',
+                              style: GoogleFonts.manrope(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.darkCharcoal,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            Text(
+                              fuelTracker.isRiding
+                                  ? '${fuelTracker.rideDistanceKm.toStringAsFixed(1)} km tracked'
+                                  : 'Live distance & fuel estimate',
+                              style: GoogleFonts.manrope(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.mutedText,
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
-                    Text(fuelText, style: AppTextStyles.body),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: fuelTracker.isRiding
+                            ? AppColors.alertRed
+                            : AppColors.tacticalOrange,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 1,
+                      ),
+                      icon: Icon(
+                        fuelTracker.isRiding
+                            ? Icons.stop_rounded
+                            : Icons.play_arrow_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      label: Text(
+                        fuelTracker.isRiding ? 'Stop ride' : 'Start ride',
+                        style: GoogleFonts.manrope(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                      onPressed: () => fuelTracker.toggleRide(),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                InsetTile(
+              ),
+
+              if (fuelTracker.locationErrorMessage != null) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.alertRed.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: AppColors.alertRed.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.location_off_rounded,
+                          size: 16, color: AppColors.alertRed),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          fuelTracker.locationErrorMessage!,
+                          style: GoogleFonts.manrope(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.alertRed,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              // ── Low Fuel Warning Banner ───────────────────────────
+              if (pct != null && pct < 15.0) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.alertRed.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.alertRed, width: 1.2),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded,
+                          color: AppColors.alertRed, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          rangeKm != null
+                              ? 'Low fuel: about ${rangeKm.round()} km left. Please refill.'
+                              : 'Low fuel warning. Please refill.',
+                          style: GoogleFonts.manrope(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.alertRed,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              // ── Fuel Level ────────────────
+              const SizedBox(height: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.local_gas_station_rounded,
+                        size: 16,
+                        color: AppColors.terracotta,
+                      ),
+                      const SizedBox(width: 6),
+                      Text('Fuel Level', style: AppTextStyles.itemTitle),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => UpdateFuelSheet.show(context, bike),
+                      child: Text(
+                        fuelText,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        textAlign: TextAlign.end,
+                        style: AppTextStyles.body.copyWith(
+                          color: liters == null
+                              ? AppColors.tacticalOrange
+                              : (pct != null && pct < 15.0
+                                  ? AppColors.alertRed
+                                  : (pct != null && pct < 25.0
+                                      ? const Color(0xFFD97706)
+                                      : AppColors.darkCharcoal)),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => UpdateFuelSheet.show(context, bike),
+                child: InsetTile(
                   borderRadius: 8,
                   padding: EdgeInsets.zero,
-                  child: AnimatedBuilder(
-                    animation: _animController,
-                    builder: (ctx, _) => ClipRRect(
-                      borderRadius: BorderRadius.circular(7),
-                      child: SizedBox(
-                        height: 10,
-                        child: FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor:
-                              (_animController.value * fuelRatio).clamp(0.0, 1.0),
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppColors.tacticalOrangeLight,
-                                  AppColors.tacticalOrange,
-                                  AppColors.tacticalOrangeDark,
-                                ],
-                              ),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(7)),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(7),
+                    child: SizedBox(
+                      height: 10,
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: (fuelRatio).clamp(0.0, 1.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: _getFuelBarColor(pct),
+                            borderRadius: const BorderRadius.all(
+                              Radius.circular(7),
                             ),
                           ),
                         ),
@@ -303,7 +477,42 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
                     ),
                   ),
                 ),
-              ],
+              ),
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => UpdateFuelSheet.show(context, bike),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.clay,
+                      borderRadius:
+                          BorderRadius.circular(AppColors.radiusPill),
+                      boxShadow: AppColors.skeuRaisedSmall,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.edit_rounded,
+                            size: 12, color: AppColors.tacticalOrange),
+                        const SizedBox(width: 4),
+                        Text(
+                          liters == null
+                              ? 'Set fuel level'
+                              : 'Update fuel level',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.tacticalOrange,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
 
               const SizedBox(height: 16),
 

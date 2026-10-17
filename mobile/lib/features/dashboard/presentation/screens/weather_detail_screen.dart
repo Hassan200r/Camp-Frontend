@@ -125,7 +125,7 @@ class WeatherDetailScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    _buildHourlyStrip(),
+                    _buildHourlyStrip(hasKey),
 
                     const SizedBox(height: 20),
 
@@ -149,7 +149,7 @@ class WeatherDetailScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    _build7DayForecastCard(),
+                    _build7DayForecastCard(hasKey),
 
                     const SizedBox(height: 16),
 
@@ -190,7 +190,9 @@ class WeatherDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Alpine Corridor',
+                      WeatherProvider.currentLocationLabel.isNotEmpty
+                          ? WeatherProvider.currentLocationLabel
+                          : 'Location off',
                       style: GoogleFonts.manrope(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
@@ -300,7 +302,7 @@ class WeatherDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHourlyStrip() {
+  Widget _buildHourlyStrip(bool hasKey) {
     return SizedBox(
       height: 104,
       child: ListView.separated(
@@ -343,7 +345,7 @@ class WeatherDetailScreen extends StatelessWidget {
                   color: isNow ? AppColors.tacticalOrange : AppColors.darkCharcoal,
                 ),
                 Text(
-                  '${slot.tempC}°',
+                  hasKey ? '${slot.tempC}°' : '--',
                   style: GoogleFonts.manrope(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
@@ -358,7 +360,7 @@ class WeatherDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _build7DayForecastCard() {
+  Widget _build7DayForecastCard(bool hasKey) {
     return CampCard(
       borderRadius: AppColors.radiusCard,
       padding: const EdgeInsets.all(16),
@@ -387,7 +389,7 @@ class WeatherDetailScreen extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    item.condition,
+                    hasKey ? item.condition : '--',
                     style: GoogleFonts.manrope(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -397,7 +399,7 @@ class WeatherDetailScreen extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${item.minTempC}°',
+                  hasKey ? '${item.minTempC}°' : '--',
                   style: GoogleFonts.manrope(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -412,25 +414,27 @@ class WeatherDetailScreen extends StatelessWidget {
                     color: AppColors.clayDark,
                     borderRadius: BorderRadius.circular(2),
                   ),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: (item.maxTempC - item.minTempC) / 15.0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            AppColors.tacticalOrangeLight,
-                            AppColors.tacticalOrange,
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
+                  child: hasKey
+                      ? FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: (item.maxTempC - item.minTempC) / 15.0,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  AppColors.tacticalOrangeLight,
+                                  AppColors.tacticalOrange,
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink(),
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '${item.maxTempC}°',
+                  hasKey ? '${item.maxTempC}°' : '--',
                   style: GoogleFonts.manrope(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,

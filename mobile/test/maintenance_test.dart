@@ -52,7 +52,7 @@ void main() {
 
     // Verify header and section titles
     expect(find.text('FINANCES & RIG HEALTH'), findsOneWidget);
-    expect(find.text('EXPEDITION TELEMETRY'), findsOneWidget);
+    expect(find.text('EXPEDITION STATS'), findsOneWidget);
     expect(find.text('Finances & Rig Health'), findsOneWidget);
     expect(find.text('LOCAL'), findsOneWidget);
 
@@ -84,7 +84,7 @@ void main() {
     expect(find.text('Add Expense'), findsWidgets);
 
     // Verify maintenance list items
-    expect(find.text('CONDITION TELEMETRY'), findsOneWidget);
+    expect(find.text('RIG CONDITION'), findsOneWidget);
     expect(find.textContaining('Upcoming & Required'), findsOneWidget);
     expect(find.text('Rear Brake Pad Replacement'), findsOneWidget);
     expect(find.text('Engine Oil & Filter'), findsOneWidget);

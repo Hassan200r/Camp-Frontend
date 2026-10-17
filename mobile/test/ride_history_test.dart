@@ -42,7 +42,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify header elements
-      expect(find.text('EXPEDITION TELEMETRY ARCHIVE'), findsOneWidget);
+      expect(find.text('EXPEDITION ARCHIVE'), findsOneWidget);
       expect(find.text('Ride History'), findsOneWidget);
       expect(find.byType(RideHistoryHeaderRowWidget), findsOneWidget);
 

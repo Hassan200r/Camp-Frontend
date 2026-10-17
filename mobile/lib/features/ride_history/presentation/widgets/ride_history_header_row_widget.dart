@@ -27,7 +27,7 @@ class RideHistoryHeaderRowWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'EXPEDITION TELEMETRY ARCHIVE',
+          'EXPEDITION ARCHIVE',
           style: AppTextStyles.overline,
         ),
         const SizedBox(height: 4),

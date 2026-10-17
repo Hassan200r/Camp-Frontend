@@ -144,10 +144,16 @@ class _CockpitStatusCardWidgetState extends State<CockpitStatusCardWidget> {
         if (mounted) {
           setState(() {
             _locationLabel = shortArea!.trim();
+            WeatherProvider.currentLocationLabel = _locationLabel;
           });
         }
       } else {
-        if (mounted) setState(() => _locationLabel = 'Location off');
+        if (mounted) {
+          setState(() {
+            _locationLabel = 'Location off';
+            WeatherProvider.currentLocationLabel = _locationLabel;
+          });
+        }
       }
 
       // Weather data from WeatherProvider
@@ -161,7 +167,12 @@ class _CockpitStatusCardWidgetState extends State<CockpitStatusCardWidget> {
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _locationLabel = 'Location off');
+      if (mounted) {
+        setState(() {
+          _locationLabel = 'Location off';
+          WeatherProvider.currentLocationLabel = _locationLabel;
+        });
+      }
     }
   }
 
@@ -176,7 +187,6 @@ class _CockpitStatusCardWidgetState extends State<CockpitStatusCardWidget> {
         final profile = ProfileController.instance;
         final riderName = profile.fullName;
         final riderFirstName = profile.firstName;
-        final ridingTier = profile.ridingTier;
         final activeBike = ActiveBikeController.instance.activeBike;
 
         Widget avatarWidget;
@@ -278,40 +288,14 @@ class _CockpitStatusCardWidgetState extends State<CockpitStatusCardWidget> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  riderName,
-                                  style: GoogleFonts.manrope(
-                                    color: Colors.white,
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 2.5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF5A391D),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  ridingTier,
-                                  style: GoogleFonts.manrope(
-                                    color: const Color(0xFFFCD34D),
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          Text(
+                            riderName,
+                            style: GoogleFonts.manrope(
+                              color: Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 3),
                           Text(
@@ -322,52 +306,6 @@ class _CockpitStatusCardWidgetState extends State<CockpitStatusCardWidget> {
                               color: const Color(0xFF94A3B8),
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // ONLINE pill
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF14241B),
-                        borderRadius:
-                            BorderRadius.circular(AppColors.radiusTile),
-                        border: Border.all(
-                          color: AppColors.statusGreen.withValues(alpha: 0.4),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 7,
-                            height: 7,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.statusGreen,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.statusGreen
-                                      .withValues(alpha: 0.6),
-                                  blurRadius: 6,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'ONLINE',
-                            style: GoogleFonts.manrope(
-                              color: AppColors.statusGreen,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
                             ),
                           ),
                         ],

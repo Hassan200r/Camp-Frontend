@@ -120,10 +120,9 @@ class RecentUpdatesFeedWidget extends StatelessWidget {
               context: context,
               icon: Icons.air_rounded,
               iconColor: const Color(0xFFD97706),
-              title: 'Weather Advisory',
-              timeBadge: '8m ago',
-              description:
-                  'Sudden mist and gusty winds reported at High Pass summit (Elev. 8,200ft).',
+              title: 'Weather',
+              timeBadge: '',
+              description: 'Weather: tap for forecast',
               actionLabel: 'View Forecast',
               actionIcon: Icons.wb_sunny_rounded,
               onAction: onViewRadar ??
@@ -137,10 +136,9 @@ class RecentUpdatesFeedWidget extends StatelessWidget {
               context: context,
               icon: Icons.track_changes_rounded,
               iconColor: const Color(0xFF0D9488),
-              title: 'Group Beacon Synced',
-              timeBadge: '12m ago',
-              description:
-                  'Rider Marcus checked in at Waypoint Echo 12 mins ago.',
+              title: 'Group Beacon',
+              timeBadge: '',
+              description: 'Group Beacon: coming soon',
               actionLabel: 'Locate',
               actionIcon: Icons.near_me_rounded,
               onAction: onLocateBeacon ?? () => _showComingSoonDialog(context),
@@ -229,8 +227,10 @@ class RecentUpdatesFeedWidget extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(timeBadge, style: AppTextStyles.caption),
+                      if (timeBadge.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Text(timeBadge, style: AppTextStyles.caption),
+                      ],
                     ],
                   ),
 

@@ -1171,7 +1171,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   borderRadius: BorderRadius.circular(AppColors.radiusPill),
                 ),
                 child: Text(
-                  'Telemetry Monitored',
+                  'System Monitored',
                   style: GoogleFonts.manrope(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
@@ -1627,7 +1627,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   borderRadius: BorderRadius.circular(AppColors.radiusPill),
                 ),
                 child: Text(
-                  'Telemetry Armed',
+                  'System Armed',
                   style: GoogleFonts.manrope(
                     fontSize: 9.5,
                     fontWeight: FontWeight.w800,
@@ -1839,7 +1839,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const Divider(height: 1, color: Color(0x12000000)),
                   _buildSettingsRow(
                     icon: Icons.security_rounded,
-                    title: 'Privacy & Telemetry Sharing',
+                    title: 'Privacy & Data Sharing',
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [

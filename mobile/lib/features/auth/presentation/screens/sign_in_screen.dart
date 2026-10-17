@@ -60,6 +60,7 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
         backgroundColor: const Color(0xFF26201D),
         behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 96),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
           side: BorderSide(
@@ -87,7 +88,11 @@ class _SignInScreenState extends State<SignInScreen> {
     setState(() => _isLoading = false);
 
     if (success) {
-      _showNotification('Telemetry verified. Welcome back, Rider!');
+      final firstName = AuthController.instance.riderFirstName.trim();
+      final welcome = (firstName.isNotEmpty && firstName.toLowerCase() != 'rider')
+          ? 'Welcome back, $firstName'
+          : 'Welcome back';
+      _showNotification(welcome);
       Navigator.of(context).pushReplacementNamed('/');
     } else {
       setState(() {
@@ -117,7 +122,7 @@ class _SignInScreenState extends State<SignInScreen> {
   Widget build(BuildContext context) {
     return AuthBackgroundScaffold(
       topBar: AuthBrandHeader.signIn(
-        onCompassTap: () => _showNotification('GPS Telemetry Beacon: Calibrated'),
+        onCompassTap: () => _showNotification('GPS Beacon: Calibrated'),
       ),
       bottomBar: _buildFooter(context),
       child: Center(
@@ -144,7 +149,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Sign in to access your telemetry & routes',
+                      'Sign in to access your cockpit & routes',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.manrope(
                         color: AuthColors.textSubtitle,

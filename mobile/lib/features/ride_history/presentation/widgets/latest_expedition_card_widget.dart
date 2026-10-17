@@ -197,7 +197,7 @@ class LatestExpeditionCardWidget extends StatelessWidget {
             children: [
               Expanded(
                 child: _HeroButton(
-                  label: 'Replay Telemetry',
+                  label: 'Replay Track',
                   icon: Icons.play_circle_rounded,
                   isPrimary: true,
                   onTap: () {},

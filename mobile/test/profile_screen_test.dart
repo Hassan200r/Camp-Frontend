@@ -76,7 +76,7 @@ void main() {
 
     // 7. Maintenance Health Card
     expect(find.text('MAINTENANCE HEALTH'), findsOneWidget);
-    expect(find.text('Telemetry Monitored'), findsOneWidget);
+    expect(find.text('System Monitored'), findsOneWidget);
     expect(find.text('82%'), findsOneWidget);
     expect(find.text('Top At-Risk Components'), findsOneWidget);
     expect(find.text('Drive Chain & Sprocket'), findsOneWidget);
@@ -95,7 +95,7 @@ void main() {
 
     // 9. Rider Medical & SOS ID Card
     expect(find.text('RIDER MEDICAL & SOS ID'), findsOneWidget);
-    expect(find.text('Telemetry Armed'), findsOneWidget);
+    expect(find.text('System Armed'), findsOneWidget);
     expect(find.text('Emergency ICE:'), findsOneWidget);
     expect(find.text('Blood & Allergies:'), findsOneWidget);
     expect(find.text('Satellite SOS Beacon:'), findsOneWidget);
@@ -107,7 +107,7 @@ void main() {
     expect(find.text('Units'), findsOneWidget);
     expect(find.text('Notifications'), findsOneWidget);
     expect(find.text('Offline Maps'), findsOneWidget);
-    expect(find.text('Privacy & Telemetry Sharing'), findsOneWidget);
+    expect(find.text('Privacy & Data Sharing'), findsOneWidget);
     expect(find.text('Help & Support'), findsOneWidget);
     expect(find.text('About CAMP'), findsOneWidget);
 
@@ -193,8 +193,8 @@ void main() {
     Navigator.of(tester.element(find.text('Destination: /settings'))).pop();
     await tester.pumpAndSettle();
 
-    // Tap Privacy & Telemetry Sharing -> should navigate to /settings
-    await tester.tap(find.text('Privacy & Telemetry Sharing'));
+    // Tap Privacy & Data Sharing -> should navigate to /settings
+    await tester.tap(find.text('Privacy & Data Sharing'));
     await tester.pumpAndSettle();
     expect(lastPushedRoute, '/settings');
 

@@ -118,7 +118,7 @@ class _IceNetworkSheetState extends State<IceNetworkSheet> {
               ),
               const SizedBox(height: 4),
               Text(
-                'These trusted contacts & authorities receive encrypted telemetry and GPS coordinates immediately upon beacon transmission.',
+                'These trusted contacts & authorities receive encrypted location data and GPS coordinates immediately upon beacon transmission.',
                 style: GoogleFonts.manrope(
                   fontSize: 12,
                   color: const Color(0xFF64748B),
