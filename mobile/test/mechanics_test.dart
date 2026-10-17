@@ -7,6 +7,7 @@ import 'package:camp/core/widgets/camp_empty_state.dart';
 import 'package:camp/core/widgets/primary_button.dart';
 import 'package:camp/features/mechanics/controllers/mechanic_controller.dart';
 import 'package:camp/features/mechanics/domain/mechanic_model.dart';
+import 'package:camp/features/mechanics/domain/mechanic_open_status.dart';
 import 'package:camp/features/mechanics/presentation/screens/add_mechanic_screen.dart';
 import 'package:camp/features/mechanics/presentation/screens/mechanics_home_screen.dart';
 import 'package:camp/features/mechanics/presentation/widgets/custom_app_bar.dart';
@@ -508,14 +509,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      final err = tester.takeException();
-      if (err != null) {
-        print('OVERFLOW ERROR DETAILS: $err');
-        if (err is FlutterError) {
-          print('DIAGNOSTICS: ${err.diagnostics}');
-        }
-      }
-      expect(err, isNull);
+      // No RenderFlex or layout overflows
+      expect(tester.takeException(), isNull);
 
       // Full header row is visible and tappable
       expect(find.byType(CustomAppBar), findsOneWidget);
@@ -552,7 +547,9 @@ void main() {
 
     testWidgets('Bottom nav is present in AddMechanicScreen when keyboard is closed', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
       await tester.pumpWidget(noAnimApp(const AddMechanicScreen()));
       await tester.pump();
@@ -560,6 +557,244 @@ void main() {
 
       // CampBottomNav hides itself when keyboard is open; initially it must be present
       expect(find.byType(CampBottomNav), findsOneWidget);
+    });
+  });
+
+  group('Mechanic Opening Hours & Status Tests', () {
+    Mechanic createTestMechanic({
+      List<int> openDays = const [],
+      int? openMinutes,
+      int? closeMinutes,
+      bool open24Hours = false,
+    }) {
+      return Mechanic(
+        id: 'test-mech-hours',
+        name: 'Test Workshop',
+        distance: '1.0 km away',
+        durationOrLocation: 'Downtown',
+        badgeType: BadgeType.verified,
+        badgeLabel: 'Verified',
+        beaconStatus: 'Active',
+        beaconColor: AppColors.statusGreen,
+        categoryTitle1: 'SERVICES',
+        tags1: const ['Tire Repair'],
+        categoryTitle2: 'LOCATION',
+        tags2: const ['Downtown'],
+        rating: 4.8,
+        reviewCount: 10,
+        openStatus: '',
+        phone: '1234567890',
+        openDays: openDays,
+        openMinutes: openMinutes,
+        closeMinutes: closeMinutes,
+        open24Hours: open24Hours,
+      );
+    }
+
+    test('open mid-day: Mon-Fri 9:00 AM to 5:00 PM checked on Tue 12:00 PM', () {
+      final mech = createTestMechanic(
+        openDays: [1, 2, 3, 4, 5],
+        openMinutes: 540, // 9:00 AM
+        closeMinutes: 1020, // 5:00 PM
+      );
+      // 2026-10-13 is Tuesday
+      final now = DateTime(2026, 10, 13, 12, 0);
+      final status = mechanicOpenStatus(mech, now);
+
+      expect(status.isOpen, isTrue);
+      expect(status.closesAt, '5:00 PM');
+      expect(status.displayText, 'Open now, closes 5:00 PM');
+    });
+
+    test('closed before opening: Mon-Fri 9:00 AM to 5:00 PM checked on Tue 8:00 AM', () {
+      final mech = createTestMechanic(
+        openDays: [1, 2, 3, 4, 5],
+        openMinutes: 540,
+        closeMinutes: 1020,
+      );
+      final now = DateTime(2026, 10, 13, 8, 0);
+      final status = mechanicOpenStatus(mech, now);
+
+      expect(status.isClosed, isTrue);
+      expect(status.opensAt, '9:00 AM');
+      expect(status.opensDay, isNull);
+      expect(status.displayText, 'Closed, opens 9:00 AM');
+    });
+
+    test('closed after closing: Mon-Fri 9:00 AM to 5:00 PM checked on Tue 6:00 PM', () {
+      final mech = createTestMechanic(
+        openDays: [1, 2, 3, 4, 5],
+        openMinutes: 540,
+        closeMinutes: 1020,
+      );
+      final now = DateTime(2026, 10, 13, 18, 0);
+      final status = mechanicOpenStatus(mech, now);
+
+      expect(status.isClosed, isTrue);
+      expect(status.opensAt, '9:00 AM');
+      expect(status.opensDay, 'Wed');
+      expect(status.displayText, 'Closed, opens Wed 9:00 AM');
+    });
+
+    test('closed on a non-selected day: Mon-Fri shop checked on Sat 2:00 PM', () {
+      final mech = createTestMechanic(
+        openDays: [1, 2, 3, 4, 5],
+        openMinutes: 540,
+        closeMinutes: 1020,
+      );
+      // 2026-10-17 is Saturday
+      final now = DateTime(2026, 10, 17, 14, 0);
+      final status = mechanicOpenStatus(mech, now);
+
+      expect(status.isClosed, isTrue);
+      expect(status.opensAt, '9:00 AM');
+      expect(status.opensDay, 'Mon');
+      expect(status.displayText, 'Closed, opens Mon 9:00 AM');
+    });
+
+    test('overnight shop open at 1 AM the day after: Fri 6 PM to 2 AM checked on Sat 1 AM', () {
+      final mech = createTestMechanic(
+        openDays: [5], // Friday only
+        openMinutes: 1080, // 6:00 PM
+        closeMinutes: 120, // 2:00 AM
+      );
+      // 2026-10-17 is Saturday
+      final now = DateTime(2026, 10, 17, 1, 0);
+      final status = mechanicOpenStatus(mech, now);
+
+      expect(status.isOpen, isTrue);
+      expect(status.closesAt, '2:00 AM');
+      expect(status.displayText, 'Open now, closes 2:00 AM');
+    });
+
+    test('24 hours: open every day checked on Wednesday afternoon', () {
+      final mech = createTestMechanic(
+        openDays: [1, 2, 3, 4, 5, 6, 7],
+        open24Hours: true,
+      );
+      // 2026-10-14 is Wednesday
+      final now = DateTime(2026, 10, 14, 15, 30);
+      final status = mechanicOpenStatus(mech, now);
+
+      expect(status.isOpen, isTrue);
+      expect(status.isOpen24Hours, isTrue);
+      expect(status.displayText, 'Open 24 hours');
+    });
+
+    test('not set: empty days or missing times when not 24h', () {
+      final emptyDaysMech = createTestMechanic(openDays: const []);
+      final missingTimesMech = createTestMechanic(
+        openDays: [1, 2, 3],
+        openMinutes: null,
+        closeMinutes: null,
+        open24Hours: false,
+      );
+      final now = DateTime(2026, 10, 13, 12, 0);
+
+      final status1 = mechanicOpenStatus(emptyDaysMech, now);
+      expect(status1.isNotSet, isTrue);
+      expect(status1.displayText, '');
+
+      final status2 = mechanicOpenStatus(missingTimesMech, now);
+      expect(status2.isNotSet, isTrue);
+      expect(status2.displayText, '');
+    });
+
+    test('boundary at exactly the opening minute: 9:00 AM is open', () {
+      final mech = createTestMechanic(
+        openDays: [1, 2, 3, 4, 5],
+        openMinutes: 540, // 9:00 AM
+        closeMinutes: 1020, // 5:00 PM
+      );
+      final now = DateTime(2026, 10, 13, 9, 0);
+      final status = mechanicOpenStatus(mech, now);
+
+      expect(status.isOpen, isTrue);
+      expect(status.closesAt, '5:00 PM');
+    });
+
+    test('boundary at exactly the closing minute: 5:00 PM is closed', () {
+      final mech = createTestMechanic(
+        openDays: [1, 2, 3, 4, 5],
+        openMinutes: 540, // 9:00 AM
+        closeMinutes: 1020, // 5:00 PM
+      );
+      final now = DateTime(2026, 10, 13, 17, 0);
+      final status = mechanicOpenStatus(mech, now);
+
+      expect(status.isClosed, isTrue);
+      expect(status.opensAt, '9:00 AM');
+      expect(status.opensDay, 'Wed');
+    });
+
+    test('persistence round trip with opening hours', () async {
+      await store.markFirstRunCompleted();
+
+      final mechWithHours = createTestMechanic(
+        openDays: [1, 2, 3, 4, 5, 6],
+        openMinutes: 480, // 8:00 AM
+        closeMinutes: 1200, // 8:00 PM
+        open24Hours: false,
+      );
+
+      MechanicController.instance.addMechanic(mechWithHours);
+      await MechanicController.instance.flush();
+
+      // Clear controller in memory
+      MechanicController.instance.resetForTesting();
+      expect(MechanicController.instance.mechanics.isEmpty, isTrue);
+
+      // Reload controller from LocalStore
+      await MechanicController.instance.load(store);
+
+      expect(MechanicController.instance.mechanics.length, 1);
+      final loaded = MechanicController.instance.mechanics.first;
+      expect(loaded.openDays, [1, 2, 3, 4, 5, 6]);
+      expect(loaded.openMinutes, 480);
+      expect(loaded.closeMinutes, 1200);
+      expect(loaded.open24Hours, isFalse);
+    });
+
+    test('old JSON without opening hours fields loads properly with hours not set', () async {
+      await store.markFirstRunCompleted();
+
+      final legacyJson = [
+        {
+          'id': 'legacy-no-hours',
+          'name': 'Heritage Trail Workshop',
+          'distance': '2.0 km away',
+          'durationOrLocation': 'Heritage Trail',
+          'badgeType': 'verified',
+          'badgeLabel': 'Verified Shop',
+          'beaconStatus': 'Active',
+          'beaconColor': 0xFF2E7D32,
+          'categoryTitle1': 'SERVICES',
+          'tags1': ['General Repair'],
+          'categoryTitle2': 'LOCATION',
+          'tags2': ['Trail'],
+          'rating': 4.6,
+          'reviewCount': 12,
+          'openStatus': '',
+          'phone': '+92 300 0000000',
+          // Notice NO openDays, openMinutes, closeMinutes, open24Hours
+        }
+      ];
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(LocalStore.keyMechanics, jsonEncode(legacyJson));
+
+      await MechanicController.instance.load(store);
+
+      expect(MechanicController.instance.mechanics.length, 1);
+      final loaded = MechanicController.instance.mechanics.first;
+      expect(loaded.openDays, isEmpty);
+      expect(loaded.openMinutes, isNull);
+      expect(loaded.closeMinutes, isNull);
+      expect(loaded.open24Hours, isFalse);
+
+      final status = mechanicOpenStatus(loaded, DateTime.now());
+      expect(status.isNotSet, isTrue);
+      expect(status.displayText, '');
     });
   });
 }

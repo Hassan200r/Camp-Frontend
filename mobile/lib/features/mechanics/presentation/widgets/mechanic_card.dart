@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../domain/mechanic_model.dart';
+import '../../domain/mechanic_open_status.dart';
 
 class MechanicCard extends StatelessWidget {
   const MechanicCard({
@@ -35,6 +36,7 @@ class MechanicCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final status = mechanicOpenStatus(mechanic, DateTime.now());
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -96,35 +98,45 @@ class MechanicCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (!_isUserAdded && mechanic.beaconStatus.isNotEmpty) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: mechanic.beaconColor,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              mechanic.beaconStatus,
-                              style: AppTextStyles.caption.copyWith(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w700,
-                                color: mechanic.beaconColor,
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                       const SizedBox(height: 6),
 
-                      // Badge: "Added by you" tag for user-added; Verified badge for sample data
-                      if (_isUserAdded)
-                        _buildAddedByYouTag()
-                      else if (mechanic.badgeLabel.isNotEmpty)
-                        _buildBadge(),
+                      // Badge & Beacon Status (Wrap prevents overflow on narrow screens)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (_isUserAdded)
+                            _buildAddedByYouTag()
+                          else if (mechanic.badgeLabel.isNotEmpty)
+                            _buildBadge(),
+                          if (!_isUserAdded && mechanic.beaconStatus.isNotEmpty)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: mechanic.beaconColor,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  mechanic.beaconStatus,
+                                  style: AppTextStyles.caption.copyWith(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: mechanic.beaconColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -184,77 +196,101 @@ class MechanicCard extends StatelessWidget {
             // Rating & Open Status (Honest Badges: Show only for sample data or when real values exist)
             if (!_isUserAdded) ...[
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(
-                    Icons.star_rounded,
-                    size: 18,
-                    color: AppColors.statusYellow,
-                  ),
-                  const SizedBox(width: 4),
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '${mechanic.rating} ',
-                          style: AppTextStyles.body.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        TextSpan(
-                          text: '(${mechanic.reviewCount} reviews)',
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.mutedLight,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.statusGreen,
-                        ),
+                      const Icon(
+                        Icons.star_rounded,
+                        size: 18,
+                        color: AppColors.statusYellow,
                       ),
-                      const SizedBox(width: 5),
-                      Text(
-                        mechanic.openStatus,
-                        style: AppTextStyles.caption.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.statusGreen,
+                      const SizedBox(width: 4),
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: '${mechanic.rating} ',
+                              style: AppTextStyles.body.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            TextSpan(
+                              text: '(${mechanic.reviewCount} reviews)',
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.mutedLight,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
+                  if (!status.isNotSet) ...[
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: status.isOpen
+                                  ? AppColors.statusGreen
+                                  : AppColors.mutedText,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              status.displayText,
+                              style: AppTextStyles.caption.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: status.isOpen
+                                    ? AppColors.statusGreen
+                                    : AppColors.mutedText,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 16),
-            ] else if (mechanic.openStatus.isNotEmpty &&
-                mechanic.openStatus != 'OPEN NOW' &&
-                mechanic.openStatus != 'OPEN') ...[
+            ] else if (!status.isNotSet) ...[
               // If real custom hours are set on user-added shop
               Row(
                 children: [
                   Container(
                     width: 7,
                     height: 7,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.statusGreen,
+                      color: status.isOpen
+                          ? AppColors.statusGreen
+                          : AppColors.mutedText,
                     ),
                   ),
                   const SizedBox(width: 5),
-                  Text(
-                    mechanic.openStatus,
-                    style: AppTextStyles.caption.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.statusGreen,
+                  Expanded(
+                    child: Text(
+                      status.displayText,
+                      style: AppTextStyles.caption.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: status.isOpen
+                            ? AppColors.statusGreen
+                            : AppColors.mutedText,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -286,13 +322,15 @@ class MechanicCard extends StatelessWidget {
                       label: Text(
                         'Call Shop',
                         style: AppTextStyles.body.copyWith(
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: AppColors.darkCharcoal,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(22),
                         ),
@@ -306,7 +344,7 @@ class MechanicCard extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
 
                 // Route GPS Button
                 Expanded(
@@ -319,7 +357,7 @@ class MechanicCard extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: onRouteGps,
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(22),
                         ),
@@ -328,19 +366,24 @@ class MechanicCard extends StatelessWidget {
                       ),
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
                             Icons.keyboard_double_arrow_right_rounded,
-                            size: 18,
+                            size: 16,
                             color: Colors.white,
                           ),
-                          SizedBox(width: 6),
-                          Text(
-                            'Route GPS',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                          SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              'Route GPS',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -748,6 +791,74 @@ void showMechanicDetailSheet(
                 ),
                 const SizedBox(height: 10),
               ],
+
+              // Opening Hours
+              Builder(
+                builder: (context) {
+                  final scheduleText = formatMechanicSchedule(mechanic);
+                  final detailOpenStatus =
+                      mechanicOpenStatus(mechanic, DateTime.now());
+                  if (scheduleText == null) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10.0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.access_time_rounded,
+                          size: 16,
+                          color: AppColors.tacticalOrange,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                scheduleText,
+                                style: AppTextStyles.body.copyWith(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.darkCharcoal,
+                                ),
+                              ),
+                              if (!detailOpenStatus.isNotSet) ...[
+                                const SizedBox(height: 3),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: detailOpenStatus.isOpen
+                                            ? AppColors.statusGreen
+                                            : AppColors.mutedText,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      detailOpenStatus.displayText,
+                                      style: AppTextStyles.caption.copyWith(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: detailOpenStatus.isOpen
+                                            ? AppColors.statusGreen
+                                            : AppColors.mutedText,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
 
               if (mechanic.notes != null && mechanic.notes!.isNotEmpty) ...[
                 Text(

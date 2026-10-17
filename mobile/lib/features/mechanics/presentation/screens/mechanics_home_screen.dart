@@ -8,6 +8,7 @@ import '../../../../core/widgets/widgets.dart';
 import '../../../navigation/presentation/widgets/topographic_map_canvas.dart';
 import '../../controllers/mechanic_controller.dart';
 import '../../domain/mechanic_model.dart';
+import '../../domain/mechanic_open_status.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/filter_chips_widget.dart';
 import '../widgets/mechanic_card.dart';
@@ -21,7 +22,8 @@ class MechanicsHomeScreen extends StatefulWidget {
   State<MechanicsHomeScreen> createState() => _MechanicsHomeScreenState();
 }
 
-class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
+class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
+    with WidgetsBindingObserver {
   static const Color _mapDarkBg = Color(0xFF141210);
 
   static const LinearGradient _orangeGradient = LinearGradient(
@@ -77,9 +79,23 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      setState(() {});
+    }
   }
 
   void _navigateToAddMechanic() {
@@ -206,12 +222,27 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen> {
                 color: AppColors.tacticalOrange,
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Operating: ${mechanic.openStatus}',
-              style: AppTextStyles.caption.copyWith(
-                color: AppColors.mutedText,
-              ),
+            Builder(
+              builder: (context) {
+                final status = mechanicOpenStatus(mechanic, DateTime.now());
+                final scheduleText = formatMechanicSchedule(mechanic);
+                final text = !status.isNotSet
+                    ? status.displayText
+                    : (scheduleText ??
+                        (mechanic.openStatus.isNotEmpty
+                            ? mechanic.openStatus
+                            : null));
+                if (text == null || text.isEmpty) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    'Operating: $text',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.mutedText,
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),

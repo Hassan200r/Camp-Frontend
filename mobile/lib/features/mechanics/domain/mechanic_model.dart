@@ -27,6 +27,10 @@ class Mechanic {
     this.address,
     this.notes,
     this.photoPath,
+    this.openDays = const [],
+    this.openMinutes,
+    this.closeMinutes,
+    this.open24Hours = false,
   });
 
   factory Mechanic.fromJson(Map<String, dynamic> json) {
@@ -49,11 +53,18 @@ class Mechanic {
       tags2: (json['tags2'] as List?)?.cast<String>() ?? const [],
       rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
       reviewCount: (json['reviewCount'] as num?)?.toInt() ?? 1,
-      openStatus: json['openStatus'] as String? ?? 'OPEN NOW',
+      openStatus: json['openStatus'] as String? ?? '',
       phone: json['phone'] as String? ?? '',
       address: json['address'] as String?,
       notes: json['notes'] as String?,
       photoPath: (json['photoPath'] ?? json['photo']) as String?,
+      openDays: (json['openDays'] as List?)
+              ?.map((e) => (e as num).toInt())
+              .toList() ??
+          const [],
+      openMinutes: (json['openMinutes'] as num?)?.toInt(),
+      closeMinutes: (json['closeMinutes'] as num?)?.toInt(),
+      open24Hours: json['open24Hours'] as bool? ?? false,
     );
   }
 
@@ -76,6 +87,10 @@ class Mechanic {
   final String? address;
   final String? notes;
   final String? photoPath;
+  final List<int> openDays;
+  final int? openMinutes;
+  final int? closeMinutes;
+  final bool open24Hours;
 
   Mechanic copyWith({
     String? id,
@@ -97,6 +112,10 @@ class Mechanic {
     String? address,
     String? notes,
     String? photoPath,
+    List<int>? openDays,
+    int? openMinutes,
+    int? closeMinutes,
+    bool? open24Hours,
   }) {
     return Mechanic(
       id: id ?? this.id,
@@ -118,6 +137,10 @@ class Mechanic {
       address: address ?? this.address,
       notes: notes ?? this.notes,
       photoPath: photoPath ?? this.photoPath,
+      openDays: openDays ?? this.openDays,
+      openMinutes: openMinutes ?? this.openMinutes,
+      closeMinutes: closeMinutes ?? this.closeMinutes,
+      open24Hours: open24Hours ?? this.open24Hours,
     );
   }
 
@@ -141,6 +164,10 @@ class Mechanic {
         'address': address,
         'notes': notes,
         'photoPath': photoPath,
+        'openDays': openDays,
+        'openMinutes': openMinutes,
+        'closeMinutes': closeMinutes,
+        'open24Hours': open24Hours,
       };
 
   static List<Mechanic> get sampleMechanics => [
@@ -163,9 +190,13 @@ class Mechanic {
           ],
           rating: 4.9,
           reviewCount: 128,
-          openStatus: 'OPEN NOW (Closes 7:00 PM)',
+          openStatus: '',
           phone: '+1 (555) 482-9921',
           address: '42 Timberline Rd, Pass Junction',
+          openDays: [1, 2, 3, 4, 5, 6],
+          openMinutes: 480, // 8:00 AM
+          closeMinutes: 1140, // 7:00 PM
+          open24Hours: false,
         ),
         const Mechanic(
           id: '2',
@@ -190,9 +221,11 @@ class Mechanic {
           ],
           rating: 4.8,
           reviewCount: 89,
-          openStatus: 'OPEN NOW (Closes 9:00 PM)',
+          openStatus: '',
           phone: '+1 (555) 832-1049',
           address: 'Mile Marker 88, Babusar Valley',
+          openDays: [1, 2, 3, 4, 5, 6, 7],
+          open24Hours: true,
         ),
         const Mechanic(
           id: '3',
@@ -213,9 +246,13 @@ class Mechanic {
           ],
           rating: 4.95,
           reviewCount: 204,
-          openStatus: 'OPEN NOW (Closes 6:30 PM)',
+          openStatus: '',
           phone: '+1 (555) 671-8842',
           address: '104 Alpine Loop Hwy',
+          openDays: [1, 2, 3, 4, 5],
+          openMinutes: 510, // 8:30 AM
+          closeMinutes: 1110, // 6:30 PM
+          open24Hours: false,
         ),
       ];
 }
