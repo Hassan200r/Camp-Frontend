@@ -78,6 +78,23 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
     final litersAdded = (_tankCapacity - (widget.bike.fuelRemainingLiters ?? 0.0))
         .clamp(0.0, _tankCapacity);
 
+    void addFuelExpense() {
+      final fuelPrice = SettingsController.instance.fuelPricePerLiter;
+      if (fuelPrice != null && litersAdded > 0) {
+        TripBudgetController.instance.addExpense(
+          Expense(
+            id: 'exp-fuel-${DateTime.now().millisecondsSinceEpoch}',
+            title: 'Fuel Refill (${litersAdded.toStringAsFixed(1)} L)',
+            amount: double.parse((litersAdded * fuelPrice).toStringAsFixed(2)),
+            category: ExpenseCategory.fuel,
+            dateRecorded: DateTime.now(),
+            trackingMode: ExpenseTrackingMode.manualEntry,
+            subtitle: '${widget.bike.make} ${widget.bike.modelName}',
+          ),
+        );
+      }
+    }
+
     // Full-to-full learning check
     if (prevFullOdo != null && litersAdded > 0.5) {
       final distanceTraveled = currentOdo - prevFullOdo;
@@ -104,6 +121,7 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
             );
             ActiveBikeController.instance.updateBike(updated);
             FuelTrackerService.instance.resetLowFuelFlag();
+            addFuelExpense();
             if (mounted) Navigator.of(context).pop();
             return;
           }
@@ -119,21 +137,7 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
     );
     ActiveBikeController.instance.updateBike(updated);
     FuelTrackerService.instance.resetLowFuelFlag();
-
-    final fuelPrice = SettingsController.instance.fuelPricePerLiter;
-    if (fuelPrice != null && litersAdded > 0) {
-      TripBudgetController.instance.addExpense(
-        Expense(
-          id: 'exp-fuel-${DateTime.now().millisecondsSinceEpoch}',
-          title: 'Fuel Refill (${litersAdded.toStringAsFixed(1)} L)',
-          amount: double.parse((litersAdded * fuelPrice).toStringAsFixed(2)),
-          category: ExpenseCategory.fuel,
-          dateRecorded: DateTime.now(),
-          trackingMode: ExpenseTrackingMode.manualEntry,
-          subtitle: '${widget.bike.make} ${widget.bike.modelName}',
-        ),
-      );
-    }
+    addFuelExpense();
 
     if (mounted) Navigator.of(context).pop();
   }
@@ -426,7 +430,7 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
               child: Column(
                 children: [
                   Text(
-                    '${_liters.toStringAsFixed(1)} / ${_tankCapacity.toStringAsFixed(0)} L (est.)',
+                    '${_liters.toStringAsFixed(1)} / ${_tankCapacity.toStringAsFixed(0)} L',
                     style: GoogleFonts.manrope(
                       fontSize: 28,
                       fontWeight: FontWeight.w900,

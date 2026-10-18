@@ -93,11 +93,11 @@ void main() {
     expect(find.text('Fork Seals & Dust Boots'), findsOneWidget);
     expect(find.text('+ Add Maintenance Item'), findsOneWidget);
 
-    // Verify reports & pitstop
+    // Verify reports & service visit
     expect(find.text('Download Budget Report (PDF)'), findsOneWidget);
     expect(find.text('Download Maintenance Report (PDF)'), findsOneWidget);
-    expect(find.text('UPCOMING PITSTOP'), findsOneWidget);
-    expect(find.text('Oct 18, 10:00 AM'), findsOneWidget);
+    expect(find.text('NEXT SERVICE VISIT'), findsOneWidget);
+    expect(find.text('No service visit planned'), findsOneWidget);
   });
 
   testWidgets('AddExpenseScreen renders clean form at 360px',

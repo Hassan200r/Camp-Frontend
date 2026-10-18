@@ -63,6 +63,43 @@ class TripBudgetController extends ChangeNotifier {
     save();
   }
 
+  /// Update an existing expense in the ledger.
+  void updateExpense(Expense expense) {
+    final index = _expenses.indexWhere((e) => e.id == expense.id);
+    if (index != -1) {
+      _expenses[index] = expense;
+      _budget = _budget.copyWith(
+        allocatedSoFar: _expenses.fold<double>(0.0, (s, e) => s + e.amount),
+      );
+      notifyListeners();
+      save();
+    }
+  }
+
+  /// Remove an expense from the ledger by ID.
+  void deleteExpense(String id) {
+    final index = _expenses.indexWhere((e) => e.id == id);
+    if (index != -1) {
+      _expenses.removeAt(index);
+      _budget = _budget.copyWith(
+        allocatedSoFar: _expenses.fold<double>(0.0, (s, e) => s + e.amount),
+      );
+      notifyListeners();
+      save();
+    }
+  }
+
+  /// Insert an expense at a specific index (e.g. for Undo operations).
+  void insertExpense(int index, Expense expense) {
+    final safeIndex = index.clamp(0, _expenses.length);
+    _expenses.insert(safeIndex, expense);
+    _budget = _budget.copyWith(
+      allocatedSoFar: _expenses.fold<double>(0.0, (s, e) => s + e.amount),
+    );
+    notifyListeners();
+    save();
+  }
+
   /// Remove/delete the current trip and clear expenses ledger.
   void deleteTrip() {
     _budget = const TripBudget(

@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/widgets/camp_app_bar.dart';
 import '../../../bike_scan/presentation/screens/bike_details_screen.dart';
 import '../../../dashboard/controllers/profile_controller.dart';
 import '../../../garage/controllers/active_bike_controller.dart';
@@ -150,26 +151,9 @@ class _EmergencyQrScreenState extends State<EmergencyQrScreen> {
 
         return Scaffold(
           backgroundColor: AppColors.clay,
-          appBar: AppBar(
-            backgroundColor: AppColors.clay,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: AppColors.darkCharcoal,
-                size: 20,
-              ),
-              onPressed: () => Navigator.of(context).maybePop(),
-            ),
-            title: Text(
-              'Emergency QR',
-              style: GoogleFonts.manrope(
-                color: AppColors.darkCharcoal,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            centerTitle: true,
+          appBar: const CampAppBar(
+            leading: CampAppBarLeading.back,
+            titleText: 'Emergency QR',
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),

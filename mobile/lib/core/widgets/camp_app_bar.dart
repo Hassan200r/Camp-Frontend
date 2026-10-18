@@ -78,36 +78,47 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: padding,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // ── Left: Circular Back / Menu Button ─────────────────────────────
-          _buildLeading(context),
+    return SafeArea(
+      bottom: false,
+      child: SizedBox(
+        height: 60,
+        child: Padding(
+          padding: padding,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // ── Left: Circular Back / Menu Button ─────────────────────────────
+              _buildLeading(context),
 
-          // ── Center: Custom Widget, Title or CAMP Dot Logo ────────────────
-          if (titleWidget != null)
-            titleWidget!
-          else if (titleText != null && titleText != 'CAMP')
-            Text(
-              titleText!,
-              style: GoogleFonts.manrope(
-                color: AppColors.darkCharcoal,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
+              // ── Center: Custom Widget, Title or CAMP Dot Logo ────────────────
+              if (titleWidget != null)
+                Flexible(child: Center(child: titleWidget!))
+              else if (titleText != null && titleText != 'CAMP')
+                Flexible(
+                  child: Text(
+                    titleText!,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.manrope(
+                      color: AppColors.darkCharcoal,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                )
+              else
+                const CampLogo(),
+
+              // ── Right: Optional Action Pill or Widget ─────────────────────────
+              Flexible(
+                child: _buildAction(),
               ),
-            )
-          else
-            const CampLogo(),
-
-          // ── Right: Optional Action Pill or Widget ─────────────────────────
-          Flexible(
-            child: _buildAction(),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

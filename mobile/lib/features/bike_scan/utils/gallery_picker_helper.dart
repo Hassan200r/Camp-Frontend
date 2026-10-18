@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/image_storage_helper.dart';
 import '../presentation/screens/bike_scan_screen.dart';
 
 /// Helper utility for picking bike photos from the device gallery
@@ -52,9 +53,12 @@ class GalleryPickerHelper {
 
     if (image == null || !context.mounted) return;
 
+    final savedPath = await persistBikePhoto(image.path);
+    if (!context.mounted) return;
+
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => BikeScanScreen(imagePath: image.path),
+        builder: (context) => BikeScanScreen(imagePath: savedPath),
       ),
     );
   }

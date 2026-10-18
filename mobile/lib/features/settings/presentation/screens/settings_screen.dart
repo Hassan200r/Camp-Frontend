@@ -910,39 +910,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: AppColors.clay,
         body: Stack(
           children: [
-            // ── Scrollable Body Content ─────────────────────────────────────
+            // ── Scrollable Body Content with Fixed Header ──────────────────
             SafeArea(
               bottom: false,
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(
-                  AppColors.screenPadding,
-                  8.0,
-                  AppColors.screenPadding,
-                  _kScrollBottomPadding,
-                ),
-                child: ListenableBuilder(
-                  listenable: settings,
-                  builder: (context, _) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // 1. Header Bar: CampAppBar
-                        CampAppBar(
-                          leading: CampAppBarLeading.back,
-                          actionText: 'SETTINGS',
-                          onLeadingPressed: () {
-                            if (Navigator.of(context).canPop()) {
-                              Navigator.of(context).pop();
-                            } else {
-                              Navigator.of(context).pushReplacementNamed('/');
-                            }
-                          },
-                        ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppColors.screenPadding),
+                    child: CampAppBar(
+                      leading: CampAppBarLeading.back,
+                      actionText: 'SETTINGS',
+                      onLeadingPressed: () {
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                        } else {
+                          Navigator.of(context).pushReplacementNamed('/');
+                        }
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(
+                        AppColors.screenPadding,
+                        8.0,
+                        AppColors.screenPadding,
+                        _kScrollBottomPadding,
+                      ),
+                      child: ListenableBuilder(
+                        listenable: settings,
+                        builder: (context, _) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const SizedBox(height: 8),
 
-                        const SizedBox(height: 16),
-
-                        // 2. Hero Row (Compact rider summary card)
+                              // 2. Hero Row (Compact rider summary card)
                         _buildHeroRow(),
 
                         const SizedBox(height: AppColors.cardGap),
@@ -988,6 +992,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
 
             // ── Floating Bottom Dock (No tab active) ─────────────────────────
             const Positioned(

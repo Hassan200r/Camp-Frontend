@@ -13,6 +13,8 @@ import 'profile_repository.dart';
 import 'profile_repository_local.dart';
 import 'ride_report_repository.dart';
 import 'ride_report_repository_local.dart';
+import 'service_visit_repository.dart';
+import 'service_visit_repository_local.dart';
 import 'settings_repository.dart';
 import 'settings_repository_local.dart';
 
@@ -28,6 +30,7 @@ class AppRepositories {
     MaintenanceRepository? maintenanceRepository,
     FinanceRepository? financeRepository,
     PlaceRepository? placeRepository,
+    ServiceVisitRepository? serviceVisitRepository,
   })  : profileRepository = profileRepository ?? ProfileRepositoryLocal(),
         bikeRepository = bikeRepository ?? BikeRepositoryLocal(),
         mechanicRepository = mechanicRepository ?? MechanicRepositoryLocal(),
@@ -35,7 +38,8 @@ class AppRepositories {
         settingsRepository = settingsRepository ?? SettingsRepositoryLocal(),
         maintenanceRepository = maintenanceRepository ?? MaintenanceRepositoryLocal(),
         financeRepository = financeRepository ?? FinanceRepositoryLocal(),
-        placeRepository = placeRepository ?? PlaceRepositoryLocal();
+        placeRepository = placeRepository ?? PlaceRepositoryLocal(),
+        serviceVisitRepository = serviceVisitRepository ?? ServiceVisitRepositoryLocal();
 
   static AppRepositories instance = AppRepositories();
 
@@ -47,6 +51,7 @@ class AppRepositories {
   final MaintenanceRepository maintenanceRepository;
   final FinanceRepository financeRepository;
   final PlaceRepository placeRepository;
+  final ServiceVisitRepository serviceVisitRepository;
 
   /// Initialize persistent storage backing the repositories.
   Future<void> init() async {

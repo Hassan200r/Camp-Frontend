@@ -8,9 +8,11 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/maintenance_item_model.dart';
 
-/// Screen to log or register a new motorcycle maintenance inspection item
+/// Screen to log or edit a motorcycle maintenance inspection item
 class AddMaintenanceItemScreen extends StatefulWidget {
-  const AddMaintenanceItemScreen({super.key});
+  const AddMaintenanceItemScreen({super.key, this.initialItem});
+
+  final MaintenanceItem? initialItem;
 
   @override
   State<AddMaintenanceItemScreen> createState() =>
@@ -38,6 +40,31 @@ class _AddMaintenanceItemScreenState extends State<AddMaintenanceItemScreen> {
   MaintenanceStatus _selectedStatus = MaintenanceStatus.dueSoon;
   int _dueTypeIndex = 0; // 0=By Mileage, 1=By Date
   int _trackingModeIndex = 1; // 0=Auto Telemetry, 1=Manual Entry (default: Manual)
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialItem != null) {
+      final item = widget.initialItem!;
+      _nameCtrl.text = item.name;
+      _selectedCategory = item.category;
+      _selectedStatus = item.status;
+      _trackingModeIndex =
+          item.trackingMode == MaintenanceTrackingMode.auto ? 0 : 1;
+      if (item.dueMileage != null && item.dueMileage!.isNotEmpty) {
+        _dueTypeIndex = 0;
+        _dueValueCtrl.text = item.dueMileage!;
+      } else if (item.dueDate != null && item.dueDate!.isNotEmpty) {
+        _dueTypeIndex = 1;
+        _dueValueCtrl.text = item.dueDate!;
+      }
+      _notesCtrl.text = item.notes ?? '';
+      if (item.cost != null) {
+        _costCtrl.text = item.cost!.toStringAsFixed(0);
+      }
+      _mechanicCtrl.text = item.mechanicName ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -69,33 +96,61 @@ class _AddMaintenanceItemScreenState extends State<AddMaintenanceItemScreen> {
         ? 'OK'
         : (parsedCost != null && parsedCost > 0 ? formatPkr(parsedCost) : null);
 
-    final newItem = MaintenanceItem(
-      id: 'maint-${DateTime.now().millisecondsSinceEpoch}',
-      name: name,
-      category: _selectedCategory,
-      status: _selectedStatus,
-      trackingMode: _trackingModeIndex == 0
-          ? MaintenanceTrackingMode.auto
-          : MaintenanceTrackingMode.manual,
-      dueMileage: _dueTypeIndex == 0 ? _dueValueCtrl.text.trim() : null,
-      dueDate: _dueTypeIndex == 1 ? _dueValueCtrl.text.trim() : null,
-      notes: _notesCtrl.text.trim(),
-      cost: parsedCost,
-      mechanicName: mechanicName,
-      actionLabel: _selectedStatus == MaintenanceStatus.ok ? null : 'View Guide',
-      statusValueDisplay: statusDisplay,
-      subtitle: _notesCtrl.text.trim().isNotEmpty
-          ? _notesCtrl.text.trim()
-          : (mechanicName != null ? 'Serviced by $mechanicName' : null),
-      conditionNote: _selectedStatus == MaintenanceStatus.ok
-          ? 'Good • Ready for trail'
-          : (_dueValueCtrl.text.trim().isNotEmpty
-              ? 'Due soon • ${_dueValueCtrl.text.trim()}'
-              : 'Maintenance due'),
-      icon: _getCategoryIcon(_selectedCategory),
-    );
+    final item = widget.initialItem != null
+        ? widget.initialItem!.copyWith(
+            name: name,
+            category: _selectedCategory,
+            status: _selectedStatus,
+            trackingMode: _trackingModeIndex == 0
+                ? MaintenanceTrackingMode.auto
+                : MaintenanceTrackingMode.manual,
+            dueMileage: _dueTypeIndex == 0 ? _dueValueCtrl.text.trim() : null,
+            dueDate: _dueTypeIndex == 1 ? _dueValueCtrl.text.trim() : null,
+            notes: _notesCtrl.text.trim(),
+            cost: parsedCost,
+            mechanicName: mechanicName,
+            actionLabel:
+                _selectedStatus == MaintenanceStatus.ok ? null : 'View Guide',
+            statusValueDisplay: statusDisplay,
+            subtitle: _notesCtrl.text.trim().isNotEmpty
+                ? _notesCtrl.text.trim()
+                : (mechanicName != null ? 'Serviced by $mechanicName' : null),
+            conditionNote: _selectedStatus == MaintenanceStatus.ok
+                ? 'Good • Ready for trail'
+                : (_dueValueCtrl.text.trim().isNotEmpty
+                    ? 'Due soon • ${_dueValueCtrl.text.trim()}'
+                    : 'Maintenance due'),
+            icon: _getCategoryIcon(_selectedCategory),
+            updatedAt: DateTime.now().toUtc(),
+          )
+        : MaintenanceItem(
+            id: 'maint-${DateTime.now().millisecondsSinceEpoch}',
+            name: name,
+            category: _selectedCategory,
+            status: _selectedStatus,
+            trackingMode: _trackingModeIndex == 0
+                ? MaintenanceTrackingMode.auto
+                : MaintenanceTrackingMode.manual,
+            dueMileage: _dueTypeIndex == 0 ? _dueValueCtrl.text.trim() : null,
+            dueDate: _dueTypeIndex == 1 ? _dueValueCtrl.text.trim() : null,
+            notes: _notesCtrl.text.trim(),
+            cost: parsedCost,
+            mechanicName: mechanicName,
+            actionLabel:
+                _selectedStatus == MaintenanceStatus.ok ? null : 'View Guide',
+            statusValueDisplay: statusDisplay,
+            subtitle: _notesCtrl.text.trim().isNotEmpty
+                ? _notesCtrl.text.trim()
+                : (mechanicName != null ? 'Serviced by $mechanicName' : null),
+            conditionNote: _selectedStatus == MaintenanceStatus.ok
+                ? 'Good • Ready for trail'
+                : (_dueValueCtrl.text.trim().isNotEmpty
+                    ? 'Due soon • ${_dueValueCtrl.text.trim()}'
+                    : 'Maintenance due'),
+            icon: _getCategoryIcon(_selectedCategory),
+          );
 
-    Navigator.of(context).pop(newItem);
+    Navigator.of(context).pop(item);
   }
 
   IconData _getCategoryIcon(String cat) {

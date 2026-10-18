@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/image_storage_helper.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../controllers/bike_onboarding_controller.dart';
 import '../../domain/bike_recognition_provider.dart';
@@ -294,12 +295,13 @@ class _BikeScanScreenState extends State<BikeScanScreen>
     try {
       final xFile = await c.takePicture();
       if (!mounted) return;
+      final savedPath = await persistBikePhoto(xFile.path);
       setState(() {
-        _capturedImagePath = xFile.path;
+        _capturedImagePath = savedPath;
         _bannerState = _BannerState.none;
         _recognitionResult = null;
       });
-      await _runRecognition(File(xFile.path));
+      await _runRecognition(File(savedPath));
     } catch (_) {
       // Ignore capture errors silently.
     }
@@ -339,13 +341,14 @@ class _BikeScanScreenState extends State<BikeScanScreen>
       },
     );
     if (image == null || !mounted) return;
+    final savedPath = await persistBikePhoto(image.path);
     setState(() {
-      _capturedImagePath = image.path;
+      _capturedImagePath = savedPath;
       _bannerState = _BannerState.none;
       _recognitionResult = null;
       _debugOverrideBanner = null;
     });
-    await _runRecognition(File(image.path));
+    await _runRecognition(File(savedPath));
   }
 
   // ── Recognition ───────────────────────────────────────────────────────────

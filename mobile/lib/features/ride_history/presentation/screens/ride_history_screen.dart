@@ -5,6 +5,7 @@ import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../maintenance/controllers/post_ride_report_controller.dart';
+import '../../../maintenance/domain/post_ride_report.dart';
 import '../../domain/expedition_log_model.dart';
 import '../widgets/expedition_card_widget.dart';
 import '../widgets/latest_expedition_card_widget.dart';
@@ -97,6 +98,24 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
 
                           // 4. Latest expedition hero card
                           LatestExpeditionCardWidget(
+                            report: reports.isNotEmpty
+                                ? reports.first
+                                : (showSamples
+                                    ? PostRideReport(
+                                        id: 'demo-latest',
+                                        bikeId: 'demo-bike',
+                                        date: DateTime.now()
+                                            .subtract(const Duration(days: 1)),
+                                        distanceKm: 286.4,
+                                        terrainTags: const [
+                                          'Babusar Pass Summit',
+                                          'Alpine Ridge'
+                                        ],
+                                        notes:
+                                            'Babusar Pass Summit & Alpine Ridge',
+                                      )
+                                    : null),
+                            isDemo: showSamples && reports.isEmpty,
                             onMenuActionSelected: (_) {},
                           ),
 

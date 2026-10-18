@@ -297,24 +297,27 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
         backgroundColor: AppColors.clay,
         body: Stack(
           children: [
-            // ── Scrollable Body Content ─────────────────────────────────────
+            // ── Body Content with Fixed Header ─────────────────────────────
             SafeArea(
               bottom: false,
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(
-                  AppColors.screenPadding,
-                  8.0,
-                  AppColors.screenPadding,
-                  120.0,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // 1. Top Header Bar
-                    _buildTopAppBar(),
-
-                    const SizedBox(height: 18),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppColors.screenPadding),
+                    child: _buildTopAppBar(),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(
+                        AppColors.screenPadding,
+                        8.0,
+                        AppColors.screenPadding,
+                        120.0,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
 
                     // 2. Auto-filled banner (only when coming from photo scan)
                     if (widget.prefilled && _autoFilledFields.isNotEmpty)
@@ -431,6 +434,9 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
 
             // ── Floating Bottom Dock (Index 1: Bike Scan Active) ─────────────
             const Positioned(

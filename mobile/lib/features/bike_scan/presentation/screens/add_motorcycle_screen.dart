@@ -145,26 +145,29 @@ class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
               // ── Scrollable Body Content ─────────────────────────────────────
               SafeArea(
                 bottom: false,
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(
-                    AppColors.screenPadding,
-                    8.0,
-                    AppColors.screenPadding,
-                    120.0,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // 1. Top Header Bar (Back Button, CAMP Logo with Dot, ADD BIKE Pill)
-                      const CampAppBar(
+                child: Column(
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: AppColors.screenPadding),
+                      child: CampAppBar(
                         leading: CampAppBarLeading.back,
                         titleWidget: CampLogo(showIcon: false),
                         actionText: 'ADD BIKE',
                         padding: EdgeInsets.zero,
                       ),
-
-                      const SizedBox(height: 24),
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(
+                          AppColors.screenPadding,
+                          16.0,
+                          AppColors.screenPadding,
+                          120.0,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
 
                       // 2. Title & Subtitle
                       Text(
@@ -200,6 +203,9 @@ class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
                   ),
                 ),
               ),
+            ],
+          ),
+        ),
 
               // ── Floating Bottom Dock (Index 1: Bike Scan Active) ─────────────
               const Positioned(

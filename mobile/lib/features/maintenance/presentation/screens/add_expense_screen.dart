@@ -9,9 +9,11 @@ import '../../../../core/widgets/widgets.dart';
 import '../../../garage/controllers/active_bike_controller.dart';
 import '../../domain/expense_model.dart';
 
-/// Screen for recording a new expedition trip expense
+/// Screen for recording or editing an expedition trip expense
 class AddExpenseScreen extends StatefulWidget {
-  const AddExpenseScreen({super.key});
+  const AddExpenseScreen({super.key, this.initialExpense});
+
+  final Expense? initialExpense;
 
   @override
   State<AddExpenseScreen> createState() => _AddExpenseScreenState();
@@ -23,7 +25,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   String _selectedCategory = '🛢 Fuel';
   int _trackingModeIndex = 1; // 0=Auto-track, 1=Manual entry (manual default)
-  final DateTime _expenseDate = DateTime.now();
+  DateTime _expenseDate = DateTime.now();
   late String _dateRecorded;
   String? _selectedBikeId;
 
@@ -40,7 +42,19 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   @override
   void initState() {
     super.initState();
-    _dateRecorded = _formatDate(_expenseDate);
+    if (widget.initialExpense != null) {
+      final exp = widget.initialExpense!;
+      _amountCtrl.text = exp.amount.toStringAsFixed(0);
+      _noteLocationCtrl.text = exp.subtitle ?? exp.note ?? '';
+      _selectedCategory = exp.category.chipLabel;
+      _trackingModeIndex =
+          exp.trackingMode == ExpenseTrackingMode.autoTrack ? 0 : 1;
+      _expenseDate = exp.dateRecorded ?? exp.createdAt ?? DateTime.now();
+      _dateRecorded =
+          exp.formattedDate ?? _formatDate(_expenseDate);
+    } else {
+      _dateRecorded = _formatDate(_expenseDate);
+    }
     _selectedBikeId = ActiveBikeController.instance.activeBikeId;
   }
 
@@ -88,22 +102,37 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       category = ExpenseCategory.other;
     }
 
-    final newExpense = Expense(
-      id: 'exp-${DateTime.now().millisecondsSinceEpoch}',
-      category: category,
-      title: '${category.displayName} Expense',
-      subtitle: _noteLocationCtrl.text.trim().isNotEmpty
-          ? _noteLocationCtrl.text.trim()
-          : null,
-      amount: amount,
-      trackingMode: _trackingModeIndex == 0
-          ? ExpenseTrackingMode.autoTrack
-          : ExpenseTrackingMode.manualEntry,
-      formattedDate: _dateRecorded,
-      dateRecorded: _expenseDate,
-    );
+    final expense = widget.initialExpense != null
+        ? widget.initialExpense!.copyWith(
+            category: category,
+            title: '${category.displayName} Expense',
+            subtitle: _noteLocationCtrl.text.trim().isNotEmpty
+                ? _noteLocationCtrl.text.trim()
+                : null,
+            amount: amount,
+            trackingMode: _trackingModeIndex == 0
+                ? ExpenseTrackingMode.autoTrack
+                : ExpenseTrackingMode.manualEntry,
+            formattedDate: _dateRecorded,
+            dateRecorded: _expenseDate,
+            updatedAt: DateTime.now().toUtc(),
+          )
+        : Expense(
+            id: 'exp-${DateTime.now().millisecondsSinceEpoch}',
+            category: category,
+            title: '${category.displayName} Expense',
+            subtitle: _noteLocationCtrl.text.trim().isNotEmpty
+                ? _noteLocationCtrl.text.trim()
+                : null,
+            amount: amount,
+            trackingMode: _trackingModeIndex == 0
+                ? ExpenseTrackingMode.autoTrack
+                : ExpenseTrackingMode.manualEntry,
+            formattedDate: _dateRecorded,
+            dateRecorded: _expenseDate,
+          );
 
-    Navigator.of(context).pop(newExpense);
+    Navigator.of(context).pop(expense);
   }
 
   Widget _buildOversizedAmountField() {

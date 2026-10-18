@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -233,23 +231,10 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
           child: Stack(
             alignment: Alignment.topRight,
             children: [
-              ClipRRect(
+              CampBikeImage(
+                imagePath: bike.imagePath,
+                fit: BoxFit.contain,
                 borderRadius: BorderRadius.circular(AppColors.radiusCard),
-                child: bike.imagePath != null
-                    ? (File(bike.imagePath!).existsSync()
-                        ? Image.file(
-                            File(bike.imagePath!),
-                            fit: BoxFit.contain,
-                          )
-                        : (bike.imagePath!.startsWith('assets/')
-                            ? Image.asset(
-                                bike.imagePath!,
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    _photoFallback(),
-                              )
-                            : _photoFallback()))
-                    : _photoFallback(),
               ),
               Positioned(
                 top: 12,
@@ -277,20 +262,6 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
     );
   }
 
-  Widget _photoFallback() {
-    return Container(
-      height: 240,
-      width: double.infinity,
-      color: AppColors.clayDark,
-      child: const Center(
-        child: Icon(
-          Icons.two_wheeler_rounded,
-          size: 72,
-          color: AppColors.mutedLight,
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -531,25 +502,13 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(AppColors.radiusTile),
-                child: Container(
+                child: SizedBox(
                   height: 180,
                   width: double.infinity,
-                  color: AppColors.clayDark,
-                  child: bike.imagePath != null
-                      ? (File(bike.imagePath!).existsSync()
-                          ? Image.file(
-                              File(bike.imagePath!),
-                              fit: BoxFit.cover,
-                            )
-                          : (bike.imagePath!.startsWith('assets/')
-                              ? Image.asset(
-                                  bike.imagePath!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      _photoFallback(),
-                                )
-                              : _photoFallback()))
-                      : _photoFallback(),
+                  child: CampBikeImage(
+                    imagePath: bike.imagePath,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               Positioned(

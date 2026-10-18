@@ -1,5 +1,6 @@
 import 'package:camp/features/ride_history/presentation/screens/ride_history_screen.dart';
 import 'package:camp/features/ride_history/presentation/widgets/expedition_card_widget.dart';
+import 'package:camp/features/ride_history/presentation/widgets/latest_expedition_card_widget.dart';
 import 'package:camp/features/ride_history/presentation/widgets/ride_filter_chips_widget.dart';
 import 'package:camp/features/ride_history/presentation/widgets/ride_history_header_row_widget.dart';
 import 'package:flutter/material.dart';
@@ -58,7 +59,13 @@ void main() {
 
       // Verify latest expedition card
       expect(find.text('LATEST EXPEDITION'), findsOneWidget);
-      expect(find.text('Babusar Pass Summit & Alpine Ridge'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(LatestExpeditionCardWidget),
+          matching: find.textContaining('Babusar Pass'),
+        ),
+        findsOneWidget,
+      );
       expect(find.byIcon(Icons.more_horiz_rounded), findsOneWidget);
 
       // Verify cards
