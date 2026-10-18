@@ -34,7 +34,7 @@ class RecentUpdatesFeedWidget extends StatelessWidget {
         ),
         title: Text('Group Beacon', style: AppTextStyles.cardTitle),
         content: Text(
-          'Coming in a future update',
+          'No nearby riders yet. Group beacon needs an online service (coming later).',
           style: AppTextStyles.body,
         ),
         actions: [
@@ -138,7 +138,8 @@ class RecentUpdatesFeedWidget extends StatelessWidget {
               iconColor: const Color(0xFF0D9488),
               title: 'Group Beacon',
               timeBadge: '',
-              description: 'Group Beacon: coming soon',
+              description:
+                  'No nearby riders yet. Group beacon needs an online service (coming later).',
               actionLabel: 'Locate',
               actionIcon: Icons.near_me_rounded,
               onAction: onLocateBeacon ?? () => _showComingSoonDialog(context),

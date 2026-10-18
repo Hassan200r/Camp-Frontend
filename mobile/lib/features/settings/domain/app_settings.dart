@@ -15,6 +15,7 @@ class AppSettings {
     this.cachedPacksSubtitle = 'Cascades & Alps Route Packs',
     this.localCacheSizeGb = 1.4,
     this.language = 'English',
+    this.emergencyNumber = '1122',
   })  : id = id ?? 'settings-default',
         createdAt = (createdAt ?? DateTime.now()).toUtc(),
         updatedAt = (updatedAt ?? DateTime.now()).toUtc();
@@ -44,6 +45,7 @@ class AppSettings {
           'Cascades & Alps Route Packs',
       localCacheSizeGb: (json['localCacheSizeGb'] as num?)?.toDouble() ?? 1.4,
       language: json['language'] as String? ?? 'English',
+      emergencyNumber: json['emergencyNumber'] as String? ?? '1122',
     );
   }
 
@@ -61,6 +63,7 @@ class AppSettings {
   final String cachedPacksSubtitle;
   final double localCacheSizeGb;
   final String language;
+  final String emergencyNumber;
 
   AppSettings copyWith({
     String? id,
@@ -73,6 +76,7 @@ class AppSettings {
     String? cachedPacksSubtitle,
     double? localCacheSizeGb,
     String? language,
+    String? emergencyNumber,
   }) {
     return AppSettings(
       id: id ?? this.id,
@@ -86,6 +90,7 @@ class AppSettings {
       cachedPacksSubtitle: cachedPacksSubtitle ?? this.cachedPacksSubtitle,
       localCacheSizeGb: localCacheSizeGb ?? this.localCacheSizeGb,
       language: language ?? this.language,
+      emergencyNumber: emergencyNumber ?? this.emergencyNumber,
     );
   }
 
@@ -100,6 +105,7 @@ class AppSettings {
         'cachedPacksSubtitle': cachedPacksSubtitle,
         'localCacheSizeGb': localCacheSizeGb,
         'language': language,
+        'emergencyNumber': emergencyNumber,
       };
 
   @override
@@ -114,7 +120,8 @@ class AppSettings {
           cachedPacksSizeGb == other.cachedPacksSizeGb &&
           cachedPacksSubtitle == other.cachedPacksSubtitle &&
           localCacheSizeGb == other.localCacheSizeGb &&
-          language == other.language;
+          language == other.language &&
+          emergencyNumber == other.emergencyNumber;
 
   @override
   int get hashCode => Object.hash(
@@ -126,5 +133,6 @@ class AppSettings {
         cachedPacksSubtitle,
         localCacheSizeGb,
         language,
+        emergencyNumber,
       );
 }

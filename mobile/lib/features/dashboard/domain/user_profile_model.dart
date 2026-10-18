@@ -21,11 +21,14 @@ class UserProfile {
     this.emergencyContactName,
     this.emergencyContactRelation,
     this.emergencyContactPhone,
-    this.bloodGroup = 'O+ (Universal Donor)',
+    String? bloodGroup,
+    this.allergies,
+    this.medicalNotes,
   })  : id = id ?? 'profile-default',
         createdAt = (createdAt ?? DateTime.now()).toUtc(),
         updatedAt = (updatedAt ?? DateTime.now()).toUtc(),
-        ridingStyles = ridingStyles ?? const {'Touring'};
+        ridingStyles = ridingStyles ?? const {'Touring'},
+        bloodGroup = normalizeBloodType(bloodGroup);
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     DateTime? parseUtc(dynamic val) {
@@ -60,8 +63,46 @@ class UserProfile {
       emergencyContactName: json['emergencyContactName'] as String?,
       emergencyContactRelation: json['emergencyContactRelation'] as String?,
       emergencyContactPhone: json['emergencyContactPhone'] as String?,
-      bloodGroup: json['bloodGroup'] as String? ?? 'O+ (Universal Donor)',
+      bloodGroup: json['bloodGroup'] as String?,
+      allergies: json['allergies'] as String?,
+      medicalNotes: (json['medicalNotes'] ?? json['medical_notes']) as String?,
     );
+  }
+
+  static const List<String> kNormalizedBloodTypes = [
+    'A+',
+    'A-',
+    'B+',
+    'B-',
+    'AB+',
+    'AB-',
+    'O+',
+    'O-',
+    'Unknown',
+  ];
+
+  /// Normalises blood type string to standard values (A+, A-, B+, B-, AB+, AB-, O+, O-, Unknown),
+  /// or returns empty string if raw input is null/empty.
+  static String normalizeBloodType(String? raw) {
+    if (raw == null) return '';
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return '';
+    if (trimmed.startsWith('A+')) return 'A+';
+    if (trimmed.startsWith('A-')) return 'A-';
+    if (trimmed.startsWith('B+')) return 'B+';
+    if (trimmed.startsWith('B-')) return 'B-';
+    if (trimmed.startsWith('AB+')) return 'AB+';
+    if (trimmed.startsWith('AB-')) return 'AB-';
+    if (trimmed.startsWith('O+')) return 'O+';
+    if (trimmed.startsWith('O-')) return 'O-';
+    if (trimmed.toLowerCase().contains('unknown') ||
+        trimmed.toLowerCase().contains('not tested')) {
+      return 'Unknown';
+    }
+    for (final b in kNormalizedBloodTypes) {
+      if (b.toLowerCase() == trimmed.toLowerCase()) return b;
+    }
+    return 'Unknown';
   }
 
   final String id;
@@ -88,6 +129,8 @@ class UserProfile {
   final String? emergencyContactRelation;
   final String? emergencyContactPhone;
   final String bloodGroup;
+  final String? allergies;
+  final String? medicalNotes;
 
   UserProfile copyWith({
     String? id,
@@ -108,6 +151,8 @@ class UserProfile {
     String? emergencyContactRelation,
     String? emergencyContactPhone,
     String? bloodGroup,
+    String? allergies,
+    String? medicalNotes,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -130,6 +175,8 @@ class UserProfile {
       emergencyContactPhone:
           emergencyContactPhone ?? this.emergencyContactPhone,
       bloodGroup: bloodGroup ?? this.bloodGroup,
+      allergies: allergies ?? this.allergies,
+      medicalNotes: medicalNotes ?? this.medicalNotes,
     );
   }
 
@@ -152,6 +199,8 @@ class UserProfile {
         'emergencyContactRelation': emergencyContactRelation,
         'emergencyContactPhone': emergencyContactPhone,
         'bloodGroup': bloodGroup,
+        'allergies': allergies,
+        'medicalNotes': medicalNotes,
       };
 
   @override
@@ -174,7 +223,9 @@ class UserProfile {
           emergencyContactName == other.emergencyContactName &&
           emergencyContactRelation == other.emergencyContactRelation &&
           emergencyContactPhone == other.emergencyContactPhone &&
-          bloodGroup == other.bloodGroup;
+          bloodGroup == other.bloodGroup &&
+          allergies == other.allergies &&
+          medicalNotes == other.medicalNotes;
 
   @override
   int get hashCode => Object.hash(
@@ -194,5 +245,7 @@ class UserProfile {
         emergencyContactRelation,
         emergencyContactPhone,
         bloodGroup,
+        allergies,
+        medicalNotes,
       );
 }

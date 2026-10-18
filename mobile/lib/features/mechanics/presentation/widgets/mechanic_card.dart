@@ -37,6 +37,7 @@ class MechanicCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = mechanicOpenStatus(mechanic, DateTime.now());
+    final hasPhone = (mechanic.phoneNumber ?? mechanic.phone).trim().isNotEmpty;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -302,49 +303,50 @@ class MechanicCard extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // Action Buttons: Call Shop & Route GPS
+            // Action Buttons: Call Now & Route GPS
             Row(
               children: [
-                // Call Shop Button
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(22),
-                      boxShadow: AppColors.skeuRaisedSmall,
-                    ),
-                    child: OutlinedButton.icon(
-                      onPressed: onCallShop,
-                      icon: const Icon(
-                        Icons.call_outlined,
-                        size: 16,
-                        color: AppColors.darkCharcoal,
+                if (hasPhone) ...[
+                  // Call Now Button
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: AppColors.skeuRaisedSmall,
                       ),
-                      label: Text(
-                        'Call Shop',
-                        style: AppTextStyles.body.copyWith(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                      child: OutlinedButton.icon(
+                        onPressed: onCallShop,
+                        icon: const Icon(
+                          Icons.call_outlined,
+                          size: 16,
                           color: AppColors.darkCharcoal,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(22),
+                        label: Text(
+                          'Call Now',
+                          style: AppTextStyles.body.copyWith(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.darkCharcoal,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        side: const BorderSide(
-                          color: AppColors.clayDark,
-                          width: 1.2,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                          side: const BorderSide(
+                            color: AppColors.clayDark,
+                            width: 1.2,
+                          ),
+                          backgroundColor: AppColors.clay,
                         ),
-                        backgroundColor: AppColors.clay,
                       ),
                     ),
                   ),
-                ),
-
-                const SizedBox(width: 10),
+                  const SizedBox(width: 10),
+                ],
 
                 // Route GPS Button
                 Expanded(

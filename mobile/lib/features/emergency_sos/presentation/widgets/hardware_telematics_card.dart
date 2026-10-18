@@ -3,12 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
-import '../../controllers/emergency_sos_controller.dart';
+import '../../../dashboard/controllers/profile_controller.dart';
+import '../../../navigation/domain/location_service.dart';
+import '../../domain/emergency_sos_helpers.dart';
 
-/// Top card containing the 3D Tactile SOS Button & Satellite Telematics Hub
+/// Top card containing the 3D Tactile SOS Button & real GPS status indicator
 class HardwareTelematicsCard extends StatefulWidget {
-  const HardwareTelematicsCard({super.key});
+  const HardwareTelematicsCard({
+    super.key,
+    this.locationService = const GeolocatorLocationService(),
+  });
+
+  final LocationService locationService;
 
   @override
   State<HardwareTelematicsCard> createState() => _HardwareTelematicsCardState();
@@ -21,6 +29,9 @@ class _HardwareTelematicsCardState extends State<HardwareTelematicsCard>
   int _secondsLeft = 3;
   bool _isHolding = false;
 
+  bool _isGpsReady = false;
+  bool _isCheckingGps = true;
+
   @override
   void initState() {
     super.initState();
@@ -31,9 +42,35 @@ class _HardwareTelematicsCardState extends State<HardwareTelematicsCard>
 
     _progressController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        _triggerSos();
+        _triggerSosAlert();
       }
     });
+
+    _checkGpsStatus();
+  }
+
+  Future<void> _checkGpsStatus() async {
+    try {
+      final enabled = await widget.locationService.isLocationServiceEnabled();
+      if (!enabled) {
+        if (mounted) setState(() { _isGpsReady = false; _isCheckingGps = false; });
+        return;
+      }
+      final pos = await widget.locationService.getCurrentPosition();
+      if (mounted) {
+        setState(() {
+          _isGpsReady = pos != null;
+          _isCheckingGps = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isGpsReady = false;
+          _isCheckingGps = false;
+        });
+      }
+    }
   }
 
   @override
@@ -71,93 +108,41 @@ class _HardwareTelematicsCardState extends State<HardwareTelematicsCard>
     });
   }
 
-  void _triggerSos() {
+  Future<void> _triggerSosAlert() async {
     _countdownTimer?.cancel();
     HapticFeedback.vibrate();
     setState(() => _isHolding = false);
-    EmergencySosController.instance.triggerBeacon();
 
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => _buildBeaconActiveDialog(context),
-    );
-  }
+    final phone = ProfileController.instance.emergencyContactPhone.trim();
+    if (phone.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'No emergency contact saved. Please add one in your profile.',
+              style: GoogleFonts.manrope(fontWeight: FontWeight.w700),
+            ),
+            backgroundColor: AppColors.tacticalOrange,
+            action: SnackBarAction(
+              label: 'Add',
+              textColor: Colors.white,
+              onPressed: () => Navigator.of(context).pushNamed(CampRoutes.editProfile),
+            ),
+          ),
+        );
+      }
+      return;
+    }
 
-  Widget _buildBeaconActiveDialog(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEE2E2),
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.alertRed, width: 2),
-              ),
-              child: const Icon(
-                Icons.cell_tower_rounded,
-                color: AppColors.alertRed,
-                size: 32,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'SATELLITE BEACON BROADCASTING',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.manrope(
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                color: AppColors.alertRed,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Distress beacon & GPS payload transmitting to Iridium Constellation & assigned rescue network.',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.manrope(
-                fontSize: 13,
-                color: AppColors.darkCharcoal,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 22),
-            GestureDetector(
-              onTap: () {
-                EmergencySosController.instance.cancelBeacon();
-                Navigator.of(context).pop();
-              },
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: AppColors.darkCharcoal,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Center(
-                  child: Text(
-                    'CANCEL DISTRESS TRANSMISSION',
-                    style: GoogleFonts.manrope(
-                      color: Colors.white,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    PositionData? position;
+    try {
+      position = await widget.locationService.getCurrentPosition();
+    } catch (_) {
+      position = null;
+    }
+
+    final body = buildEmergencySmsBody(position);
+    await launchSms(phone, body);
   }
 
   @override
@@ -174,7 +159,7 @@ class _HardwareTelematicsCardState extends State<HardwareTelematicsCard>
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 26),
       child: Column(
         children: [
           // Concentric 3D Red SOS Button with Hold Detection
@@ -266,7 +251,6 @@ class _HardwareTelematicsCardState extends State<HardwareTelematicsCard>
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // Asterisk / Star icon
                               const Text(
                                 '*',
                                 style: TextStyle(
@@ -277,7 +261,6 @@ class _HardwareTelematicsCardState extends State<HardwareTelematicsCard>
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              // "SOS" text
                               Text(
                                 'SOS',
                                 style: GoogleFonts.manrope(
@@ -288,7 +271,6 @@ class _HardwareTelematicsCardState extends State<HardwareTelematicsCard>
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              // "EMERGENCY" text
                               Text(
                                 _isHolding ? 'HOLD ($_secondsLeft s)' : 'EMERGENCY',
                                 style: GoogleFonts.manrope(
@@ -309,49 +291,82 @@ class _HardwareTelematicsCardState extends State<HardwareTelematicsCard>
             ),
           ),
 
-          const SizedBox(height: 22),
+          const SizedBox(height: 20),
 
           // Subtitle Instruction
           Text(
-            'Hold 3 seconds to alert your emergency\ncontact',
+            'Hold 3 seconds to alert your emergency contact',
             textAlign: TextAlign.center,
             style: GoogleFonts.manrope(
               color: const Color(0xFF1E293B),
-              fontSize: 15.5,
+              fontSize: 14.5,
               fontWeight: FontWeight.w800,
               height: 1.35,
             ),
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
-          // Recessed GPS & Cellular signal pill
+          // GPS location line: ready / waiting
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(AppColors.radiusPill),
-              border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+              border: Border.all(
+                color: _isGpsReady ? const Color(0xFFA7F3D0) : const Color(0xFFE2E8F0),
+                width: 1,
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.sensors_rounded,
-                  color: Color(0xFF64748B),
-                  size: 14,
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _isGpsReady
+                        ? const Color(0xFF10B981)
+                        : (_isCheckingGps ? const Color(0xFFF59E0B) : const Color(0xFF94A3B8)),
+                  ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 Text(
-                  "Uses your phone's GPS and cellular signal",
+                  _isCheckingGps
+                      ? 'GPS location: checking...'
+                      : (_isGpsReady ? 'GPS location: ready' : 'GPS location: waiting'),
                   style: GoogleFonts.manrope(
-                    color: const Color(0xFF64748B),
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
+                    color: _isGpsReady ? const Color(0xFF047857) : const Color(0xFF64748B),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
             ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // Recessed GPS & Cellular signal pill
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.sensors_rounded,
+                color: Color(0xFF94A3B8),
+                size: 13,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                "Uses your phone's GPS and cellular signal",
+                style: GoogleFonts.manrope(
+                  color: const Color(0xFF94A3B8),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ],
       ),

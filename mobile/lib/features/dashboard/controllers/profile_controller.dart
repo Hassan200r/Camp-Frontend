@@ -34,7 +34,9 @@ class ProfileController extends ChangeNotifier {
   String? _emergencyContactName;
   String? _emergencyContactRelation;
   String? _emergencyContactPhone;
-  String _bloodGroup = 'O+ (Universal Donor)';
+  String _bloodGroup = '';
+  String? _allergies;
+  String? _medicalNotes;
 
   // ── Getters ────────────────────────────────────────────────────────────────
   String get fullName {
@@ -76,6 +78,8 @@ class ProfileController extends ChangeNotifier {
   String get emergencyContactRelation => _emergencyContactRelation ?? 'Emergency Contact';
   String get emergencyContactPhone => _emergencyContactPhone ?? '';
   String get bloodGroup => _bloodGroup;
+  String get allergies => _allergies ?? '';
+  String get medicalNotes => _medicalNotes ?? '';
 
   /// Update profile attributes and persist to [ProfileRepository].
   void updateProfile({
@@ -94,6 +98,8 @@ class ProfileController extends ChangeNotifier {
     String? emergencyContactRelation,
     String? emergencyContactPhone,
     String? bloodGroup,
+    String? allergies,
+    String? medicalNotes,
   }) {
     if (fullName != null) _fullName = fullName;
     if (username != null) _username = username;
@@ -109,7 +115,9 @@ class ProfileController extends ChangeNotifier {
     if (emergencyContactName != null) _emergencyContactName = emergencyContactName;
     if (emergencyContactRelation != null) _emergencyContactRelation = emergencyContactRelation;
     if (emergencyContactPhone != null) _emergencyContactPhone = emergencyContactPhone;
-    if (bloodGroup != null) _bloodGroup = bloodGroup;
+    if (bloodGroup != null) _bloodGroup = UserProfile.normalizeBloodType(bloodGroup);
+    if (allergies != null) _allergies = allergies;
+    if (medicalNotes != null) _medicalNotes = medicalNotes;
 
     notifyListeners();
     save();
@@ -142,7 +150,9 @@ class ProfileController extends ChangeNotifier {
     _emergencyContactName = null;
     _emergencyContactRelation = null;
     _emergencyContactPhone = null;
-    _bloodGroup = 'O+ (Universal Donor)';
+    _bloodGroup = '';
+    _allergies = null;
+    _medicalNotes = null;
     _repository = AppRepositories.instance.profileRepository;
     notifyListeners();
   }
@@ -171,6 +181,8 @@ class ProfileController extends ChangeNotifier {
         _emergencyContactRelation = profile.emergencyContactRelation;
         _emergencyContactPhone = profile.emergencyContactPhone;
         _bloodGroup = profile.bloodGroup;
+        _allergies = profile.allergies;
+        _medicalNotes = profile.medicalNotes;
         notifyListeners();
       }
     } catch (_) {
@@ -197,6 +209,8 @@ class ProfileController extends ChangeNotifier {
       emergencyContactRelation: _emergencyContactRelation,
       emergencyContactPhone: _emergencyContactPhone,
       bloodGroup: _bloodGroup,
+      allergies: _allergies,
+      medicalNotes: _medicalNotes,
     );
     await repo.saveProfile(profile);
   }

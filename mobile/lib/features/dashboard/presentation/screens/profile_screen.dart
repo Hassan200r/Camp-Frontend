@@ -1651,28 +1651,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 8),
           _buildInfoKeyValueRow(
             label: 'Blood & Allergies:',
-            valueWidget: RichText(
-              textAlign: TextAlign.right,
-              text: TextSpan(
-                style: GoogleFonts.manrope(fontSize: 11.5, fontWeight: FontWeight.w800),
-                children: const [
-                  TextSpan(
-                    text: 'O+ POS',
-                    style: TextStyle(color: AppColors.alertRed),
+            valueWidget: Builder(
+              builder: (context) {
+                final blood = ProfileController.instance.bloodGroup.trim();
+                final allergies = ProfileController.instance.allergies.trim();
+                if (blood.isEmpty && allergies.isEmpty) {
+                  return Text(
+                    'Not set',
+                    style: GoogleFonts.manrope(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.mutedText,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    textAlign: TextAlign.right,
+                  );
+                }
+                return RichText(
+                  textAlign: TextAlign.right,
+                  text: TextSpan(
+                    style: GoogleFonts.manrope(fontSize: 11.5, fontWeight: FontWeight.w800),
+                    children: [
+                      if (blood.isNotEmpty)
+                        TextSpan(
+                          text: blood,
+                          style: const TextStyle(color: AppColors.alertRed),
+                        ),
+                      if (allergies.isNotEmpty)
+                        TextSpan(
+                          text: blood.isNotEmpty ? ' • $allergies' : allergies,
+                          style: const TextStyle(color: AppColors.darkCharcoal, fontWeight: FontWeight.w600),
+                        ),
+                    ],
                   ),
-                  TextSpan(
-                    text: ' • Penicillin (Severe)',
-                    style: TextStyle(color: AppColors.darkCharcoal, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
           ),
           const SizedBox(height: 8),
           _buildInfoKeyValueRow(
-            label: 'Satellite SOS Beacon:',
+            label: 'Emergency SOS Method:',
             valueWidget: Text(
-              'Iridium #IR-88210-GS',
+              'Phone SMS & Dialer',
               style: GoogleFonts.manrope(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w700,
@@ -1685,7 +1705,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // View Emergency Protocols button
           GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => _showNotification('Emergency ICE & Health Protocols: Iridium #IR-88210-GS active'),
+            onTap: () => _showNotification('Emergency ICE & Health Protocols configured via device SMS and dialer'),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),

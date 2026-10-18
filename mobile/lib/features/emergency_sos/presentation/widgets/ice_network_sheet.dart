@@ -30,7 +30,7 @@ class _IceNetworkSheetState extends State<IceNetworkSheet> {
   final _relationController = TextEditingController();
   final _phoneController = TextEditingController();
   bool _isAddingNew = false;
-  String _dispatchMode = 'SMS + Sat';
+  String _dispatchMode = 'SMS';
 
   @override
   void dispose() {
@@ -59,7 +59,6 @@ class _IceNetworkSheetState extends State<IceNetworkSheet> {
       phone: phone,
       dispatchBadge: _dispatchMode,
       initials: initials,
-      isVhf: _dispatchMode.contains('VHF'),
     );
 
     EmergencySosController.instance.addContact(newContact);
@@ -118,7 +117,7 @@ class _IceNetworkSheetState extends State<IceNetworkSheet> {
               ),
               const SizedBox(height: 4),
               Text(
-                'These trusted contacts & authorities receive encrypted location data and GPS coordinates immediately upon beacon transmission.',
+                'These trusted contacts receive your GPS coordinates when you tap Alert my contacts from the emergency SOS screen.',
                 style: GoogleFonts.manrope(
                   fontSize: 12,
                   color: const Color(0xFF64748B),
@@ -141,9 +140,7 @@ class _IceNetworkSheetState extends State<IceNetworkSheet> {
                     children: [
                       CircleAvatar(
                         radius: 17,
-                        backgroundColor: contact.isVhf
-                            ? const Color(0xFFFFCDD2)
-                            : const Color(0xFFFEF3C7),
+                        backgroundColor: const Color(0xFFFEF3C7),
                         child: Text(
                           contact.initials,
                           style: GoogleFonts.manrope(
@@ -252,15 +249,15 @@ class _IceNetworkSheetState extends State<IceNetworkSheet> {
                       Row(
                         children: [
                           ChoiceChip(
-                            label: const Text('SMS + Sat'),
-                            selected: _dispatchMode == 'SMS + Sat',
-                            onSelected: (val) => setState(() => _dispatchMode = 'SMS + Sat'),
+                            label: const Text('SMS'),
+                            selected: _dispatchMode == 'SMS',
+                            onSelected: (val) => setState(() => _dispatchMode = 'SMS'),
                           ),
                           const SizedBox(width: 8),
                           ChoiceChip(
-                            label: const Text('Direct VHF/Sat'),
-                            selected: _dispatchMode == 'Direct VHF/Sat',
-                            onSelected: (val) => setState(() => _dispatchMode = 'Direct VHF/Sat'),
+                            label: const Text('Phone Call'),
+                            selected: _dispatchMode == 'Phone Call',
+                            onSelected: (val) => setState(() => _dispatchMode = 'Phone Call'),
                           ),
                         ],
                       ),

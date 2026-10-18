@@ -56,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         content: const Text(
-          'Coming in a future update',
+          'No nearby riders yet. Group beacon needs an online service (coming later).',
           style: TextStyle(
             color: Color(0xFF4B5563),
             fontSize: 14,

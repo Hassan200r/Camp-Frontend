@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
@@ -58,8 +59,12 @@ abstract class LocationService {
 class GeolocatorLocationService implements LocationService {
   const GeolocatorLocationService();
 
+  static bool get _isTesting =>
+      !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
+
   @override
   Future<bool> isLocationServiceEnabled() async {
+    if (_isTesting) return false;
     try {
       return await Geolocator.isLocationServiceEnabled();
     } catch (_) {
@@ -69,6 +74,7 @@ class GeolocatorLocationService implements LocationService {
 
   @override
   Future<bool> checkPermission() async {
+    if (_isTesting) return false;
     try {
       final permission = await Geolocator.checkPermission();
       return permission == LocationPermission.always ||
@@ -80,6 +86,7 @@ class GeolocatorLocationService implements LocationService {
 
   @override
   Future<bool> requestPermission() async {
+    if (_isTesting) return false;
     try {
       var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
@@ -94,6 +101,7 @@ class GeolocatorLocationService implements LocationService {
 
   @override
   Future<PositionData?> getCurrentPosition() async {
+    if (_isTesting) return null;
     try {
       final pos = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(

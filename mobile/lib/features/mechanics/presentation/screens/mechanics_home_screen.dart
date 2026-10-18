@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
@@ -9,11 +10,13 @@ import '../../../navigation/presentation/widgets/topographic_map_canvas.dart';
 import '../../controllers/mechanic_controller.dart';
 import '../../domain/mechanic_model.dart';
 import '../../domain/mechanic_open_status.dart';
+
 import '../widgets/custom_app_bar.dart';
 import '../widgets/filter_chips_widget.dart';
 import '../widgets/mechanic_card.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/view_toggle_widget.dart';
+import 'add_mechanic_screen.dart';
 
 class MechanicsHomeScreen extends StatefulWidget {
   const MechanicsHomeScreen({super.key});
@@ -171,6 +174,51 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
   }
 
   void _showCallModal(Mechanic mechanic) {
+    final phone = (mechanic.phoneNumber ?? mechanic.phone).trim();
+    if (phone.isEmpty) {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.clay,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text(
+            'No number saved',
+            style: AppTextStyles.cardTitle.copyWith(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppColors.darkCharcoal,
+            ),
+          ),
+          content: Text(
+            'No phone number has been saved for ${mechanic.name}.',
+            style: AppTextStyles.body,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.of(context).push(
+                  MaterialPageRoute<Mechanic>(
+                    builder: (_) => AddMechanicScreen(mechanic: mechanic),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.tacticalOrange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Add number'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -215,7 +263,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
             ),
             const SizedBox(height: 4),
             Text(
-              mechanic.phone,
+              phone,
               style: AppTextStyles.cardTitle.copyWith(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
@@ -260,11 +308,9 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Dialing ${mechanic.phone}...'),
-                  backgroundColor: AppColors.statusGreen,
-                ),
+              launchUrl(
+                Uri(scheme: 'tel', path: phone),
+                mode: LaunchMode.externalApplication,
               );
             },
             style: ElevatedButton.styleFrom(

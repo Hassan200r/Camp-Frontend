@@ -1,150 +1,142 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../controllers/emergency_sos_controller.dart';
+import '../../../navigation/domain/location_service.dart';
 
-/// Card 2: Current Location Card with Accuracy Badge & Topographic Radar Preview
-class TelemetryStreamCard extends StatelessWidget {
-  const TelemetryStreamCard({super.key});
+/// Card 2: Current Location Card with real GPS status and coordinates
+class TelemetryStreamCard extends StatefulWidget {
+  const TelemetryStreamCard({
+    super.key,
+    this.locationService = const GeolocatorLocationService(),
+  });
+
+  final LocationService locationService;
+
+  @override
+  State<TelemetryStreamCard> createState() => _TelemetryStreamCardState();
+}
+
+class _TelemetryStreamCardState extends State<TelemetryStreamCard> {
+  PositionData? _position;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLocation();
+  }
+
+  Future<void> _fetchLocation() async {
+    try {
+      final pos = await widget.locationService.getCurrentPosition();
+      if (mounted) {
+        setState(() {
+          _position = pos;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _position = null;
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: EmergencySosController.instance,
-      builder: (context, _) {
-        final snapshot = EmergencySosController.instance.telemetry;
+    final pos = _position;
+    final isGpsReady = pos != null;
 
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
+    final String coordText;
+    final String locationSubtitle;
+    if (_isLoading) {
+      coordText = 'Checking GPS status...';
+      locationSubtitle = 'Acquiring satellite fix from phone sensors';
+    } else if (pos != null) {
+      coordText = '${pos.latitude.toStringAsFixed(5)}°N, ${pos.longitude.toStringAsFixed(5)}°E';
+      locationSubtitle = pos.accuracy != null
+          ? 'Estimated ±${pos.accuracy!.toStringAsFixed(0)}m accuracy'
+          : 'Phone GPS fix acquired';
+    } else {
+      coordText = 'Coordinates not available';
+      locationSubtitle = 'Enable Location Services to view coordinates';
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header Row ─────────────────────────────────────────────────
+          Row(
             children: [
-              // ── Header Row ─────────────────────────────────────────────────
-              Row(
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF3E8),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.location_on_rounded,
-                        color: Color(0xFFFF8A00),
-                        size: 16,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Current Location',
-                      style: GoogleFonts.manrope(
-                        color: const Color(0xFF1E293B),
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD4F7E6),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${snapshot.accuracy} accuracy (Cellular/GPS)',
-                      style: GoogleFonts.manrope(
-                        color: const Color(0xFF059669),
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 14),
-
-              // ── Location & Coordinates ─────────────────────────────────────
-              Text(
-                snapshot.locationName,
-                style: GoogleFonts.manrope(
-                  color: const Color(0xFF1E293B),
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                snapshot.coordinates,
-                style: GoogleFonts.manrope(
-                  color: const Color(0xFF64748B),
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // ── Topographic Elevation Radar Box ────────────────────────────
               Container(
-                height: 76,
-                width: double.infinity,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F4F8),
-                  borderRadius: BorderRadius.circular(16),
+                  color: const Color(0xFFFFF3E8),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                clipBehavior: Clip.antiAlias,
-                child: Stack(
-                  alignment: Alignment.center,
+                child: const Center(
+                  child: Icon(
+                    Icons.location_on_rounded,
+                    color: Color(0xFFFF8A00),
+                    size: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Current Location',
+                  style: GoogleFonts.manrope(
+                    color: const Color(0xFF1E293B),
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isGpsReady ? const Color(0xFFD4F7E6) : const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Topographic subtle wave curves
-                    CustomPaint(
-                      size: const Size(double.infinity, 76),
-                      painter: _TopographicCurvesPainter(),
-                    ),
-
-                    // Centered Red Radar Pin
                     Container(
-                      width: 38,
-                      height: 38,
+                      width: 6,
+                      height: 6,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFFE53935).withValues(alpha: 0.18),
+                        color: isGpsReady ? const Color(0xFF059669) : const Color(0xFFD97706),
                       ),
-                      child: Center(
-                        child: Container(
-                          width: 22,
-                          height: 22,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color(0xFFE53935),
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.gps_fixed_rounded,
-                              color: Colors.white,
-                              size: 13,
-                            ),
-                          ),
-                        ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      isGpsReady ? 'GPS location: ready' : 'GPS location: waiting',
+                      style: GoogleFonts.manrope(
+                        color: isGpsReady ? const Color(0xFF059669) : const Color(0xFFB45309),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
@@ -152,8 +144,81 @@ class TelemetryStreamCard extends StatelessWidget {
               ),
             ],
           ),
-        );
-      },
+
+          const SizedBox(height: 14),
+
+          // ── Location & Coordinates ─────────────────────────────────────
+          Text(
+            coordText,
+            style: GoogleFonts.manrope(
+              color: const Color(0xFF1E293B),
+              fontSize: 14.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            locationSubtitle,
+            style: GoogleFonts.manrope(
+              color: const Color(0xFF64748B),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // ── Topographic Elevation Radar Box ────────────────────────────
+          Container(
+            height: 76,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F4F8),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Topographic subtle wave curves
+                CustomPaint(
+                  size: const Size(double.infinity, 76),
+                  painter: _TopographicCurvesPainter(),
+                ),
+
+                // Centered Pin
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isGpsReady
+                        ? const Color(0xFFE53935).withValues(alpha: 0.18)
+                        : const Color(0xFF94A3B8).withValues(alpha: 0.18),
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isGpsReady ? const Color(0xFFE53935) : const Color(0xFF94A3B8),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.gps_fixed_rounded,
+                          color: Colors.white,
+                          size: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
