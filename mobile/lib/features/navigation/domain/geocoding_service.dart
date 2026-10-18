@@ -14,15 +14,93 @@ class PlaceSearchResult {
     required this.displayName,
     required this.location,
     this.category,
+    this.id = '',
+    this.createdAt,
+    this.updatedAt,
   });
 
+  factory PlaceSearchResult.fromJson(Map<String, dynamic> json) {
+    final lat = (json['latitude'] as num?)?.toDouble() ?? 0.0;
+    final lng = (json['longitude'] as num?)?.toDouble() ?? 0.0;
+    final name = (json['name'] as String?) ?? '';
+    final rawId = (json['id'] as String?) ?? '';
+    final createdUtc = json['createdAt'] != null
+        ? DateTime.tryParse(json['createdAt'] as String)?.toUtc()
+        : DateTime.now().toUtc();
+    final updatedUtc = json['updatedAt'] != null
+        ? DateTime.tryParse(json['updatedAt'] as String)?.toUtc()
+        : createdUtc;
+    return PlaceSearchResult(
+      id: rawId.isNotEmpty ? rawId : '${lat}_${lng}_$name',
+      name: name,
+      displayName: (json['displayName'] as String?) ?? name,
+      location: LatLng(lat, lng),
+      category: json['category'] as String?,
+      createdAt: createdUtc,
+      updatedAt: updatedUtc,
+    );
+  }
+
+  final String id;
   final String name;
   final String displayName;
   final LatLng location;
   final String? category;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  String get effectiveId => id.isNotEmpty ? id : '${location.latitude}_${location.longitude}_$name';
+  DateTime get effectiveCreatedAt => createdAt ?? DateTime.utc(2026, 1, 1);
+  DateTime get effectiveUpdatedAt => updatedAt ?? effectiveCreatedAt;
+
+  PlaceSearchResult copyWith({
+    String? id,
+    String? name,
+    String? displayName,
+    LatLng? location,
+    String? category,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return PlaceSearchResult(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      displayName: displayName ?? this.displayName,
+      location: location ?? this.location,
+      category: category ?? this.category,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': effectiveId,
+      'name': name,
+      'displayName': displayName,
+      'latitude': location.latitude,
+      'longitude': location.longitude,
+      'category': category,
+      'createdAt': effectiveCreatedAt.toIso8601String(),
+      'updatedAt': (updatedAt ?? DateTime.now().toUtc()).toIso8601String(),
+    };
+  }
 
   @override
-  String toString() => 'PlaceSearchResult(name: $name, location: $location)';
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PlaceSearchResult &&
+          runtimeType == other.runtimeType &&
+          effectiveId == other.effectiveId &&
+          name == other.name &&
+          location.latitude == other.location.latitude &&
+          location.longitude == other.location.longitude;
+
+  @override
+  int get hashCode => effectiveId.hashCode ^ name.hashCode ^ location.latitude.hashCode ^ location.longitude.hashCode;
+
+  @override
+  String toString() => 'PlaceSearchResult(id: $effectiveId, name: $name, location: $location)';
 }
 
 /// Abstract geocoding service contract.

@@ -1,10 +1,8 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
-
 import 'app/routes.dart';
 import 'app/theme/app_theme.dart';
-import 'core/storage/local_store.dart';
+import 'core/data/app_repositories.dart';
 import 'features/auth/presentation/screens/forgot_password_screen.dart';
 import 'features/auth/presentation/screens/sign_in_screen.dart';
 import 'features/auth/presentation/screens/sign_up_screen.dart';
@@ -38,29 +36,29 @@ import 'features/voice_copilot/presentation/screens/voice_assistant_screen.dart'
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    final store = LocalStore.instance;
-    await store.init();
+    final repos = AppRepositories.instance;
+    await repos.init();
     try {
-      await ActiveBikeController.instance.load(store);
+      await ActiveBikeController.instance.load(repos.bikeRepository);
     } catch (_) {}
     try {
-      await SettingsController.instance.load(store);
+      await SettingsController.instance.load(repos.settingsRepository);
     } catch (_) {}
     try {
-      await PostRideReportController.instance.load(store);
+      await PostRideReportController.instance.load(repos.rideReportRepository);
     } catch (_) {}
     try {
-      await TripBudgetController.instance.load(store);
+      await TripBudgetController.instance.load(repos.financeRepository);
     } catch (_) {}
     try {
-      await ProfileController.instance.load(store);
+      await ProfileController.instance.load(repos.profileRepository);
     } catch (_) {}
     try {
-      await MechanicController.instance.load(store);
+      await MechanicController.instance.load(repos.mechanicRepository);
     } catch (_) {}
     try {
-      if (await store.isFirstRun()) {
-        await store.markFirstRunCompleted();
+      if (await repos.bikeRepository.isFirstRun()) {
+        await repos.bikeRepository.markFirstRunCompleted();
       }
     } catch (_) {}
   } catch (_) {
@@ -94,7 +92,7 @@ class _CampAppState extends State<CampApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {
-      unawaited(LocalStore.instance.flush());
+      unawaited(AppRepositories.instance.flush());
     }
   }
 

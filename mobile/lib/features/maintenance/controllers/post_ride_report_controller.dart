@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 
-import '../../../core/storage/local_store.dart';
+import '../../../core/data/app_repositories.dart';
+import '../../../core/data/ride_report_repository.dart';
+import '../../../core/data/ride_report_repository_local.dart';
 import '../domain/post_ride_report.dart';
 
 /// Central state controller managing user-logged post-ride debriefs.
@@ -8,12 +10,18 @@ import '../domain/post_ride_report.dart';
 /// and SettingsController, serving as the single source of truth for ride logs
 /// and pattern insight computations.
 class PostRideReportController extends ChangeNotifier {
-  PostRideReportController._() {
+  PostRideReportController({RideReportRepository? repository})
+      : _repository = repository ?? AppRepositories.instance.rideReportRepository {
     _initializeDefaultReports();
   }
 
   /// Global singleton instance.
-  static final PostRideReportController instance = PostRideReportController._();
+  static PostRideReportController instance = PostRideReportController();
+
+  RideReportRepository _repository;
+
+  @visibleForTesting
+  set repository(RideReportRepository repo) => _repository = repo;
 
   final List<PostRideReport> _reports = [];
 
@@ -66,53 +74,31 @@ class PostRideReportController extends ChangeNotifier {
   }
 
   /// Await completion of all pending storage writes.
-  Future<void> flush() => LocalStore.instance.flush();
+  Future<void> flush() => _repository.flush();
 
   /// Reset in-memory state for unit testing without writing to storage.
   void resetForTesting() {
     _reports.clear();
+    _repository = AppRepositories.instance.rideReportRepository;
     notifyListeners();
   }
 
-  /// Load post-ride reports from persistent store.
-  Future<void> load([LocalStore? store]) async {
-    final localStore = store ?? LocalStore.instance;
-    final isFirst = await localStore.isFirstRun();
+  /// Load post-ride reports from repository.
+  Future<void> load([dynamic source]) async {
+    final repo = resolveRideReportRepository(source, _repository);
+    if (source != null) {
+      _repository = repo;
+    }
+    final isFirst = await repo.isFirstRun();
 
     if (isFirst) {
       _initializeDefaultReports();
-      await save(localStore);
+      await save(repo);
       return;
     }
 
     try {
-      final reportsJson =
-          await localStore.readJson(LocalStore.keyPostRideReports);
-
-      if (reportsJson == null || reportsJson is! List) {
-        // Fall back to defaults without crashing
-        _initializeDefaultReports();
-        notifyListeners();
-        return;
-      }
-
-      final schemaVer = await localStore.getSchemaVersion();
-      if (schemaVer == null || schemaVer > LocalStore.currentSchemaVersion) {
-        _initializeDefaultReports();
-        notifyListeners();
-        return;
-      }
-
-      final loadedReports = <PostRideReport>[];
-      for (final item in reportsJson) {
-        if (item is Map<String, dynamic>) {
-          loadedReports.add(PostRideReport.fromJson(item));
-        } else if (item is Map) {
-          loadedReports.add(
-              PostRideReport.fromJson(item.cast<String, dynamic>()));
-        }
-      }
-
+      final loadedReports = await repo.loadReports();
       _reports.clear();
       _reports.addAll(loadedReports);
       notifyListeners();
@@ -123,14 +109,11 @@ class PostRideReportController extends ChangeNotifier {
     }
   }
 
-  /// Persist post-ride reports to persistent store.
-  Future<void> save([LocalStore? store]) async {
-    final localStore = store ?? LocalStore.instance;
+  /// Persist post-ride reports to repository.
+  Future<void> save([dynamic source]) async {
+    final repo = resolveRideReportRepository(source, _repository);
     try {
-      await localStore.writeJson(
-        LocalStore.keyPostRideReports,
-        _reports.map((r) => r.toJson()).toList(),
-      );
+      await repo.saveReports(_reports);
     } catch (_) {
       // Ignore background write errors
     }

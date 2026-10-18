@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 
-import '../../../core/storage/local_store.dart';
+import '../../../core/data/app_repositories.dart';
+import '../../../core/data/settings_repository.dart';
+import '../../../core/data/settings_repository_local.dart';
+import '../domain/app_settings.dart';
 import '../domain/units_system.dart';
 
 /// Central state controller managing application settings:
@@ -8,10 +11,16 @@ import '../domain/units_system.dart';
 ///
 /// Follows the same reactive ChangeNotifier singleton pattern as [ActiveBikeController].
 class SettingsController extends ChangeNotifier {
-  SettingsController._();
+  SettingsController({SettingsRepository? repository})
+      : _repository = repository ?? AppRepositories.instance.settingsRepository;
 
   /// Shared singleton instance across the application.
-  static final SettingsController instance = SettingsController._();
+  static SettingsController instance = SettingsController();
+
+  SettingsRepository _repository;
+
+  @visibleForTesting
+  set repository(SettingsRepository repo) => _repository = repo;
 
   UnitsSystem _units = UnitsSystem.metric;
   bool _notificationsEnabled = true;
@@ -105,57 +114,25 @@ class SettingsController extends ChangeNotifier {
   /// Reset in-memory preferences for testing.
   void resetForTesting() {
     reset();
+    _repository = AppRepositories.instance.settingsRepository;
   }
 
   /// Await completion of all pending storage writes.
-  Future<void> flush() => LocalStore.instance.flush();
+  Future<void> flush() => _repository.flush();
 
-  /// Load user settings from persistent store.
-  Future<void> load([LocalStore? store]) async {
-    final localStore = store ?? LocalStore.instance;
-    final isFirst = await localStore.isFirstRun();
-
-    if (isFirst) {
-      _units = UnitsSystem.metric;
-      _notificationsEnabled = true;
-      _privacySharingEnabled = true;
-      await save(localStore);
-      return;
+  /// Load user settings from repository.
+  Future<void> load([dynamic source]) async {
+    final repo = resolveSettingsRepository(source, _repository);
+    if (source != null) {
+      _repository = repo;
     }
-
     try {
-      final json = await localStore.readJson(LocalStore.keySettings);
-      if (json == null || json is! Map) {
-        // Fall back to defaults without crashing
-        _units = UnitsSystem.metric;
-        _notificationsEnabled = true;
-        _privacySharingEnabled = true;
-        notifyListeners();
-        return;
-      }
-
-      final schemaVer = await localStore.getSchemaVersion();
-      if (schemaVer == null || schemaVer > LocalStore.currentSchemaVersion) {
-        _units = UnitsSystem.metric;
-        _notificationsEnabled = true;
-        _privacySharingEnabled = true;
-        notifyListeners();
-        return;
-      }
-
-      final map = json.cast<String, dynamic>();
-      final unitsStr = map['units'] as String?;
-      if (unitsStr == 'imperial') {
-        _units = UnitsSystem.imperial;
-      } else {
-        _units = UnitsSystem.metric;
-      }
-
-      _notificationsEnabled = map['notificationsEnabled'] as bool? ?? true;
-      _privacySharingEnabled = map['privacySharingEnabled'] as bool? ?? true;
+      final settings = await repo.loadSettings();
+      _units = settings.units;
+      _notificationsEnabled = settings.notificationsEnabled;
+      _privacySharingEnabled = settings.privacySharingEnabled;
       notifyListeners();
     } catch (_) {
-      // Fallback on corrupt data
       _units = UnitsSystem.metric;
       _notificationsEnabled = true;
       _privacySharingEnabled = true;
@@ -163,15 +140,16 @@ class SettingsController extends ChangeNotifier {
     }
   }
 
-  /// Persist user settings to persistent store.
-  Future<void> save([LocalStore? store]) async {
-    final localStore = store ?? LocalStore.instance;
+  /// Persist user settings to repository.
+  Future<void> save([dynamic source]) async {
+    final repo = resolveSettingsRepository(source, _repository);
     try {
-      await localStore.writeJson(LocalStore.keySettings, {
-        'units': _units.name,
-        'notificationsEnabled': _notificationsEnabled,
-        'privacySharingEnabled': _privacySharingEnabled,
-      });
+      final settings = AppSettings(
+        units: _units,
+        notificationsEnabled: _notificationsEnabled,
+        privacySharingEnabled: _privacySharingEnabled,
+      );
+      await repo.saveSettings(settings);
     } catch (_) {
       // Ignore background write errors
     }

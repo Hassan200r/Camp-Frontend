@@ -16,13 +16,21 @@ class LocalStore {
   static const int currentSchemaVersion = 1;
 
   static const String keyBikes = 'camp_bikes';
+  static const String keyGarageBikes = keyBikes;
   static const String keyActiveBikeId = 'camp_active_bike_id';
   static const String keySettings = 'camp_settings';
   static const String keyPostRideReports = 'camp_post_ride_reports';
+  static const String keyRideReports = keyPostRideReports;
   static const String keyTripBudget = 'camp_trip_budget';
   static const String keyTripExpenses = 'camp_trip_expenses';
   static const String keyProfile = 'camp_profile';
+  static const String keyProfilePhotoPath = 'camp_profile_photo_path';
   static const String keyMechanics = 'camp_mechanics';
+  static const String keyMaintenanceItems = 'camp_maintenance_items';
+  static const String keyJettingBaseline = 'camp_jetting_baseline';
+  static const String keyChecklist = 'camp_safety_checklist';
+  static const String keySavedPlaces = 'camp_saved_places';
+  static const String keyRecentPlaces = 'camp_recent_places';
   static const String keyFirstRunCompleted = 'camp_first_run_completed';
 
   Future<SharedPreferences> get prefs async {

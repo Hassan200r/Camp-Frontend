@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 
-import '../../../core/storage/local_store.dart';
+import '../../../core/data/app_repositories.dart';
+import '../../../core/data/finance_repository.dart';
+import '../../../core/data/finance_repository_local.dart';
 import '../domain/expense_model.dart';
 import '../domain/trip_budget_model.dart';
 
@@ -8,11 +10,17 @@ import '../domain/trip_budget_model.dart';
 /// Follows the singleton ChangeNotifier pattern established by ActiveBikeController,
 /// SettingsController, and PostRideReportController.
 class TripBudgetController extends ChangeNotifier {
-  TripBudgetController._() {
+  TripBudgetController({FinanceRepository? repository})
+      : _repository = repository ?? AppRepositories.instance.financeRepository {
     _initializeDefaults();
   }
 
-  static final TripBudgetController instance = TripBudgetController._();
+  static TripBudgetController instance = TripBudgetController();
+
+  FinanceRepository _repository;
+
+  @visibleForTesting
+  set repository(FinanceRepository repo) => _repository = repo;
 
   TripBudget _budget = TripBudget.defaultSampleBudget;
   final List<Expense> _expenses = [];
@@ -69,63 +77,39 @@ class TripBudgetController extends ChangeNotifier {
       allocatedSoFar: 0.0,
     );
     _expenses.clear();
+    _repository = AppRepositories.instance.financeRepository;
     notifyListeners();
   }
 
   /// Await completion of all pending storage writes.
-  Future<void> flush() => LocalStore.instance.flush();
+  Future<void> flush() => _repository.flush();
 
-  /// Load budget and expenses from persistent store.
-  Future<void> load([LocalStore? store]) async {
-    final localStore = store ?? LocalStore.instance;
-    final isFirst = await localStore.isFirstRun();
+  /// Load budget and expenses from repository.
+  Future<void> load([dynamic source]) async {
+    final repo = resolveFinanceRepository(source, _repository);
+    if (source != null) {
+      _repository = repo;
+    }
+    final isFirst = await repo.isFirstRun();
 
     if (isFirst) {
       _initializeDefaults();
-      await save(localStore);
+      await save(repo);
       return;
     }
 
     try {
-      final budgetJson = await localStore.readJson(LocalStore.keyTripBudget);
-      final expensesJson =
-          await localStore.readJson(LocalStore.keyTripExpenses);
+      final loadedBudget = await repo.loadBudget();
+      final loadedExpenses = await repo.loadExpenses();
 
-      if (budgetJson == null || expensesJson == null) {
-        // Fall back to defaults without crashing
+      if (loadedBudget == null) {
         _initializeDefaults();
         return;
       }
 
-      final schemaVer = await localStore.getSchemaVersion();
-      if (schemaVer == null || schemaVer > LocalStore.currentSchemaVersion) {
-        _initializeDefaults();
-        return;
-      }
-
-      if (budgetJson is Map<String, dynamic>) {
-        _budget = TripBudget.fromJson(budgetJson);
-      } else if (budgetJson is Map) {
-        _budget = TripBudget.fromJson(budgetJson.cast<String, dynamic>());
-      } else {
-        _initializeDefaults();
-        return;
-      }
-
-      if (expensesJson is List) {
-        _expenses.clear();
-        for (final item in expensesJson) {
-          if (item is Map<String, dynamic>) {
-            _expenses.add(Expense.fromJson(item));
-          } else if (item is Map) {
-            _expenses.add(Expense.fromJson(item.cast<String, dynamic>()));
-          }
-        }
-      } else {
-        _initializeDefaults();
-        return;
-      }
-
+      _budget = loadedBudget;
+      _expenses.clear();
+      _expenses.addAll(loadedExpenses);
       notifyListeners();
     } catch (_) {
       // Fallback on corrupt or invalid data
@@ -134,15 +118,12 @@ class TripBudgetController extends ChangeNotifier {
     }
   }
 
-  /// Persist budget and expenses to persistent store.
-  Future<void> save([LocalStore? store]) async {
-    final localStore = store ?? LocalStore.instance;
+  /// Persist budget and expenses to repository.
+  Future<void> save([dynamic source]) async {
+    final repo = resolveFinanceRepository(source, _repository);
     try {
-      await localStore.writeJson(LocalStore.keyTripBudget, _budget.toJson());
-      await localStore.writeJson(
-        LocalStore.keyTripExpenses,
-        _expenses.map((e) => e.toJson()).toList(),
-      );
+      await repo.saveBudget(_budget);
+      await repo.saveExpenses(_expenses);
     } catch (_) {
       // Ignore storage errors in quiet background saves
     }

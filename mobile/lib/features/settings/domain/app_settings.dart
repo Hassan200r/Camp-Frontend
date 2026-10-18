@@ -1,0 +1,130 @@
+import 'package:flutter/foundation.dart';
+import 'units_system.dart';
+
+/// Application configuration and preferences domain model.
+@immutable
+class AppSettings {
+  AppSettings({
+    String? id,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    this.units = UnitsSystem.metric,
+    this.notificationsEnabled = true,
+    this.privacySharingEnabled = true,
+    this.cachedPacksSizeGb = 14.2,
+    this.cachedPacksSubtitle = 'Cascades & Alps Route Packs',
+    this.localCacheSizeGb = 1.4,
+    this.language = 'English',
+  })  : id = id ?? 'settings-default',
+        createdAt = (createdAt ?? DateTime.now()).toUtc(),
+        updatedAt = (updatedAt ?? DateTime.now()).toUtc();
+
+  factory AppSettings.fromJson(Map<String, dynamic> json) {
+    DateTime? parseUtc(dynamic val) {
+      if (val == null) return null;
+      if (val is String) return DateTime.tryParse(val)?.toUtc();
+      return null;
+    }
+
+    final created = parseUtc(json['createdAt']) ?? DateTime.now().toUtc();
+    final updated = parseUtc(json['updatedAt']) ?? created;
+
+    return AppSettings(
+      id: json['id'] as String? ?? 'settings-default',
+      createdAt: created,
+      updatedAt: updated,
+      units: json['units'] == 'imperial'
+          ? UnitsSystem.imperial
+          : UnitsSystem.metric,
+      notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
+      privacySharingEnabled: json['privacySharingEnabled'] as bool? ?? true,
+      cachedPacksSizeGb:
+          (json['cachedPacksSizeGb'] as num?)?.toDouble() ?? 14.2,
+      cachedPacksSubtitle: json['cachedPacksSubtitle'] as String? ??
+          'Cascades & Alps Route Packs',
+      localCacheSizeGb: (json['localCacheSizeGb'] as num?)?.toDouble() ?? 1.4,
+      language: json['language'] as String? ?? 'English',
+    );
+  }
+
+  final String id;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  String get effectiveId => id;
+  DateTime get effectiveCreatedAt => createdAt;
+  DateTime get effectiveUpdatedAt => updatedAt;
+  final UnitsSystem units;
+  final bool notificationsEnabled;
+  final bool privacySharingEnabled;
+  final double cachedPacksSizeGb;
+  final String cachedPacksSubtitle;
+  final double localCacheSizeGb;
+  final String language;
+
+  AppSettings copyWith({
+    String? id,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    UnitsSystem? units,
+    bool? notificationsEnabled,
+    bool? privacySharingEnabled,
+    double? cachedPacksSizeGb,
+    String? cachedPacksSubtitle,
+    double? localCacheSizeGb,
+    String? language,
+  }) {
+    return AppSettings(
+      id: id ?? this.id,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? DateTime.now().toUtc(),
+      units: units ?? this.units,
+      notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+      privacySharingEnabled:
+          privacySharingEnabled ?? this.privacySharingEnabled,
+      cachedPacksSizeGb: cachedPacksSizeGb ?? this.cachedPacksSizeGb,
+      cachedPacksSubtitle: cachedPacksSubtitle ?? this.cachedPacksSubtitle,
+      localCacheSizeGb: localCacheSizeGb ?? this.localCacheSizeGb,
+      language: language ?? this.language,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'createdAt': createdAt.toUtc().toIso8601String(),
+        'updatedAt': updatedAt.toUtc().toIso8601String(),
+        'units': units.name,
+        'notificationsEnabled': notificationsEnabled,
+        'privacySharingEnabled': privacySharingEnabled,
+        'cachedPacksSizeGb': cachedPacksSizeGb,
+        'cachedPacksSubtitle': cachedPacksSubtitle,
+        'localCacheSizeGb': localCacheSizeGb,
+        'language': language,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AppSettings &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          units == other.units &&
+          notificationsEnabled == other.notificationsEnabled &&
+          privacySharingEnabled == other.privacySharingEnabled &&
+          cachedPacksSizeGb == other.cachedPacksSizeGb &&
+          cachedPacksSubtitle == other.cachedPacksSubtitle &&
+          localCacheSizeGb == other.localCacheSizeGb &&
+          language == other.language;
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        units,
+        notificationsEnabled,
+        privacySharingEnabled,
+        cachedPacksSizeGb,
+        cachedPacksSubtitle,
+        localCacheSizeGb,
+        language,
+      );
+}

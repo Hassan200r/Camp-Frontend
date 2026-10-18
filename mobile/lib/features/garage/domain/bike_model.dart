@@ -90,17 +90,21 @@ class Bike {
     this.ridingTerrain,
     this.edition,
     this.imagePath,
-    this.fuelRemainingLiters,
+    double? fuelRemainingLiters,
     this.lastFuelUpdate,
     this.lastFullRefillOdometer,
-    this.currentFuelLiters,
+    double? currentFuelLiters,
     int? fuelLevelPercent,
     this.lastOilChange,
     this.lastTuneUp,
     this.vin,
     this.nickname,
     this.lastUpdated,
-  }) : _explicitFuelLevelPercent = fuelLevelPercent;
+    this.createdAt,
+    this.updatedAt,
+  })  : fuelRemainingLiters = fuelRemainingLiters ?? currentFuelLiters,
+        currentFuelLiters = currentFuelLiters ?? fuelRemainingLiters,
+        _explicitFuelLevelPercent = fuelLevelPercent;
 
   factory Bike.fromJson(Map<String, dynamic> json) {
     final tankCapacity = (json['fuelTankCapacityLiters'] as num?)?.toDouble();
@@ -119,8 +123,28 @@ class Bike {
     final rawOdo = json['odometerKm'] as int? ?? 0;
     final preciseOdo = (json['preciseOdometerKm'] as num?)?.toDouble();
 
+    final idStr = (json['id'] as String?)?.trim();
+    final effectiveId = (idStr != null && idStr.isNotEmpty)
+        ? idStr
+        : 'bike-${DateTime.now().millisecondsSinceEpoch}';
+
+    DateTime? parseUtc(dynamic val) {
+      if (val == null) return null;
+      if (val is String) return DateTime.tryParse(val)?.toUtc();
+      return null;
+    }
+
+    final createdUtc = parseUtc(json['createdAt']) ??
+        parseUtc(json['lastUpdated']) ??
+        DateTime.now().toUtc();
+    final updatedUtc = parseUtc(json['updatedAt']) ??
+        parseUtc(json['lastUpdated']) ??
+        createdUtc;
+
     return Bike(
-      id: json['id'] as String,
+      id: effectiveId,
+      createdAt: createdUtc,
+      updatedAt: updatedUtc,
       make: json['make'] as String? ?? 'Unknown',
       modelName: json['modelName'] as String? ?? 'Unknown',
       modelYear: json['modelYear'] as int? ?? DateTime.now().year,
@@ -166,6 +190,18 @@ class Bike {
 
   /// Unique identifier for the bike.
   final String id;
+
+  /// Timestamp when bike record was originally created (UTC).
+  final DateTime? createdAt;
+
+  /// Timestamp when bike record was last updated (UTC).
+  final DateTime? updatedAt;
+
+  DateTime get effectiveCreatedAt =>
+      createdAt?.toUtc() ?? lastUpdated?.toUtc() ?? DateTime(2024, 1, 1).toUtc();
+
+  DateTime get effectiveUpdatedAt =>
+      updatedAt?.toUtc() ?? lastUpdated?.toUtc() ?? effectiveCreatedAt;
 
   /// Manufacturer/Make (e.g. Honda, BMW, Yamaha).
   final String make;
@@ -250,6 +286,8 @@ class Bike {
   /// Timestamp of when the motorcycle profile/mileage/service was last updated.
   final DateTime? lastUpdated;
 
+  String get effectiveId => id;
+
   /// Friendly display name (nickname if present, else "$make $modelName").
   String get name =>
       nickname?.isNotEmpty == true ? nickname! : '$make $modelName';
@@ -287,6 +325,8 @@ class Bike {
     String? vin,
     String? nickname,
     DateTime? lastUpdated,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     final newTankCapacity =
         fuelTankCapacityLiters ?? this.fuelTankCapacityLiters;
@@ -318,9 +358,9 @@ class Bike {
           fuelAverageKmPerLiter ?? this.fuelAverageKmPerLiter,
       ridingTerrain: ridingTerrain ?? this.ridingTerrain,
       edition: edition ?? this.edition,
+      imagePath: imagePath ?? this.imagePath,
       odometerKm: odometerKm ?? this.odometerKm,
-      preciseOdometerKm: preciseOdometerKm ??
-          (odometerKm != null ? odometerKm.toDouble() : this.preciseOdometerKm),
+      preciseOdometerKm: preciseOdometerKm ?? this.preciseOdometerKm,
       fuelRemainingLiters: newFuelLiters,
       lastFuelUpdate: lastFuelUpdate ?? this.lastFuelUpdate,
       lastFullRefillOdometer:
@@ -332,6 +372,8 @@ class Bike {
       vin: vin ?? this.vin,
       nickname: nickname ?? this.nickname,
       lastUpdated: lastUpdated ?? this.lastUpdated,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? DateTime.now().toUtc(),
     );
   }
 
@@ -399,6 +441,8 @@ class Bike {
 
   Map<String, dynamic> toJson() => {
         'id': id,
+        'createdAt': effectiveCreatedAt.toIso8601String(),
+        'updatedAt': effectiveUpdatedAt.toIso8601String(),
         'make': make,
         'modelName': modelName,
         'modelYear': modelYear,

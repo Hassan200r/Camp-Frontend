@@ -12,13 +12,33 @@ class PostRideReport {
     required this.terrainTags,
     this.notes,
     this.flaggedIssues,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory PostRideReport.fromJson(Map<String, dynamic> json) {
+    DateTime? parseUtc(dynamic val) {
+      if (val == null) return null;
+      if (val is String) return DateTime.tryParse(val)?.toUtc();
+      return null;
+    }
+
+    final rawId = json['id'] as String?;
+    final effectiveId = (rawId != null && rawId.trim().isNotEmpty)
+        ? rawId.trim()
+        : 'report-${DateTime.now().millisecondsSinceEpoch}';
+
+    final reportDate =
+        DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now();
+    final createdUtc = parseUtc(json['createdAt']) ?? reportDate.toUtc();
+    final updatedUtc = parseUtc(json['updatedAt']) ?? createdUtc;
+
     return PostRideReport(
-      id: json['id'] as String,
-      bikeId: json['bikeId'] as String,
-      date: DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now(),
+      id: effectiveId,
+      createdAt: createdUtc,
+      updatedAt: updatedUtc,
+      bikeId: json['bikeId'] as String? ?? 'unknown-bike',
+      date: reportDate,
       distanceKm: (json['distanceKm'] as num?)?.toDouble() ?? 0.0,
       terrainTags: (json['terrainTags'] as List<dynamic>?)
               ?.map((e) => e.toString())
@@ -31,6 +51,17 @@ class PostRideReport {
 
   /// Unique identifier for this report log.
   final String id;
+
+  String get effectiveId => id;
+
+  /// Timestamp when report was created (UTC).
+  final DateTime? createdAt;
+
+  /// Timestamp when report was last updated (UTC).
+  final DateTime? updatedAt;
+
+  DateTime get effectiveCreatedAt => createdAt?.toUtc() ?? date.toUtc();
+  DateTime get effectiveUpdatedAt => updatedAt?.toUtc() ?? effectiveCreatedAt;
 
   /// Identifier of the bike used on the expedition.
   final String bikeId;
@@ -66,6 +97,8 @@ class PostRideReport {
     List<String>? terrainTags,
     String? notes,
     String? flaggedIssues,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return PostRideReport(
       id: id ?? this.id,
@@ -75,6 +108,8 @@ class PostRideReport {
       terrainTags: terrainTags ?? this.terrainTags,
       notes: notes ?? this.notes,
       flaggedIssues: flaggedIssues ?? this.flaggedIssues,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? DateTime.now().toUtc(),
     );
   }
 
@@ -108,6 +143,8 @@ class PostRideReport {
 
   Map<String, dynamic> toJson() => {
         'id': id,
+        'createdAt': effectiveCreatedAt.toIso8601String(),
+        'updatedAt': effectiveUpdatedAt.toIso8601String(),
         'bikeId': bikeId,
         'date': date.toIso8601String(),
         'distanceKm': distanceKm,

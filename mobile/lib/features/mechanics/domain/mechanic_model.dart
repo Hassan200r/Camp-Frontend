@@ -31,11 +31,29 @@ class Mechanic {
     this.openMinutes,
     this.closeMinutes,
     this.open24Hours = false,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory Mechanic.fromJson(Map<String, dynamic> json) {
+    DateTime? parseUtc(dynamic val) {
+      if (val == null) return null;
+      if (val is String) return DateTime.tryParse(val)?.toUtc();
+      return null;
+    }
+
+    final rawId = json['id'] as String?;
+    final effectiveId = (rawId != null && rawId.trim().isNotEmpty)
+        ? rawId.trim()
+        : 'mechanic-${DateTime.now().millisecondsSinceEpoch}';
+
+    final createdUtc = parseUtc(json['createdAt']) ?? DateTime.now().toUtc();
+    final updatedUtc = parseUtc(json['updatedAt']) ?? createdUtc;
+
     return Mechanic(
-      id: json['id'] as String? ?? '0',
+      id: effectiveId,
+      createdAt: createdUtc,
+      updatedAt: updatedUtc,
       name: json['name'] as String? ?? 'Mechanic',
       distance: json['distance'] as String? ?? 'Nearby',
       durationOrLocation: json['durationOrLocation'] as String? ?? '',
@@ -69,6 +87,16 @@ class Mechanic {
   }
 
   final String id;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  String get effectiveId => id;
+
+  DateTime get effectiveCreatedAt =>
+      createdAt?.toUtc() ?? DateTime(2024, 1, 1).toUtc();
+
+  DateTime get effectiveUpdatedAt =>
+      updatedAt?.toUtc() ?? effectiveCreatedAt;
   final String name;
   final String distance;
   final String durationOrLocation;
@@ -116,6 +144,8 @@ class Mechanic {
     int? openMinutes,
     int? closeMinutes,
     bool? open24Hours,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return Mechanic(
       id: id ?? this.id,
@@ -141,11 +171,15 @@ class Mechanic {
       openMinutes: openMinutes ?? this.openMinutes,
       closeMinutes: closeMinutes ?? this.closeMinutes,
       open24Hours: open24Hours ?? this.open24Hours,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? DateTime.now().toUtc(),
     );
   }
 
   Map<String, dynamic> toJson() => {
         'id': id,
+        'createdAt': effectiveCreatedAt.toIso8601String(),
+        'updatedAt': effectiveUpdatedAt.toIso8601String(),
         'name': name,
         'distance': distance,
         'durationOrLocation': durationOrLocation,

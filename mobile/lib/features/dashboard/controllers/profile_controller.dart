@@ -1,13 +1,22 @@
 import 'package:flutter/foundation.dart';
-import '../../../core/storage/local_store.dart';
+import '../../../core/data/app_repositories.dart';
+import '../../../core/data/profile_repository.dart';
+import '../../../core/data/profile_repository_local.dart';
 import '../../auth/controllers/auth_controller.dart';
+import '../domain/user_profile_model.dart';
 
 /// Single source of truth for the rider's profile information.
-/// Persisted locally via [LocalStore].
+/// Persisted through [ProfileRepository].
 class ProfileController extends ChangeNotifier {
-  ProfileController._();
+  ProfileController({ProfileRepository? repository})
+      : _repository = repository ?? AppRepositories.instance.profileRepository;
 
-  static final ProfileController instance = ProfileController._();
+  static ProfileController instance = ProfileController();
+
+  ProfileRepository _repository;
+
+  @visibleForTesting
+  set repository(ProfileRepository repo) => _repository = repo;
 
   String? _fullName;
   String? _username;
@@ -68,7 +77,7 @@ class ProfileController extends ChangeNotifier {
   String get emergencyContactPhone => _emergencyContactPhone ?? '';
   String get bloodGroup => _bloodGroup;
 
-  /// Update profile attributes and persist to [LocalStore].
+  /// Update profile attributes and persist to [ProfileRepository].
   void updateProfile({
     String? fullName,
     String? username,
@@ -114,7 +123,7 @@ class ProfileController extends ChangeNotifier {
   }
 
   /// Await completion of all pending storage writes.
-  Future<void> flush() => LocalStore.instance.flush();
+  Future<void> flush() => _repository.flush();
 
   /// Reset in-memory state for testing.
   @visibleForTesting
@@ -134,32 +143,34 @@ class ProfileController extends ChangeNotifier {
     _emergencyContactRelation = null;
     _emergencyContactPhone = null;
     _bloodGroup = 'O+ (Universal Donor)';
+    _repository = AppRepositories.instance.profileRepository;
     notifyListeners();
   }
 
-  /// Load profile from storage.
-  Future<void> load([LocalStore? store]) async {
-    final localStore = store ?? LocalStore.instance;
+  /// Load profile from repository.
+  Future<void> load([dynamic source]) async {
+    final repo = resolveProfileRepository(source, _repository);
+    if (source != null) {
+      _repository = repo;
+    }
     try {
-      final json = await localStore.readJson(LocalStore.keyProfile);
-      if (json is Map<String, dynamic>) {
-        _fullName = json['fullName'] as String?;
-        _username = json['username'] as String?;
-        _email = json['email'] as String?;
-        _phone = json['phone'] as String?;
-        _homeCity = json['homeCity'] as String?;
-        _dob = json['dob'] as String?;
-        _avatarPath = json['avatarPath'] as String?;
-        _ridingTier = json['ridingTier'] as String? ?? 'ADV PRO';
-        _experienceIndex = (json['experienceIndex'] as num?)?.toInt() ?? 2;
-        if (json['ridingStyles'] is List) {
-          _ridingStyles = (json['ridingStyles'] as List).cast<String>().toSet();
-        }
-        _unitIndex = (json['unitIndex'] as num?)?.toInt() ?? 0;
-        _emergencyContactName = json['emergencyContactName'] as String?;
-        _emergencyContactRelation = json['emergencyContactRelation'] as String?;
-        _emergencyContactPhone = json['emergencyContactPhone'] as String?;
-        _bloodGroup = json['bloodGroup'] as String? ?? 'O+ (Universal Donor)';
+      final profile = await repo.loadProfile();
+      if (profile != null) {
+        _fullName = profile.fullName;
+        _username = profile.username;
+        _email = profile.email;
+        _phone = profile.phone;
+        _homeCity = profile.homeCity;
+        _dob = profile.dob;
+        _avatarPath = profile.avatarPath;
+        _ridingTier = profile.ridingTier;
+        _experienceIndex = profile.experienceIndex;
+        _ridingStyles = profile.ridingStyles;
+        _unitIndex = profile.unitIndex;
+        _emergencyContactName = profile.emergencyContactName;
+        _emergencyContactRelation = profile.emergencyContactRelation;
+        _emergencyContactPhone = profile.emergencyContactPhone;
+        _bloodGroup = profile.bloodGroup;
         notifyListeners();
       }
     } catch (_) {
@@ -167,26 +178,26 @@ class ProfileController extends ChangeNotifier {
     }
   }
 
-  /// Save profile to storage.
-  Future<void> save([LocalStore? store]) async {
-    final localStore = store ?? LocalStore.instance;
-    final map = <String, dynamic>{
-      'fullName': _fullName,
-      'username': _username,
-      'email': _email,
-      'phone': _phone,
-      'homeCity': _homeCity,
-      'dob': _dob,
-      'avatarPath': _avatarPath,
-      'ridingTier': _ridingTier,
-      'experienceIndex': _experienceIndex,
-      'ridingStyles': _ridingStyles.toList(),
-      'unitIndex': _unitIndex,
-      'emergencyContactName': _emergencyContactName,
-      'emergencyContactRelation': _emergencyContactRelation,
-      'emergencyContactPhone': _emergencyContactPhone,
-      'bloodGroup': _bloodGroup,
-    };
-    await localStore.writeJson(LocalStore.keyProfile, map);
+  /// Save profile to repository.
+  Future<void> save([dynamic source]) async {
+    final repo = resolveProfileRepository(source, _repository);
+    final profile = UserProfile(
+      fullName: _fullName,
+      username: _username,
+      email: _email,
+      phone: _phone,
+      homeCity: _homeCity,
+      dob: _dob,
+      avatarPath: _avatarPath,
+      ridingTier: _ridingTier,
+      experienceIndex: _experienceIndex,
+      ridingStyles: _ridingStyles,
+      unitIndex: _unitIndex,
+      emergencyContactName: _emergencyContactName,
+      emergencyContactRelation: _emergencyContactRelation,
+      emergencyContactPhone: _emergencyContactPhone,
+      bloodGroup: _bloodGroup,
+    );
+    await repo.saveProfile(profile);
   }
 }

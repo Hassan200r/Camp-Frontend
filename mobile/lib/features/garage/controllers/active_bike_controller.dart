@@ -1,17 +1,25 @@
 import 'package:flutter/foundation.dart';
 
-import '../../../core/storage/local_store.dart';
+import '../../../core/data/app_repositories.dart';
+import '../../../core/data/bike_repository.dart';
+import '../../../core/data/bike_repository_local.dart';
 import '../domain/bike_model.dart';
 
 /// Central state controller managing the rider's garage fleet and the current active telemetry rig.
 /// Provides reactive state for both the Garage overview screen and individual BikeProfileScreens.
 class ActiveBikeController extends ChangeNotifier {
-  ActiveBikeController._() {
+  ActiveBikeController({BikeRepository? repository})
+      : _repository = repository ?? AppRepositories.instance.bikeRepository {
     _initializeDefaultFleet();
   }
 
   /// Shared singleton instance across the application.
-  static final ActiveBikeController instance = ActiveBikeController._();
+  static ActiveBikeController instance = ActiveBikeController();
+
+  BikeRepository _repository;
+
+  @visibleForTesting
+  set repository(BikeRepository repo) => _repository = repo;
 
   /// Registered motorcycles in the rider's garage fleet.
   final List<Bike> _bikes = [];
@@ -100,48 +108,35 @@ class ActiveBikeController extends ChangeNotifier {
   void resetForTesting() {
     _bikes.clear();
     _activeBikeId = null;
+    _repository = AppRepositories.instance.bikeRepository;
     notifyListeners();
   }
 
   /// Await completion of all pending storage writes.
-  Future<void> flush() => LocalStore.instance.flush();
+  Future<void> flush() => _repository.flush();
 
   /// Load garage fleet and active bike selection from persistent store.
-  Future<void> load([LocalStore? store]) async {
-    final localStore = store ?? LocalStore.instance;
-    final isFirst = await localStore.isFirstRun();
-
-    if (isFirst) {
-      _initializeDefaultFleet();
-      await save(localStore);
-      return;
+  Future<void> load([dynamic source]) async {
+    final repo = resolveBikeRepository(source, _repository);
+    if (source != null) {
+      _repository = repo;
     }
-
     try {
-      final bikesJson = await localStore.readJson(LocalStore.keyBikes);
-      final activeId = await localStore.readString(LocalStore.keyActiveBikeId);
-
-      if (bikesJson == null || bikesJson is! List) {
-        // Corrupted or missing data falls back to defaults without crashing
+      final isFirst = await repo.isFirstRun();
+      if (isFirst) {
         _initializeDefaultFleet();
-        notifyListeners();
+        await save(repo);
         return;
       }
 
-      final schemaVer = await localStore.getSchemaVersion();
-      if (schemaVer == null || schemaVer > LocalStore.currentSchemaVersion) {
-        _initializeDefaultFleet();
+      final loadedBikes = await repo.loadBikes();
+      final activeId = await repo.loadActiveBikeId();
+
+      if (loadedBikes.isEmpty) {
+        _bikes.clear();
+        _activeBikeId = null;
         notifyListeners();
         return;
-      }
-
-      final loadedBikes = <Bike>[];
-      for (final item in bikesJson) {
-        if (item is Map<String, dynamic>) {
-          loadedBikes.add(Bike.fromJson(item));
-        } else if (item is Map) {
-          loadedBikes.add(Bike.fromJson(item.cast<String, dynamic>()));
-        }
       }
 
       _bikes.clear();
@@ -162,18 +157,13 @@ class ActiveBikeController extends ChangeNotifier {
   }
 
   /// Persist current garage fleet and active bike selection.
-  Future<void> save([LocalStore? store]) async {
-    final localStore = store ?? LocalStore.instance;
+  Future<void> save([dynamic source]) async {
+    final repo = resolveBikeRepository(source, _repository);
+    final bikesToSave = List<Bike>.from(_bikes);
+    final activeIdToSave = _activeBikeId;
     try {
-      await localStore.writeJson(
-        LocalStore.keyBikes,
-        _bikes.map((b) => b.toJson()).toList(),
-      );
-      if (_activeBikeId != null) {
-        await localStore.writeString(LocalStore.keyActiveBikeId, _activeBikeId!);
-      } else {
-        await localStore.remove(LocalStore.keyActiveBikeId);
-      }
+      await repo.saveBikes(bikesToSave);
+      await repo.saveActiveBikeId(activeIdToSave);
     } catch (_) {
       // Ignore background write errors
     }

@@ -1,13 +1,21 @@
 import 'package:flutter/foundation.dart';
-import '../../../core/storage/local_store.dart';
+import '../../../core/data/app_repositories.dart';
+import '../../../core/data/mechanic_repository.dart';
+import '../../../core/data/mechanic_repository_local.dart';
 import '../domain/mechanic_model.dart';
 
 /// Central state controller managing mechanics and emergency field workshops.
-/// Persisted locally via [LocalStore].
+/// Persisted via [MechanicRepository].
 class MechanicController extends ChangeNotifier {
-  MechanicController._();
+  MechanicController({MechanicRepository? repository})
+      : _repository = repository ?? AppRepositories.instance.mechanicRepository;
 
-  static final MechanicController instance = MechanicController._();
+  static MechanicController instance = MechanicController();
+
+  MechanicRepository _repository;
+
+  @visibleForTesting
+  set repository(MechanicRepository repo) => _repository = repo;
 
   final List<Mechanic> _mechanics = [];
 
@@ -37,19 +45,23 @@ class MechanicController extends ChangeNotifier {
   }
 
   /// Await completion of all pending storage writes.
-  Future<void> flush() => LocalStore.instance.flush();
+  Future<void> flush() => _repository.flush();
 
   @visibleForTesting
   void resetForTesting() {
     _mechanics.clear();
+    _repository = AppRepositories.instance.mechanicRepository;
     notifyListeners();
   }
 
-  /// Load mechanics list from [LocalStore].
+  /// Load mechanics list from repository.
   /// Gated: sample data is seeded ONLY when isFirstRun() AND kDebugMode.
-  Future<void> load([LocalStore? store]) async {
-    final localStore = store ?? LocalStore.instance;
-    final isFirst = await localStore.isFirstRun();
+  Future<void> load([dynamic source]) async {
+    final repo = resolveMechanicRepository(source, _repository);
+    if (source != null) {
+      _repository = repo;
+    }
+    final isFirst = await repo.isFirstRun();
 
     if (isFirst) {
       if (kDebugMode) {
@@ -58,35 +70,25 @@ class MechanicController extends ChangeNotifier {
       } else {
         _mechanics.clear();
       }
-      await save(localStore);
+      await save(repo);
       notifyListeners();
       return;
     }
 
     try {
-      final json = await localStore.readJson(LocalStore.keyMechanics);
-      if (json is List) {
-        final loaded = <Mechanic>[];
-        for (final item in json) {
-          if (item is Map<String, dynamic>) {
-            loaded.add(Mechanic.fromJson(item));
-          } else if (item is Map) {
-            loaded.add(Mechanic.fromJson(item.cast<String, dynamic>()));
-          }
-        }
-        _mechanics.clear();
-        _mechanics.addAll(loaded);
-        notifyListeners();
-      }
+      final loaded = await repo.loadMechanics();
+      _mechanics.clear();
+      _mechanics.addAll(loaded);
+      notifyListeners();
     } catch (_) {
       // Gracefully fall back
     }
   }
 
-  /// Save mechanics list to [LocalStore].
-  Future<void> save([LocalStore? store]) async {
-    final localStore = store ?? LocalStore.instance;
-    final list = _mechanics.map((m) => m.toJson()).toList();
-    await localStore.writeJson(LocalStore.keyMechanics, list);
+  /// Save mechanics list to repository.
+  Future<void> save([dynamic source]) async {
+    final repo = resolveMechanicRepository(source, _repository);
+    await repo.saveMechanics(_mechanics);
   }
 }
+
