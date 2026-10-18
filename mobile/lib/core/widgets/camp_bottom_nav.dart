@@ -3,14 +3,19 @@ import 'package:flutter/material.dart';
 import '../../app/routes.dart';
 import '../../app/theme/app_colors.dart';
 import '../utils/keyboard_visibility.dart';
+import 'camp_tab.dart';
+
+export 'camp_tab.dart';
 
 /// Navigation item definition for [CampBottomNav]
 class CampNavItem {
   const CampNavItem({
+    required this.tab,
     required this.icon,
     required this.label,
   });
 
+  final CampTab tab;
   final IconData icon;
   final String label;
 }
@@ -21,68 +26,52 @@ class CampNavItem {
 /// Automatically hides when keyboard is visible (via [KeyboardVisibilityBuilder]).
 class CampBottomNav extends StatelessWidget {
   const CampBottomNav({
-    required this.selectedIndex,
-    this.onIndexChanged,
+    this.selected,
+    this.onTabChanged,
     super.key,
     this.items = defaultItems,
   });
 
-  final int selectedIndex;
-  final ValueChanged<int>? onIndexChanged;
+  final CampTab? selected;
+  final ValueChanged<CampTab>? onTabChanged;
   final List<CampNavItem> items;
 
   static const List<CampNavItem> defaultItems = [
-    CampNavItem(icon: Icons.explore_rounded, label: 'Explore Home'),
-    CampNavItem(icon: Icons.two_wheeler_rounded, label: 'Bike Scan'),
-    CampNavItem(icon: Icons.navigation_rounded, label: 'Navigation'),
-    CampNavItem(icon: Icons.handyman_rounded, label: 'Mechanic'),
-    CampNavItem(icon: Icons.account_balance_wallet_rounded, label: 'Finances & Rig Health'),
-    CampNavItem(icon: Icons.person_rounded, label: 'Profile'),
+    CampNavItem(tab: CampTab.home, icon: Icons.explore_rounded, label: 'Explore Home'),
+    CampNavItem(tab: CampTab.garage, icon: Icons.two_wheeler_rounded, label: 'Garage & Bikes'),
+    CampNavItem(tab: CampTab.navigation, icon: Icons.navigation_rounded, label: 'Navigation'),
+    CampNavItem(tab: CampTab.mechanics, icon: Icons.handyman_rounded, label: 'Mechanic'),
+    CampNavItem(tab: CampTab.finances, icon: Icons.account_balance_wallet_rounded, label: 'Finances & Rig Health'),
+    CampNavItem(tab: CampTab.profile, icon: Icons.person_rounded, label: 'Profile'),
   ];
 
   /// Standard tab navigation helper across all screens
-  static void navigateToTab(BuildContext context, int targetIndex, {int? currentIndex}) {
-    if (currentIndex == targetIndex) return;
+  static void navigateToTab(
+    BuildContext context,
+    CampTab targetTab, {
+    CampTab? currentTab,
+  }) {
+    final currentRouteName = ModalRoute.of(context)?.settings.name;
 
-    switch (targetIndex) {
-      case 0:
-        if (Navigator.of(context).canPop()) {
-          Navigator.of(context).popUntil((route) => route.isFirst);
-        } else {
-          Navigator.of(context).pushNamedAndRemoveUntil(CampRoutes.home, (route) => false);
-        }
-        break;
-      case 1:
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          CampRoutes.addBike,
-          (route) => route.settings.name == CampRoutes.home,
-        );
-        break;
-      case 2:
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          CampRoutes.navigationMap,
-          (route) => route.settings.name == CampRoutes.home,
-        );
-        break;
-      case 3:
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          CampRoutes.mechanics,
-          (route) => route.settings.name == CampRoutes.home,
-        );
-        break;
-      case 4:
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          CampRoutes.financeRigHealth,
-          (route) => route.settings.name == CampRoutes.home,
-        );
-        break;
-      case 5:
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          CampRoutes.profile,
-          (route) => route.settings.name == CampRoutes.home,
-        );
-        break;
+    // Tapping the highlighted tab while on its root screen does nothing
+    if (currentRouteName == targetTab.rootRoute) {
+      return;
     }
+
+    // Tapping a tab from a sub-screen or another tab navigates to that tab's root
+    // without stacking duplicates, keeping Home as the base.
+    if (targetTab == CampTab.home) {
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        CampRoutes.home,
+        (route) => false,
+      );
+      return;
+    }
+
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      targetTab.rootRoute,
+      (route) => route.isFirst || route.settings.name == CampRoutes.home,
+    );
   }
 
   @override
@@ -128,7 +117,7 @@ class CampBottomNav extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: List.generate(items.length, (index) {
           final item = items[index];
-          final isActive = index == selectedIndex;
+          final isActive = item.tab == selected;
 
           return Padding(
             padding: EdgeInsets.only(left: index == 0 ? 0 : 8),
@@ -137,10 +126,10 @@ class CampBottomNav extends StatelessWidget {
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () {
-                  if (onIndexChanged != null) {
-                    onIndexChanged!(index);
+                  if (onTabChanged != null) {
+                    onTabChanged!(item.tab);
                   } else {
-                    navigateToTab(context, index, currentIndex: selectedIndex);
+                    navigateToTab(context, item.tab, currentTab: selected);
                   }
                 },
                 child: isActive

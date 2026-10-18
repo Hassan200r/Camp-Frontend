@@ -6,7 +6,7 @@ class RiderUser {
     required this.email,
     required this.phone,
     this.callSign = 'Ghost Rider',
-    this.helmetTokenId = 'CAMP-OBD-9842',
+    this.helmetTokenId = 'CAMP-RIDER-9842',
     this.telemetryActive = true,
     this.biometricEnabled = true,
     this.memberSince,

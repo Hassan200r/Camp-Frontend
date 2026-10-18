@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
@@ -9,11 +10,13 @@ import '../../../navigation/presentation/widgets/topographic_map_canvas.dart';
 import '../../controllers/mechanic_controller.dart';
 import '../../domain/mechanic_model.dart';
 import '../../domain/mechanic_open_status.dart';
+
 import '../widgets/custom_app_bar.dart';
 import '../widgets/filter_chips_widget.dart';
 import '../widgets/mechanic_card.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/view_toggle_widget.dart';
+import 'add_mechanic_screen.dart';
 
 class MechanicsHomeScreen extends StatefulWidget {
   const MechanicsHomeScreen({super.key});
@@ -35,7 +38,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
   bool _isListView = true;
   String _selectedFilter = 'all';
   String _searchQuery = '';
-  int _currentNavIndex = 3; // 3 is the active Mechanic (Wrench) hub
+  CampTab _currentTab = CampTab.mechanics;
   final TextEditingController _searchController = TextEditingController();
 
   List<Mechanic> get _filteredMechanics {
@@ -155,7 +158,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
 
   Future<void> _navigateToMapScreen() async {
     setState(() {
-      _currentNavIndex = 2;
+      _currentTab = CampTab.navigation;
     });
     await Navigator.pushNamed(
       context,
@@ -164,13 +167,58 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
     if (mounted) {
       // Strictly open Mechanic Screen (Index 3)
       setState(() {
-        _currentNavIndex = 3;
+        _currentTab = CampTab.mechanics;
         _isListView = true;
       });
     }
   }
 
   void _showCallModal(Mechanic mechanic) {
+    final phone = (mechanic.phoneNumber ?? mechanic.phone).trim();
+    if (phone.isEmpty) {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.clay,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text(
+            'No number saved',
+            style: AppTextStyles.cardTitle.copyWith(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppColors.darkCharcoal,
+            ),
+          ),
+          content: Text(
+            'No phone number has been saved for ${mechanic.name}.',
+            style: AppTextStyles.body,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.of(context).push(
+                  MaterialPageRoute<Mechanic>(
+                    builder: (_) => AddMechanicScreen(mechanic: mechanic),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.tacticalOrange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Add number'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -215,7 +263,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
             ),
             const SizedBox(height: 4),
             Text(
-              mechanic.phone,
+              phone,
               style: AppTextStyles.cardTitle.copyWith(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
@@ -260,11 +308,9 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Dialing ${mechanic.phone}...'),
-                  backgroundColor: AppColors.statusGreen,
-                ),
+              launchUrl(
+                Uri(scheme: 'tel', path: phone),
+                mode: LaunchMode.externalApplication,
               );
             },
             style: ElevatedButton.styleFrom(
@@ -436,7 +482,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
                       onToggle: (isList) {
                         setState(() {
                           _isListView = isList;
-                          _currentNavIndex = 3;
+                          _currentTab = CampTab.mechanics;
                         });
                       },
                     ),
@@ -462,7 +508,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
 
                 // Floating "+ Add Mechanic" Button (FAB bottom: 96, does not overlap bottom dock at bottom: 24)
                 // Automatically hides when keyboard is open via KeyboardVisibilityBuilder
-                if (_currentNavIndex == 3 || _isListView)
+                if (_currentTab == CampTab.mechanics || _isListView)
                   Positioned(
                     right: 16,
                     bottom: 96,
@@ -511,15 +557,15 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
                   bottom: 24,
                   child: Center(
                     child: CampBottomNav(
-                      selectedIndex: 3,
-                      onIndexChanged: (index) {
-                        if (index == 3) {
+                      selected: CampTab.mechanics,
+                      onTabChanged: (tab) {
+                        if (tab == CampTab.mechanics) {
                           setState(() {
-                            _currentNavIndex = 3;
+                            _currentTab = CampTab.mechanics;
                             _isListView = true;
                           });
                         } else {
-                          CampBottomNav.navigateToTab(context, index, currentIndex: 3);
+                          CampBottomNav.navigateToTab(context, tab, currentTab: CampTab.mechanics);
                         }
                       },
                     ),

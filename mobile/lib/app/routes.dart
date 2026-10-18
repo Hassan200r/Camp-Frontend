@@ -29,6 +29,7 @@ abstract final class CampRoutes {
   static const String carburetorTuning = '/carburetor-tuning';
   static const String settings = '/settings';
   static const String emergencySos = '/emergency-sos';
+  static const String emergencyQr = '/emergency-qr';
   static const String weatherDetail = '/weather-detail';
 
   // Legacy route aliases
@@ -61,6 +62,7 @@ abstract final class CampRoutes {
     carburetorTuning,
     settings,
     emergencySos,
+    emergencyQr,
     weatherDetail,
   ];
 

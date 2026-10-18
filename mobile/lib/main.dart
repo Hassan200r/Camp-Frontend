@@ -14,6 +14,7 @@ import 'features/dashboard/presentation/screens/edit_profile_screen.dart';
 import 'features/dashboard/presentation/screens/home_screen.dart';
 import 'features/dashboard/presentation/screens/profile_screen.dart';
 import 'features/dashboard/presentation/screens/weather_detail_screen.dart';
+import 'features/emergency_sos/presentation/screens/emergency_qr_screen.dart';
 import 'features/emergency_sos/presentation/screens/emergency_sos_screen.dart';
 import 'features/garage/controllers/active_bike_controller.dart';
 import 'features/garage/presentation/screens/bike_profile_screen.dart';
@@ -135,6 +136,7 @@ class _CampAppState extends State<CampApp> with WidgetsBindingObserver {
             const MaintenanceScreen(initialTab: MaintenanceTab.carburetor),
         CampRoutes.settings: (context) => const SettingsScreen(),
         CampRoutes.emergencySos: (context) => const EmergencySosScreen(),
+        CampRoutes.emergencyQr: (context) => const EmergencyQrScreen(),
         CampRoutes.weatherDetail: (context) => const WeatherDetailScreen(),
       },
       onUnknownRoute: (settings) => MaterialPageRoute<void>(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../app/theme/app_colors.dart';
@@ -26,6 +27,8 @@ class LabeledTextField extends StatelessWidget {
     this.onTap,
     this.onChanged,
     this.maxLines = 1,
+    this.maxLength,
+    this.inputFormatters,
   });
 
   final String label;
@@ -45,6 +48,8 @@ class LabeledTextField extends StatelessWidget {
   final VoidCallback? onTap;
   final ValueChanged<String>? onChanged;
   final int maxLines;
+  final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
@@ -123,6 +128,9 @@ class LabeledTextField extends StatelessWidget {
                   onTap: onTap,
                   onChanged: onChanged,
                   maxLines: maxLines,
+                  maxLength: maxLength,
+                  inputFormatters: inputFormatters,
+                  buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
                   style: AppTextStyles.body.copyWith(
                     fontWeight: FontWeight.w600,
                   ),

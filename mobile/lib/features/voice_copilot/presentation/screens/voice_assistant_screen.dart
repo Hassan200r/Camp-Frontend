@@ -218,7 +218,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
 
       // Offline mode check: certain cloud features are unavailable when offline
       final bool isOfflineError = _isOfflineMode &&
-          (lower.contains('satellite') ||
+          (lower.contains('weather radar') ||
               lower.contains('live radar') ||
               lower.contains('cloud') ||
               lower.contains('online') ||
@@ -228,7 +228,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
         _showErrorModal(
           title: 'OFFLINE CACHE LIMITATION',
           reason:
-              'Live satellite radar & online cloud data require an active MESH or cellular connection. Running on local cached expedition data.',
+              'Live weather radar & online cloud data require an active cellular connection. Running on local cached expedition data.',
           onRetry: () => _handleMicTap(),
         );
         return;

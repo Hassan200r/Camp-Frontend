@@ -105,7 +105,7 @@ class _SignInScreenState extends State<SignInScreen> {
   Future<void> _handleBiometricTap() async {
     setState(() => _isBiometricLoading = true);
 
-    _showNotification('Scanning Bluetooth Helmet Token & Biometrics...');
+    _showNotification('Signing in...');
 
     final success = await AuthController.instance.signInWithBiometric();
 
@@ -113,7 +113,7 @@ class _SignInScreenState extends State<SignInScreen> {
     setState(() => _isBiometricLoading = false);
 
     if (success) {
-      _showNotification('Helmet Token Linked: SCHUBERTH C5 (Active)');
+      _showNotification('Signed in successfully');
       Navigator.of(context).pushReplacementNamed('/');
     }
   }
@@ -255,7 +255,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
                     const SizedBox(height: 18),
 
-                    // ── Biometric / Helmet Token Button ──────────────────────
+                    // ── Quick Sign In Button ──────────────────────
                     AuthExpressButton(
                       isLoading: _isBiometricLoading,
                       onTap: _handleBiometricTap,

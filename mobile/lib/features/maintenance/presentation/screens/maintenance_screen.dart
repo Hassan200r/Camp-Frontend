@@ -145,20 +145,13 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
               ),
 
               // ── Floating Bottom Nav ───────────────────────────────────
-              Positioned(
+              const Positioned(
                 left: 0,
                 right: 0,
                 bottom: 24,
                 child: Center(
                   child: CampBottomNav(
-                    selectedIndex: 4,
-                    onIndexChanged: (index) {
-                      CampBottomNav.navigateToTab(
-                        context,
-                        index,
-                        currentIndex: 4,
-                      );
-                    },
+                    selected: CampTab.finances,
                   ),
                 ),
               ),

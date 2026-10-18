@@ -374,20 +374,13 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
             ),
 
             // ── Floating Bottom Dock (Index 1: Bike Scan Active) ─────────────
-            Positioned(
+            const Positioned(
               left: 0,
               right: 0,
               bottom: 24,
               child: Center(
                 child: CampBottomNav(
-                  selectedIndex: 1,
-                  onIndexChanged: (index) {
-                    CampBottomNav.navigateToTab(
-                      context,
-                      index,
-                      currentIndex: 1,
-                    );
-                  },
+                  selected: CampTab.garage,
                 ),
               ),
             ),

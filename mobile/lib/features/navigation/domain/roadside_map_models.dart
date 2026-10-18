@@ -170,7 +170,7 @@ class RoadsideSectorDataset {
         eta: '8 min response',
         rating: 4.9,
         reviews: 142,
-        phone: '+1 (555) 832-1049',
+        phone: '',
         location: LatLng(center.latitude - 0.038, center.longitude - 0.052),
         isMobileVan: true,
         isEmergencyVerified: true,
@@ -191,7 +191,7 @@ class RoadsideSectorDataset {
         eta: '15 min response',
         rating: 4.8,
         reviews: 98,
-        phone: '+1 (555) 482-9921',
+        phone: '',
         location: LatLng(center.latitude + 0.042, center.longitude + 0.065),
         isMobileVan: false,
         isEmergencyVerified: true,
@@ -212,7 +212,7 @@ class RoadsideSectorDataset {
         eta: '5 min response',
         rating: 5.0,
         reviews: 56,
-        phone: '+1 (555) 291-7443',
+        phone: '',
         location: LatLng(center.latitude + 0.018, center.longitude - 0.032),
         isMobileVan: true,
         isEmergencyVerified: true,
@@ -227,51 +227,8 @@ class RoadsideSectorDataset {
       ),
     ];
 
-    // 2. Active Stranded Drivers (SOS Beacons)
-    final strandedIncidents = [
-      StrandedIncident(
-        id: 'sos-1',
-        driverName: 'Alex Vance',
-        vehicleModel: 'KTM 890 Adventure R',
-        category: BreakdownCategory.flatTire,
-        severity: BreakdownSeverity.high,
-        issueDescription:
-            'Front 21" tire punctured on sharp shale rock. Valve stem torn. Carrying spare tube but lacks bead breaker.',
-        location: LatLng(center.latitude + 0.024, center.longitude + 0.018),
-        distance: '2.1 km away',
-        eta: '6 min drive',
-        phone: '+1 (555) 392-8172',
-        timeReported: '14 min ago',
-      ),
-      StrandedIncident(
-        id: 'sos-2',
-        driverName: 'Marcus Cole',
-        vehicleModel: 'BMW R1250GS Trophy',
-        category: BreakdownCategory.deadBattery,
-        severity: BreakdownSeverity.critical,
-        issueDescription:
-            'Stopped at high overlook, ignition click only. Battery reading 10.1V. Needs jump starter or replacement lithium pack.',
-        location: LatLng(center.latitude - 0.026, center.longitude + 0.042),
-        distance: '4.8 km away',
-        eta: '11 min drive',
-        phone: '+1 (555) 604-1934',
-        timeReported: '28 min ago',
-      ),
-      StrandedIncident(
-        id: 'sos-3',
-        driverName: 'Elena Rostova',
-        vehicleModel: 'Yamaha Ténéré 700 Rally',
-        category: BreakdownCategory.brokenChain,
-        severity: BreakdownSeverity.moderate,
-        issueDescription:
-            'Drive chain snapped at creek exit. Chain gathered on swingarm. Requires 525 O-ring master link and rivet press tool.',
-        location: LatLng(center.latitude + 0.051, center.longitude - 0.045),
-        distance: '7.5 km away',
-        eta: '18 min drive',
-        phone: '+1 (555) 718-4420',
-        timeReported: '45 min ago',
-      ),
-    ];
+    // 2. Stranded Incidents (No fake riders; empty until real beacons exist)
+    const strandedIncidents = <StrandedIncident>[];
 
     // 3. 24/7 Roadside Supply & Tools Depots
     final supplyCaches = [
@@ -302,21 +259,8 @@ class RoadsideSectorDataset {
       ),
     ];
 
-    // 4. Primary Rescue Route connecting nearest mechanic (mech-1) -> user/stranded incident (sos-1)
-    final mLoc = mechanics[0].location;
-    final sLoc = strandedIncidents[0].location;
-    final primaryRoute = [
-      mLoc,
-      LatLng(mLoc.latitude + (sLoc.latitude - mLoc.latitude) * 0.25,
-          mLoc.longitude + (sLoc.longitude - mLoc.longitude) * 0.15),
-      LatLng(mLoc.latitude + (sLoc.latitude - mLoc.latitude) * 0.45,
-          mLoc.longitude + (sLoc.longitude - mLoc.longitude) * 0.40),
-      LatLng(mLoc.latitude + (sLoc.latitude - mLoc.latitude) * 0.65,
-          mLoc.longitude + (sLoc.longitude - mLoc.longitude) * 0.55),
-      LatLng(mLoc.latitude + (sLoc.latitude - mLoc.latitude) * 0.85,
-          mLoc.longitude + (sLoc.longitude - mLoc.longitude) * 0.80),
-      sLoc,
-    ];
+    // 4. Primary Rescue Route (empty when no active incident)
+    const primaryRoute = <LatLng>[];
 
     return RoadsideSectorDataset(
       mechanics: mechanics,

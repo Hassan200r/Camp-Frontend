@@ -20,6 +20,9 @@ class SettingsController extends ChangeNotifier {
   SettingsRepository _repository;
 
   @visibleForTesting
+  SettingsRepository get repository => _repository;
+
+  @visibleForTesting
   set repository(SettingsRepository repo) => _repository = repo;
 
   UnitsSystem _units = UnitsSystem.metric;
@@ -29,6 +32,7 @@ class SettingsController extends ChangeNotifier {
   String _cachedPacksSubtitle = 'Cascades & Alps Route Packs';
   double _localCacheSizeGb = 1.4;
   String _language = 'English';
+  String _emergencyNumber = '1122';
 
   // ── Getters ────────────────────────────────────────────────────────────────
   UnitsSystem get units => _units;
@@ -40,6 +44,7 @@ class SettingsController extends ChangeNotifier {
   String get cachedPacksSubtitle => _cachedPacksSubtitle;
   double get localCacheSizeGb => _localCacheSizeGb;
   String get language => _language;
+  String get emergencyNumber => _emergencyNumber;
 
   /// Human-readable representation of local cache size
   String get localCacheDisplay {
@@ -99,6 +104,15 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Update the emergency rescue dispatch number.
+  void setEmergencyNumber(String number) {
+    final clean = number.trim();
+    if (clean.isEmpty || _emergencyNumber == clean) return;
+    _emergencyNumber = clean;
+    notifyListeners();
+    save();
+  }
+
   /// Reset all preferences to factory defaults (useful for tests).
   void reset() {
     _units = UnitsSystem.metric;
@@ -108,6 +122,7 @@ class SettingsController extends ChangeNotifier {
     _cachedPacksSubtitle = 'Cascades & Alps Route Packs';
     _localCacheSizeGb = 1.4;
     _language = 'English';
+    _emergencyNumber = '1122';
     notifyListeners();
   }
 
@@ -131,11 +146,13 @@ class SettingsController extends ChangeNotifier {
       _units = settings.units;
       _notificationsEnabled = settings.notificationsEnabled;
       _privacySharingEnabled = settings.privacySharingEnabled;
+      _emergencyNumber = settings.emergencyNumber;
       notifyListeners();
     } catch (_) {
       _units = UnitsSystem.metric;
       _notificationsEnabled = true;
       _privacySharingEnabled = true;
+      _emergencyNumber = '1122';
       notifyListeners();
     }
   }
@@ -148,6 +165,7 @@ class SettingsController extends ChangeNotifier {
         units: _units,
         notificationsEnabled: _notificationsEnabled,
         privacySharingEnabled: _privacySharingEnabled,
+        emergencyNumber: _emergencyNumber,
       );
       await repo.saveSettings(settings);
     } catch (_) {

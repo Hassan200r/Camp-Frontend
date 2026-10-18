@@ -98,7 +98,7 @@ void main() {
     expect(find.text('System Armed'), findsOneWidget);
     expect(find.text('Emergency ICE:'), findsOneWidget);
     expect(find.text('Blood & Allergies:'), findsOneWidget);
-    expect(find.text('Satellite SOS Beacon:'), findsOneWidget);
+    expect(find.text('Emergency SOS Method:'), findsOneWidget);
     expect(find.text('View Emergency Protocols & Health Card'), findsOneWidget);
 
     // 10. Settings List Card

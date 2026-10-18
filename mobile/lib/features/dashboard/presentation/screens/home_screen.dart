@@ -56,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         content: const Text(
-          'Coming in a future update',
+          'No nearby riders yet. Group beacon needs an online service (coming later).',
           style: TextStyle(
             color: Color(0xFF4B5563),
             fontSize: 14,
@@ -166,16 +166,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
             // 7. Tactical Bottom Dock (Floating)
-            Positioned(
+            const Positioned(
               left: 0,
               right: 0,
               bottom: 24,
               child: Center(
                 child: CampBottomNav(
-                  selectedIndex: 0,
-                  onIndexChanged: (index) {
-                    CampBottomNav.navigateToTab(context, index, currentIndex: 0);
-                  },
+                  selected: CampTab.home,
                 ),
               ),
             ),

@@ -23,7 +23,8 @@ class Mechanic {
     required this.rating,
     required this.reviewCount,
     required this.openStatus,
-    required this.phone,
+    this.phone = '',
+    this.phoneNumber,
     this.address,
     this.notes,
     this.photoPath,
@@ -50,6 +51,9 @@ class Mechanic {
     final createdUtc = parseUtc(json['createdAt']) ?? DateTime.now().toUtc();
     final updatedUtc = parseUtc(json['updatedAt']) ?? createdUtc;
 
+    final rawPhone = (json['phoneNumber'] ?? json['phone']) as String?;
+    final effectivePhone = rawPhone ?? '';
+
     return Mechanic(
       id: effectiveId,
       createdAt: createdUtc,
@@ -60,7 +64,7 @@ class Mechanic {
       badgeType: (json['badgeType'] as String?) == 'emergency'
           ? BadgeType.emergency
           : BadgeType.verified,
-      badgeLabel: json['badgeLabel'] as String? ?? 'Verified Shop',
+      badgeLabel: json['badgeLabel'] as String? ?? 'Community Added',
       beaconStatus: json['beaconStatus'] as String? ?? 'Active',
       beaconColor: json['beaconColor'] != null
           ? Color(json['beaconColor'] as int)
@@ -72,7 +76,8 @@ class Mechanic {
       rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
       reviewCount: (json['reviewCount'] as num?)?.toInt() ?? 1,
       openStatus: json['openStatus'] as String? ?? '',
-      phone: json['phone'] as String? ?? '',
+      phone: effectivePhone,
+      phoneNumber: (rawPhone != null && rawPhone.trim().isNotEmpty) ? rawPhone : null,
       address: json['address'] as String?,
       notes: json['notes'] as String?,
       photoPath: (json['photoPath'] ?? json['photo']) as String?,
@@ -112,6 +117,7 @@ class Mechanic {
   final int reviewCount;
   final String openStatus;
   final String phone;
+  final String? phoneNumber;
   final String? address;
   final String? notes;
   final String? photoPath;
@@ -119,6 +125,9 @@ class Mechanic {
   final int? openMinutes;
   final int? closeMinutes;
   final bool open24Hours;
+
+  /// Whether this shop has a valid phone number saved.
+  bool get hasPhone => (phoneNumber ?? phone).trim().isNotEmpty;
 
   Mechanic copyWith({
     String? id,
@@ -137,6 +146,7 @@ class Mechanic {
     int? reviewCount,
     String? openStatus,
     String? phone,
+    String? phoneNumber,
     String? address,
     String? notes,
     String? photoPath,
@@ -147,6 +157,9 @@ class Mechanic {
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
+    final effectivePhone = phone ?? (phoneNumber ?? this.phone);
+    final effectivePhoneNumber = phoneNumber ?? (phone ?? this.phoneNumber);
+
     return Mechanic(
       id: id ?? this.id,
       name: name ?? this.name,
@@ -163,7 +176,8 @@ class Mechanic {
       rating: rating ?? this.rating,
       reviewCount: reviewCount ?? this.reviewCount,
       openStatus: openStatus ?? this.openStatus,
-      phone: phone ?? this.phone,
+      phone: effectivePhone,
+      phoneNumber: effectivePhoneNumber,
       address: address ?? this.address,
       notes: notes ?? this.notes,
       photoPath: photoPath ?? this.photoPath,
@@ -195,6 +209,7 @@ class Mechanic {
         'reviewCount': reviewCount,
         'openStatus': openStatus,
         'phone': phone,
+        'phoneNumber': phoneNumber ?? (phone.isNotEmpty ? phone : null),
         'address': address,
         'notes': notes,
         'photoPath': photoPath,
@@ -225,7 +240,8 @@ class Mechanic {
           rating: 4.9,
           reviewCount: 128,
           openStatus: '',
-          phone: '+1 (555) 482-9921',
+          phone: '',
+          phoneNumber: null,
           address: '42 Timberline Rd, Pass Junction',
           openDays: [1, 2, 3, 4, 5, 6],
           openMinutes: 480, // 8:00 AM
@@ -256,7 +272,8 @@ class Mechanic {
           rating: 4.8,
           reviewCount: 89,
           openStatus: '',
-          phone: '+1 (555) 832-1049',
+          phone: '',
+          phoneNumber: null,
           address: 'Mile Marker 88, Babusar Valley',
           openDays: [1, 2, 3, 4, 5, 6, 7],
           open24Hours: true,
@@ -281,7 +298,8 @@ class Mechanic {
           rating: 4.95,
           reviewCount: 204,
           openStatus: '',
-          phone: '+1 (555) 671-8842',
+          phone: '',
+          phoneNumber: null,
           address: '104 Alpine Loop Hwy',
           openDays: [1, 2, 3, 4, 5],
           openMinutes: 510, // 8:30 AM

@@ -3,31 +3,29 @@ import 'package:flutter/services.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/camp_bottom_nav.dart';
-import '../widgets/auto_crash_detection_card.dart';
-import '../widgets/emergency_bottom_actions.dart';
 import '../widgets/emergency_contact_card.dart';
+import '../widgets/emergency_dispatch_card.dart';
 import '../widgets/hardware_telematics_card.dart';
-import '../widgets/ice_network_sheet.dart';
 import '../widgets/offline_medical_id_card.dart';
 import '../widgets/sos_header_bar.dart';
 import '../widgets/telemetry_stream_card.dart';
 
 /// CAMP Emergency SOS Screen
-/// Matches high-fidelity design with 6 cards and floating bottom dock.
+/// Honest emergency assistance screen backed exclusively by phone GPS and cellular dialer/SMS.
 class EmergencySosScreen extends StatelessWidget {
   const EmergencySosScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
+    return const AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
         systemNavigationBarColor: AppColors.clay,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: const Color(0xFFF3F5F9),
+        backgroundColor: Color(0xFFF3F5F9),
         body: Stack(
           children: [
             SafeArea(
@@ -35,45 +33,38 @@ class EmergencySosScreen extends StatelessWidget {
               child: Column(
                 children: [
                   // 1. Top Header Bar (Back button, CAMP •, SOS READY badge)
-                  const SosHeaderBar(),
+                  SosHeaderBar(),
 
                   // 2. Scrollable Cards Stream
                   Expanded(
                     child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
+                      physics: BouncingScrollPhysics(),
+                      padding: EdgeInsets.fromLTRB(16, 4, 16, 110),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           // Card 1: Concentric SOS Trigger Button & Signal Pill
-                          const HardwareTelematicsCard(),
+                          HardwareTelematicsCard(),
 
-                          const SizedBox(height: 14),
+                          SizedBox(height: 14),
 
-                          // Card 2: Current Location & Topographic Radar Preview
-                          const TelemetryStreamCard(),
+                          // Card 2: Current Location & Topographic Preview
+                          TelemetryStreamCard(),
 
-                          const SizedBox(height: 14),
+                          SizedBox(height: 14),
 
-                          // Card 3: Auto Crash Detection & Confirmation Window
-                          const AutoCrashDetectionCard(),
+                          // Card 3: Emergency Response Services Picker & Dialer (1122 default)
+                          EmergencyDispatchCard(),
 
-                          const SizedBox(height: 14),
+                          SizedBox(height: 14),
 
-                          // Card 4: Emergency Contact (Sarah Henderson, Call, Message, 911)
-                          EmergencyContactCard(
-                            onEditPressed: () => IceNetworkSheet.show(context),
-                          ),
+                          // Card 4: Emergency Contact (Call & SMS GPS Alert, or Empty State)
+                          EmergencyContactCard(),
 
-                          const SizedBox(height: 14),
+                          SizedBox(height: 14),
 
-                          // Card 5: Offline Medical ID (Red Accent, Blood Type, Allergies, Notes)
-                          const OfflineMedicalIdCard(),
-
-                          const SizedBox(height: 14),
-
-                          // Card 6: Test Alert Button
-                          const EmergencyBottomActions(),
+                          // Card 5: Offline Medical ID
+                          OfflineMedicalIdCard(),
                         ],
                       ),
                     ),
@@ -82,14 +73,14 @@ class EmergencySosScreen extends StatelessWidget {
               ),
             ),
 
-            // 3. Floating Bottom Navigation Dock (Unselected state as in mockup)
-            const Positioned(
+            // 3. Floating Bottom Navigation Dock (Unselected state)
+            Positioned(
               left: 0,
               right: 0,
               bottom: 24,
               child: Center(
                 child: CampBottomNav(
-                  selectedIndex: -1,
+                  selected: null,
                 ),
               ),
             ),

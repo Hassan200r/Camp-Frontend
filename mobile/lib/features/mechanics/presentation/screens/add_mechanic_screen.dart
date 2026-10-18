@@ -36,6 +36,7 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
 
   String? _photoPath;
   bool _nameError = false;
+  String? _phoneError;
 
   List<int> _openDays = [];
   int? _openMinutes;
@@ -234,6 +235,16 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
     }
 
     final phone = _phoneController.text.trim();
+    if (phone.isNotEmpty) {
+      final digitsOnly = phone.replaceAll(RegExp(r'\D'), '');
+      if (digitsOnly.length < 5 || !RegExp(r'^[+0-9\s\-()]{5,20}$').hasMatch(phone)) {
+        setState(() {
+          _phoneError = 'Please enter a valid phone number (at least 5 digits)';
+        });
+        return;
+      }
+    }
+
     final address = _addressController.text.trim();
     final speciality = _specialityController.text.trim();
     final notes = _notesController.text.trim();
@@ -267,7 +278,7 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
           ? address
           : (existing?.durationOrLocation ?? 'Added by Rider'),
       badgeType: existing?.badgeType ?? BadgeType.verified,
-      badgeLabel: existing?.badgeLabel ?? 'Verified Shop',
+      badgeLabel: existing?.badgeLabel ?? 'Community Added',
       beaconStatus: existing?.beaconStatus ?? 'Active',
       beaconColor: existing?.beaconColor ?? AppColors.statusGreen,
       categoryTitle1: 'SPECIALTIES',
@@ -278,6 +289,7 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
       reviewCount: existing?.reviewCount ?? 1,
       openStatus: existing?.openStatus ?? '',
       phone: phone,
+      phoneNumber: phone.isNotEmpty ? phone : null,
       address: address.isNotEmpty ? address : null,
       notes: notes.isNotEmpty ? notes : null,
       photoPath: _photoPath,
@@ -366,11 +378,18 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
 
                         // Phone
                         LabeledTextField(
-                          label: 'Phone Number',
+                          label: 'Phone Number (optional)',
                           controller: _phoneController,
                           placeholder: 'e.g. +92 300 1234567',
                           keyboardType: TextInputType.phone,
                           trailingIcon: Icons.phone_outlined,
+                          isError: _phoneError != null,
+                          errorText: _phoneError,
+                          onChanged: (_) {
+                            if (_phoneError != null) {
+                              setState(() => _phoneError = null);
+                            }
+                          },
                         ),
                         const SizedBox(height: 16),
 
@@ -426,24 +445,13 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
             ),
 
             // Floating Bottom Nav Dock — CampBottomNav hides itself when keyboard is open
-            Positioned(
+            const Positioned(
               left: 0,
               right: 0,
               bottom: 24,
               child: Center(
                 child: CampBottomNav(
-                  selectedIndex: 3,
-                  onIndexChanged: (index) {
-                    if (index == 3) {
-                      Navigator.of(context).pop();
-                    } else {
-                      CampBottomNav.navigateToTab(
-                        context,
-                        index,
-                        currentIndex: 3,
-                      );
-                    }
-                  },
+                  selected: CampTab.mechanics,
                 ),
               ),
             ),

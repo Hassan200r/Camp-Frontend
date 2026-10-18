@@ -183,20 +183,13 @@ class _RoutePacksScreenState extends State<RoutePacksScreen> {
           ),
 
           // ── 6. Floating Tactical Bottom Dock (Index 2: Navigation) ─────────
-          Positioned(
+          const Positioned(
             left: 0,
             right: 0,
             bottom: 24,
             child: Center(
               child: CampBottomNav(
-                selectedIndex: 2,
-                onIndexChanged: (index) {
-                  CampBottomNav.navigateToTab(
-                    context,
-                    index,
-                    currentIndex: 2,
-                  );
-                },
+                selected: CampTab.navigation,
               ),
             ),
           ),

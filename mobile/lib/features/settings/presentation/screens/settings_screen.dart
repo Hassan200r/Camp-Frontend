@@ -344,6 +344,157 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _showEmergencyNumberSelector(SettingsController settings) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.clay,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppColors.radiusCard)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.mutedLight.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Select Emergency Number',
+                style: GoogleFonts.manrope(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.darkCharcoal,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Default rescue dispatch number dialed from the SOS screen.',
+                style: GoogleFonts.manrope(
+                  fontSize: 12.5,
+                  color: AppColors.mutedText,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildEmergencyOption('1122', '1122 Rescue (Pakistan Rescue)', settings),
+              _buildEmergencyOption('15', '15 Police (Helpline)', settings),
+              _buildEmergencyOption('115', '115 Ambulance (Emergency Dispatch)', settings),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.edit_outlined, color: AppColors.darkCharcoal),
+                title: Text(
+                  'Custom Number',
+                  style: GoogleFonts.manrope(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.darkCharcoal,
+                  ),
+                ),
+                subtitle: Text(
+                  !['1122', '15', '115'].contains(settings.emergencyNumber)
+                      ? 'Current: ${settings.emergencyNumber}'
+                      : 'Enter a custom local emergency number',
+                  style: GoogleFonts.manrope(fontSize: 11.5, color: AppColors.mutedText),
+                ),
+                trailing: !['1122', '15', '115'].contains(settings.emergencyNumber)
+                    ? const Icon(Icons.check_circle_rounded, color: AppColors.tacticalOrange)
+                    : null,
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _showCustomEmergencyDialog(settings);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmergencyOption(String number, String label, SettingsController settings) {
+    final isSelected = settings.emergencyNumber == number;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.emergency_rounded, color: AppColors.alertRed),
+      title: Text(
+        label,
+        style: GoogleFonts.manrope(
+          fontSize: 14,
+          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+          color: isSelected ? AppColors.tacticalOrangeDark : AppColors.darkCharcoal,
+        ),
+      ),
+      trailing: isSelected
+          ? const Icon(Icons.check_circle_rounded, color: AppColors.tacticalOrange)
+          : null,
+      onTap: () {
+        Navigator.of(context).pop();
+        settings.setEmergencyNumber(number);
+        _showNotification('Emergency number set to $number');
+      },
+    );
+  }
+
+  void _showCustomEmergencyDialog(SettingsController settings) {
+    final controller = TextEditingController(text: settings.emergencyNumber);
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: AppColors.clay,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppColors.radiusCard)),
+        title: Text(
+          'Custom Emergency Number',
+          style: GoogleFonts.manrope(
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            color: AppColors.darkCharcoal,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.phone,
+          decoration: const InputDecoration(
+            hintText: 'Enter emergency number',
+            isDense: true,
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.tacticalOrange,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isNotEmpty) {
+                settings.setEmergencyNumber(text);
+                _showNotification('Emergency number set to $text');
+              }
+              Navigator.of(dialogCtx).pop();
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   void _showClearCacheDialog() {
     final controller = SettingsController.instance;
     showDialog<void>(
@@ -752,16 +903,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
 
             // ── Floating Bottom Dock (No tab active) ─────────────────────────
-            Positioned(
+            const Positioned(
               left: 0,
               right: 0,
               bottom: _kNavBottomMargin,
               child: Center(
                 child: CampBottomNav(
-                  selectedIndex: -1,
-                  onIndexChanged: (index) {
-                    CampBottomNav.navigateToTab(context, index, currentIndex: -1);
-                  },
+                  selected: CampTab.profile,
                 ),
               ),
             ),
@@ -1021,6 +1169,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             onTap: _showLanguageSelector,
+          ),
+          const Divider(height: 1, color: Color(0x10000000)),
+          SettingsRowWidget(
+            icon: Icons.emergency_outlined,
+            title: 'Emergency Number',
+            subtitle: 'Default dialed for Rescue & SOS',
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  settings.emergencyNumber,
+                  style: GoogleFonts.manrope(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.mutedText,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.mutedLight,
+                  size: 20,
+                ),
+              ],
+            ),
+            onTap: () => _showEmergencyNumberSelector(settings),
           ),
         ],
       ),

@@ -9,6 +9,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../controllers/profile_controller.dart';
+import '../../domain/user_profile_model.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  CAMP Edit Profile Screen
@@ -40,20 +41,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _ecNameCtrl = TextEditingController();
   final _ecRelCtrl = TextEditingController();
   final _ecPhoneCtrl = TextEditingController();
-  String _bloodGroup = 'O+ (Universal Donor)';
+  final _allergiesCtrl = TextEditingController();
+  final _medicalNotesCtrl = TextEditingController();
+  String _bloodGroup = '';
   String? _avatarPath;
 
-  static const List<String> _bloodGroups = [
-    'A+ (Type A Positive)',
-    'A- (Type A Negative)',
-    'B+ (Type B Positive)',
-    'B- (Type B Negative)',
-    'AB+ (Type AB Positive)',
-    'AB- (Type AB Negative)',
-    'O+ (Universal Donor)',
-    'O- (Universal Donor)',
-    'Unknown',
-  ];
+  static const List<String> _bloodGroups = UserProfile.kNormalizedBloodTypes;
 
   @override
   void initState() {
@@ -72,7 +65,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _ecNameCtrl.text = profile.emergencyContactName;
     _ecRelCtrl.text = profile.emergencyContactRelation;
     _ecPhoneCtrl.text = profile.emergencyContactPhone;
-    _bloodGroup = profile.bloodGroup;
+    _allergiesCtrl.text = profile.allergies;
+    _medicalNotesCtrl.text = profile.medicalNotes;
+    _bloodGroup = UserProfile.normalizeBloodType(profile.bloodGroup);
     _avatarPath = profile.avatarPath;
   }
 
@@ -87,6 +82,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _ecNameCtrl.dispose();
     _ecRelCtrl.dispose();
     _ecPhoneCtrl.dispose();
+    _allergiesCtrl.dispose();
+    _medicalNotesCtrl.dispose();
     super.dispose();
   }
 
@@ -216,6 +213,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       emergencyContactRelation: _ecRelCtrl.text.trim(),
       emergencyContactPhone: _ecPhoneCtrl.text.trim(),
       bloodGroup: _bloodGroup,
+      allergies: _allergiesCtrl.text.trim(),
+      medicalNotes: _medicalNotesCtrl.text.trim(),
     );
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -640,7 +639,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           // Blood Group dropdown
           LabeledDropdown<String>(
             label: 'RIDER BLOOD GROUP',
-            value: _bloodGroup,
+            value: _bloodGroups.contains(_bloodGroup) ? _bloodGroup : _bloodGroups.last,
             items: _bloodGroups,
             onChanged: (v) {
               if (v != null) {
@@ -648,12 +647,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               }
             },
           ),
+          const SizedBox(height: 12),
+
+          LabeledTextField(
+            label: 'KNOWN ALLERGIES',
+            controller: _allergiesCtrl,
+            maxLength: 100,
+            placeholder: 'e.g. Penicillin, Peanuts (optional)',
+          ),
+          const SizedBox(height: 12),
+
+          LabeledTextField(
+            label: 'MEDICAL NOTES',
+            controller: _medicalNotesCtrl,
+            maxLength: 120,
+            maxLines: 2,
+            placeholder: 'e.g. Asthma, Diabetic, Past surgeries (optional)',
+          ),
 
           const SizedBox(height: 16),
 
           // Info banner
           _buildInfoBanner(
-            'Shown on your SOS ID card and accessible by first responders during an active crash alert.',
+            'Shown on your Emergency SOS Medical ID card and accessible by first responders.',
           ),
         ],
       ),

@@ -160,8 +160,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     const SizedBox(height: 6),
                     Text(
                       _submitted
-                          ? 'Check your inbox for the telemetry recovery link to securely reset your credentials.'
-                          : 'Enter your Rider ID or email to receive telemetry password reset instructions.',
+                          ? 'Check your inbox for the password reset link to securely reset your credentials.'
+                          : 'Enter your Rider ID or email to receive password reset instructions.',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.manrope(
                         color: AuthColors.textSubtitle,
