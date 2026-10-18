@@ -185,14 +185,15 @@ class Expense {
     );
   }
 
-  /// Default line items matching the Alpine Ridge Tour budget ledger
+  /// Default line items matching the Alpine Ridge Tour budget ledger (Demo data)
   static List<Expense> get defaultSampleExpenses => [
         const Expense(
           id: 'exp-1',
           category: ExpenseCategory.fuel,
           title: 'Fuel Cost',
-          subtitle: 'Shell V-Power 98 • 4.2 gal',
-          amount: 62.50,
+          subtitle: 'Shell V-Power • 35 L (Demo data)',
+          note: 'Demo data',
+          amount: 9800.0,
           trackingMode: ExpenseTrackingMode.autoTrack,
           formattedDate: 'Today, 11:20 AM',
         ),
@@ -200,8 +201,9 @@ class Expense {
           id: 'exp-2',
           category: ExpenseCategory.permits,
           title: 'Park Permits & Passes',
-          subtitle: 'Pass #8491 • Babusar West',
-          amount: 45.00,
+          subtitle: 'Pass #8491 • Babusar West (Demo data)',
+          note: 'Demo data',
+          amount: 15500.0,
           trackingMode: ExpenseTrackingMode.manualEntry,
           formattedDate: 'Yesterday, 4:15 PM',
         ),
@@ -209,8 +211,9 @@ class Expense {
           id: 'exp-3',
           category: ExpenseCategory.lodging,
           title: 'Camp Lodging & Fees',
-          subtitle: 'Deosai Basecamp • 2 Nights',
-          amount: 77.00,
+          subtitle: 'Deosai Basecamp • 2 Nights (Demo data)',
+          note: 'Demo data',
+          amount: 20825.0,
           trackingMode: ExpenseTrackingMode.manualEntry,
           formattedDate: 'Oct 14, 6:00 PM',
         ),

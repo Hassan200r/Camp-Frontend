@@ -4,25 +4,30 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../garage/controllers/active_bike_controller.dart';
 import '../../domain/expense_model.dart';
 
-/// Screen for recording a new expedition trip expense
+/// Screen for recording or editing an expedition trip expense
 class AddExpenseScreen extends StatefulWidget {
-  const AddExpenseScreen({super.key});
+  const AddExpenseScreen({super.key, this.initialExpense});
+
+  final Expense? initialExpense;
 
   @override
   State<AddExpenseScreen> createState() => _AddExpenseScreenState();
 }
 
 class _AddExpenseScreenState extends State<AddExpenseScreen> {
-  final _amountCtrl = TextEditingController(text: '48.50');
-  final _noteLocationCtrl =
-      TextEditingController(text: 'Khunjerab Alpine Fuel Station');
+  final _amountCtrl = TextEditingController();
+  final _noteLocationCtrl = TextEditingController();
 
   String _selectedCategory = '🛢 Fuel';
   int _trackingModeIndex = 1; // 0=Auto-track, 1=Manual entry (manual default)
-  String _dateRecorded = 'Today, 2:45 PM';
+  DateTime _expenseDate = DateTime.now();
+  late String _dateRecorded;
+  String? _selectedBikeId;
 
   static const List<String> _categoryOptions = [
     '🛢 Fuel',
@@ -35,6 +40,33 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.initialExpense != null) {
+      final exp = widget.initialExpense!;
+      _amountCtrl.text = exp.amount.toStringAsFixed(0);
+      _noteLocationCtrl.text = exp.subtitle ?? exp.note ?? '';
+      _selectedCategory = exp.category.chipLabel;
+      _trackingModeIndex =
+          exp.trackingMode == ExpenseTrackingMode.autoTrack ? 0 : 1;
+      _expenseDate = exp.dateRecorded ?? exp.createdAt ?? DateTime.now();
+      _dateRecorded =
+          exp.formattedDate ?? _formatDate(_expenseDate);
+    } else {
+      _dateRecorded = _formatDate(_expenseDate);
+    }
+    _selectedBikeId = ActiveBikeController.instance.activeBikeId;
+  }
+
+  static String _formatDate(DateTime dt) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return 'Today, ${months[dt.month - 1]} ${dt.day}';
+  }
+
+  @override
   void dispose() {
     _amountCtrl.dispose();
     _noteLocationCtrl.dispose();
@@ -43,12 +75,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   void _saveExpense() {
     final amountText = _amountCtrl.text.trim();
-    final amount = double.tryParse(amountText);
+    final amount = parsePkr(amountText);
 
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter a valid amount'),
+          content: Text('Please enter a valid amount in PKR'),
           backgroundColor: AppColors.alertRed,
         ),
       );
@@ -70,22 +102,37 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       category = ExpenseCategory.other;
     }
 
-    final newExpense = Expense(
-      id: 'exp-${DateTime.now().millisecondsSinceEpoch}',
-      category: category,
-      title: '${category.displayName} Expense',
-      subtitle: _noteLocationCtrl.text.trim().isNotEmpty
-          ? _noteLocationCtrl.text.trim()
-          : null,
-      amount: amount,
-      trackingMode: _trackingModeIndex == 0
-          ? ExpenseTrackingMode.autoTrack
-          : ExpenseTrackingMode.manualEntry,
-      formattedDate: _dateRecorded,
-      dateRecorded: DateTime.now(),
-    );
+    final expense = widget.initialExpense != null
+        ? widget.initialExpense!.copyWith(
+            category: category,
+            title: '${category.displayName} Expense',
+            subtitle: _noteLocationCtrl.text.trim().isNotEmpty
+                ? _noteLocationCtrl.text.trim()
+                : null,
+            amount: amount,
+            trackingMode: _trackingModeIndex == 0
+                ? ExpenseTrackingMode.autoTrack
+                : ExpenseTrackingMode.manualEntry,
+            formattedDate: _dateRecorded,
+            dateRecorded: _expenseDate,
+            updatedAt: DateTime.now().toUtc(),
+          )
+        : Expense(
+            id: 'exp-${DateTime.now().millisecondsSinceEpoch}',
+            category: category,
+            title: '${category.displayName} Expense',
+            subtitle: _noteLocationCtrl.text.trim().isNotEmpty
+                ? _noteLocationCtrl.text.trim()
+                : null,
+            amount: amount,
+            trackingMode: _trackingModeIndex == 0
+                ? ExpenseTrackingMode.autoTrack
+                : ExpenseTrackingMode.manualEntry,
+            formattedDate: _dateRecorded,
+            dateRecorded: _expenseDate,
+          );
 
-    Navigator.of(context).pop(newExpense);
+    Navigator.of(context).pop(expense);
   }
 
   Widget _buildOversizedAmountField() {
@@ -96,7 +143,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('AMOUNT', style: AppTextStyles.overline),
-            Text('USD', style: AppTextStyles.overline),
+            Text('PKR', style: AppTextStyles.overline),
           ],
         ),
         const SizedBox(height: 5),
@@ -115,9 +162,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                '\$',
+                'Rs',
                 style: GoogleFonts.manrope(
-                  fontSize: 26,
+                  fontSize: 22,
                   fontWeight: FontWeight.w800,
                   color: AppColors.mutedText,
                 ),
@@ -135,7 +182,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   ),
                   cursorColor: AppColors.tacticalOrange,
                   decoration: const InputDecoration(
-                    hintText: '0.00',
+                    hintText: '0',
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
@@ -150,7 +197,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   boxShadow: AppColors.skeuRaisedSmall,
                 ),
                 child: Text(
-                  'USD',
+                  'PKR',
                   style: GoogleFonts.manrope(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -231,10 +278,33 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   LabeledTextField(
                     label: 'NOTE / LOCATION',
                     controller: _noteLocationCtrl,
+                    placeholder: 'Optional - e.g. Fuel stop, camp site, pass fee',
                     trailingIcon: Icons.location_on_outlined,
                   ),
 
                   const SizedBox(height: 18),
+
+                  // ── Linked Bike (Optional) ─────────────────────────────────
+                  if (ActiveBikeController.instance.bikes.isNotEmpty) ...[
+                    LabeledDropdown<String?>(
+                      label: 'LINKED BIKE (OPTIONAL)',
+                      value: _selectedBikeId,
+                      items: [
+                        null,
+                        ...ActiveBikeController.instance.bikes.map((b) => b.id),
+                      ],
+                      itemLabelBuilder: (id) {
+                        if (id == null) return 'General / Trip Expense';
+                        final bike =
+                            ActiveBikeController.instance.getBikeById(id);
+                        return bike != null
+                            ? '${bike.make} ${bike.modelName}'
+                            : id;
+                      },
+                      onChanged: (val) => setState(() => _selectedBikeId = val),
+                    ),
+                    const SizedBox(height: 18),
+                  ],
 
                   // ── Tracking Mode ─────────────────────────────────────────
                   Row(

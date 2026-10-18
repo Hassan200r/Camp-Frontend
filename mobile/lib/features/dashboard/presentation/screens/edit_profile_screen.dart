@@ -354,32 +354,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   //  1. Header
   // ─────────────────────────────────────────────────────────────────────────
   Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Circular back button — reused from CampBackButton
-          const CampBackButton(),
-
-          // Screen title
-          Text('Edit Profile',
-              style: AppTextStyles.cardTitle.copyWith(fontSize: 18)),
-
-          // "Save" orange text action
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _onSave,
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Text('Save',
-                  style: AppTextStyles.orangeLink.copyWith(fontSize: 14)),
-            ),
-          ),
-        ],
-      ),
+    return CampAppBar(
+      leading: CampAppBarLeading.back,
+      titleText: 'Edit Profile',
+      actionText: 'Save',
+      onActionPressed: _onSave,
     );
   }
 

@@ -20,6 +20,7 @@ import 'features/garage/controllers/active_bike_controller.dart';
 import 'features/garage/presentation/screens/bike_profile_screen.dart';
 import 'features/garage/presentation/screens/garage_screen.dart';
 import 'features/maintenance/controllers/post_ride_report_controller.dart';
+import 'features/maintenance/controllers/service_visit_controller.dart';
 import 'features/maintenance/controllers/trip_budget_controller.dart';
 import 'features/maintenance/presentation/screens/finance_rig_health_screen.dart';
 import 'features/maintenance/presentation/screens/maintenance_screen.dart';
@@ -56,6 +57,9 @@ void main() async {
     } catch (_) {}
     try {
       await MechanicController.instance.load(repos.mechanicRepository);
+    } catch (_) {}
+    try {
+      await ServiceVisitController.instance.load(repos.serviceVisitRepository);
     } catch (_) {}
     try {
       if (await repos.bikeRepository.isFirstRun()) {

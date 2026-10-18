@@ -43,6 +43,8 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
   late TextEditingController _fuelAverageController;
   late TextEditingController _vinController;
   late TextEditingController _nicknameController;
+  late TextEditingController _plateNumberController;
+  late TextEditingController _colorController;
 
   bool _submittedOnce = false;
 
@@ -89,6 +91,8 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
       if (b.lastTuneUp != null) _controller.setLastTuneUp(b.lastTuneUp!);
       _controller.setVin(b.vin);
       _controller.setNickname(b.nickname);
+      _controller.setPlateNumber(b.plateNumber);
+      _controller.setColor(b.color);
     }
 
     // Track which fields came from the recognition result so we can show tags.
@@ -132,6 +136,10 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
     _vinController = TextEditingController(text: _controller.vin ?? '');
     _nicknameController =
         TextEditingController(text: _controller.nickname ?? '');
+    _plateNumberController =
+        TextEditingController(text: _controller.plateNumber ?? '');
+    _colorController =
+        TextEditingController(text: _controller.color ?? '');
 
     _controller.addListener(_onControllerUpdated);
   }
@@ -152,6 +160,8 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
     _fuelAverageController.dispose();
     _vinController.dispose();
     _nicknameController.dispose();
+    _plateNumberController.dispose();
+    _colorController.dispose();
     super.dispose();
   }
 
@@ -181,9 +191,34 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
       return;
     }
 
+    if (_plateError != null || _colorError != null) {
+      HapticFeedback.heavyImpact();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _plateError ?? _colorError ?? 'Invalid input',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          backgroundColor: AppColors.alertRed,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     HapticFeedback.mediumImpact();
-    final completedBike = _controller.buildBike();
-    ActiveBikeController.instance.addBike(completedBike, setActive: true);
+    final completedBike = _controller.buildBike(id: widget.initialBike?.id);
+    if (widget.initialBike != null) {
+      ActiveBikeController.instance.updateBike(completedBike);
+    } else {
+      ActiveBikeController.instance.addBike(completedBike, setActive: true);
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -219,6 +254,30 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
     return 'Too long (max 30 characters)';
   }
 
+  String? get _plateError {
+    final text = _plateNumberController.text.trim();
+    if (text.isEmpty) return null;
+    if (text.length < 2 || text.length > 15) {
+      return 'Plate must be 2 to 15 characters';
+    }
+    if (!RegExp(r'^[A-Za-z0-9\s\-]+$').hasMatch(text)) {
+      return 'Only letters, numbers, spaces, and hyphens allowed';
+    }
+    return null;
+  }
+
+  String? get _colorError {
+    final text = _colorController.text.trim();
+    if (text.isEmpty) return null;
+    if (text.length < 2 || text.length > 30) {
+      return 'Colour must be 2 to 30 characters';
+    }
+    if (!RegExp(r'^[A-Za-z\s\-\/\.]+$').hasMatch(text)) {
+      return 'Only letters, spaces, and hyphens/slashes allowed';
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool canContinue = _controller.isFormValid;
@@ -238,24 +297,27 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
         backgroundColor: AppColors.clay,
         body: Stack(
           children: [
-            // ── Scrollable Body Content ─────────────────────────────────────
+            // ── Body Content with Fixed Header ─────────────────────────────
             SafeArea(
               bottom: false,
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(
-                  AppColors.screenPadding,
-                  8.0,
-                  AppColors.screenPadding,
-                  120.0,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // 1. Top Header Bar
-                    _buildTopAppBar(),
-
-                    const SizedBox(height: 18),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppColors.screenPadding),
+                    child: _buildTopAppBar(),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(
+                        AppColors.screenPadding,
+                        8.0,
+                        AppColors.screenPadding,
+                        120.0,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
 
                     // 2. Auto-filled banner (only when coming from photo scan)
                     if (widget.prefilled && _autoFilledFields.isNotEmpty)
@@ -372,6 +434,9 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
 
             // ── Floating Bottom Dock (Index 1: Bike Scan Active) ─────────────
             const Positioned(
@@ -1035,6 +1100,36 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
               ),
             ),
             onChanged: (val) => _controller.setVin(val),
+          ),
+          const SizedBox(height: 14),
+
+          // License Plate
+          LabeledTextField(
+            label: 'License Plate',
+            controller: _plateNumberController,
+            placeholder: 'e.g. LEB-20-4567',
+            helperText: 'Shown on Emergency QR card and rescue telemetry',
+            errorText: _submittedOnce ? _plateError : null,
+            textCapitalization: TextCapitalization.characters,
+            onChanged: (val) {
+              setState(() {});
+              _controller.setPlateNumber(val);
+            },
+          ),
+          const SizedBox(height: 14),
+
+          // Vehicle Colour / Finish
+          LabeledTextField(
+            label: 'Colour / Finish',
+            controller: _colorController,
+            placeholder: 'e.g. Matte Black or Red',
+            helperText: 'Motorcycle primary body colour',
+            errorText: _submittedOnce ? _colorError : null,
+            textCapitalization: TextCapitalization.words,
+            onChanged: (val) {
+              setState(() {});
+              _controller.setColor(val);
+            },
           ),
           const SizedBox(height: 14),
 

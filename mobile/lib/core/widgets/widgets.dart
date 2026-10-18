@@ -1,4 +1,5 @@
 export 'camp_app_bar.dart';
+export 'camp_bike_image.dart';
 export 'camp_bottom_nav.dart';
 export 'camp_card.dart';
 export 'camp_empty_state.dart';

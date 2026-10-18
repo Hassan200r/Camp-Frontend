@@ -3,20 +3,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
+import '../../../../core/data/app_repositories.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
 import '../../../garage/controllers/active_bike_controller.dart';
+import '../../controllers/service_visit_controller.dart';
 import '../../controllers/trip_budget_controller.dart';
 import '../../domain/expense_model.dart';
 import '../../domain/maintenance_item_model.dart';
 import '../../domain/trip_budget_model.dart';
+import '../../services/pdf_report_service.dart';
 import '../widgets/download_report_card_widget.dart';
 import '../widgets/hero_photo_widget.dart';
 import '../widgets/maintenance_list_widget.dart';
-import '../widgets/pitstop_card_widget.dart';
+import '../widgets/service_visit_card_widget.dart';
 import '../widgets/trip_budget_card_widget.dart';
 import 'add_expense_screen.dart';
 import 'add_maintenance_item_screen.dart';
@@ -43,6 +46,18 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
     _maintenanceItems = kDebugMode
         ? List.from(MaintenanceItem.defaultSampleItems)
         : <MaintenanceItem>[];
+    _loadPersistedItems();
+  }
+
+  Future<void> _loadPersistedItems() async {
+    try {
+      final loaded = await AppRepositories.instance.maintenanceRepository.loadMaintenanceItems();
+      if (loaded.isNotEmpty && mounted) {
+        setState(() {
+          _maintenanceItems = loaded;
+        });
+      }
+    } catch (_) {}
   }
 
   void _showNotification(String message) {
@@ -85,7 +100,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
     if (result != null && mounted) {
       TripBudgetController.instance.addExpense(result);
       _showNotification(
-        'Added ${result.title} (\$${result.amount.toStringAsFixed(2)})',
+        'Added ${result.title} (${formatPkr(result.amount)})',
       );
     }
   }
@@ -98,6 +113,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
       setState(() {
         _maintenanceItems.add(result);
       });
+      AppRepositories.instance.maintenanceRepository.saveMaintenanceItems(_maintenanceItems);
       _showNotification('Added ${result.name} to maintenance list');
     }
   }
@@ -105,6 +121,211 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
   void _handleDeleteTrip() {
     TripBudgetController.instance.deleteTrip();
     _showNotification('Trip deleted. Maintenance records preserved.');
+  }
+
+  void _showMaintenanceItemActions(MaintenanceItem item) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: AppColors.clay,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          boxShadow: AppColors.skeuRaised,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.clayDark,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                IconTile(
+                  icon: item.icon ?? Icons.build_circle_rounded,
+                  size: 36,
+                  iconSize: 18,
+                  isInset: true,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.manrope(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.darkCharcoal,
+                        ),
+                      ),
+                      Text(
+                        item.statusValueDisplay ??
+                            item.status.name.toUpperCase(),
+                        style: GoogleFonts.manrope(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.mutedText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined,
+                  color: AppColors.darkCharcoal),
+              title: Text(
+                'Edit Maintenance Item',
+                style: GoogleFonts.manrope(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.darkCharcoal,
+                ),
+              ),
+              onTap: () async {
+                Navigator.of(ctx).pop();
+                final updated =
+                    await Navigator.of(context).push<MaintenanceItem>(
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        AddMaintenanceItemScreen(initialItem: item),
+                  ),
+                );
+                if (updated != null && mounted) {
+                  final index =
+                      _maintenanceItems.indexWhere((i) => i.id == item.id);
+                  if (index != -1) {
+                    setState(() {
+                      _maintenanceItems[index] = updated;
+                    });
+                    AppRepositories.instance.maintenanceRepository
+                        .saveMaintenanceItems(_maintenanceItems);
+                    _showNotification('Updated ${updated.name}');
+                  }
+                }
+              },
+            ),
+            ListTile(
+              leading:
+                  const Icon(Icons.delete_outline, color: AppColors.alertRed),
+              title: Text(
+                'Delete Item',
+                style: GoogleFonts.manrope(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.alertRed,
+                ),
+              ),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _confirmDeleteMaintenanceItem(item);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteMaintenanceItem(MaintenanceItem item) {
+    showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.clay,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Delete Maintenance Item?',
+          style: GoogleFonts.manrope(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: AppColors.darkCharcoal,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to remove ${item.name} from the maintenance list?',
+          style: AppTextStyles.bodySecondary.copyWith(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.manrope(
+                fontWeight: FontWeight.w700,
+                color: AppColors.mutedText,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.alertRed,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () {
+              Navigator.of(ctx).pop(true);
+              _handleDismissMaintenanceItem(item);
+            },
+            child: Text(
+              'Delete',
+              style: GoogleFonts.manrope(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleDismissMaintenanceItem(MaintenanceItem item) {
+    final removedIndex = _maintenanceItems.indexOf(item);
+    setState(() {
+      _maintenanceItems.removeWhere((i) => i.id == item.id);
+    });
+    AppRepositories.instance.maintenanceRepository
+        .saveMaintenanceItems(_maintenanceItems);
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Deleted ${item.name}'),
+        backgroundColor: AppColors.darkCharcoal,
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Undo',
+          textColor: AppColors.tacticalOrange,
+          onPressed: () {
+            setState(() {
+              final safeIndex = removedIndex.clamp(0, _maintenanceItems.length);
+              _maintenanceItems.insert(safeIndex, item);
+            });
+            AppRepositories.instance.maintenanceRepository
+                .saveMaintenanceItems(_maintenanceItems);
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -243,16 +464,11 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                         onEditTrip: _pushEditTripBudget,
                         onDeleteTrip: _handleDeleteTrip,
                         onAddExpense: _pushAddExpense,
-                        onExpenseTapped: (exp) {
-                          _showNotification(
-                            '${exp.title}: \$${exp.amount.toStringAsFixed(2)}',
-                          );
-                        },
                       ),
                     ),
 
                     const SizedBox(height: AppColors.cardGap),
-                    // 6. Maintenance List Widget (Condition Telemetry + 5 items + Add button)
+                    // 6. Maintenance List Widget (Condition Telemetry + items + Add button)
                     MaintenanceListWidget(
                       items: _maintenanceItems,
                       onAddMaintenanceItem: _pushAddMaintenanceItem,
@@ -261,31 +477,41 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                           'Opening service guide for ${item.name}...',
                         );
                       },
-                      onItemTapped: (item) {
-                        _showNotification(
-                          '${item.name}: ${item.statusValueDisplay ?? ''}',
+                      onItemTapped: _showMaintenanceItemActions,
+                      onItemDismissed: _handleDismissMaintenanceItem,
+                    ),
+
+                    const SizedBox(height: AppColors.cardGap),
+
+                    // 7. Download Maintenance Report Card
+                    DownloadReportCardWidget(
+                      label: 'Download Maintenance Report (PDF)',
+                      subtitle: 'Receipts, service logs & schedule',
+                      onTap: () {
+                        final activeBike =
+                            ActiveBikeController.instance.activeBike;
+                        final bikeName = activeBike != null
+                            ? '${activeBike.make} ${activeBike.modelName}'
+                            : 'Motorcycle Fleet';
+                        final odo = activeBike?.odometerKm;
+
+                        PdfReportService.shareMaintenanceReport(
+                          context,
+                          MaintenanceReportData(
+                            bikeName: bikeName,
+                            odometerKm: odo,
+                            items: _maintenanceItems,
+                          ),
                         );
                       },
                     ),
 
                     const SizedBox(height: AppColors.cardGap),
 
-                    // 7. Download Maintenance Report Card
-                    const DownloadReportCardWidget(
-                      label: 'Download Maintenance Report (PDF)',
-                      subtitle: 'Receipts, service logs & schedule',
-                    ),
-
-                    const SizedBox(height: AppColors.cardGap),
-
-                    // 8. Upcoming Pitstop Card
-                    PitstopCardWidget(
-                      dateLabel: 'Oct 18, 10:00 AM',
-                      locationLabel: 'Peak Moto Dealership & Prep • Denver, CO',
-                      onCallDealer: () =>
-                          _showNotification('Calling Peak Moto Dealership...'),
-                      onDirections: () =>
-                          Navigator.of(context).pushNamed(CampRoutes.navigationMap),
+                    // 8. Next Service Visit Card (replaces fake Pitstop)
+                    ListenableBuilder(
+                      listenable: ServiceVisitController.instance,
+                      builder: (context, _) => const ServiceVisitCardWidget(),
                     ),
                   ],
                 ),

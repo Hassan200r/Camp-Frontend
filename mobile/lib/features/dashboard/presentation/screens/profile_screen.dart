@@ -516,7 +516,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(width: 10),
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: () => _showNotification('Rider Passport QR code generated'),
+                  onTap: () => Navigator.of(context).pushNamed(CampRoutes.emergencyQr),
                   child: Container(
                     width: 44,
                     height: 44,

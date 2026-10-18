@@ -62,19 +62,55 @@ class OfflineMedicalIdCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(
-                Icons.medical_services_outlined,
-                color: Color(0xFFDC2626),
-                size: 20,
+              Row(
+                children: [
+                  const Icon(
+                    Icons.medical_services_outlined,
+                    color: Color(0xFFDC2626),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Medical ID',
+                    style: GoogleFonts.manrope(
+                      color: const Color(0xFF1E293B),
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                'Medical ID',
-                style: GoogleFonts.manrope(
-                  color: const Color(0xFF1E293B),
-                  fontSize: 16.5,
-                  fontWeight: FontWeight.w800,
+              GestureDetector(
+                onTap: onEmergencyQrPressed ??
+                    () => Navigator.of(context).pushNamed(CampRoutes.emergencyQr),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.qr_code_2_rounded,
+                        color: Color(0xFF1E293B),
+                        size: 15,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Emergency QR',
+                        style: GoogleFonts.manrope(
+                          color: const Color(0xFF1E293B),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

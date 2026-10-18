@@ -15,18 +15,18 @@ void main() {
   test('TripBudget calculations and models', () {
     const budget = TripBudget.defaultSampleBudget;
     expect(budget.tripName, 'Alpine Ridge Tour');
-    expect(budget.capAmount, 300.0);
-    expect(budget.allocatedSoFar, 184.50);
+    expect(budget.capAmount, 75000.0);
+    expect(budget.allocatedSoFar, 46125.0);
     expect(budget.spentPercentInt, 62);
     expect(budget.isUnderBudget, true);
-    expect(budget.underBudgetAmount, 115.50);
+    expect(budget.underBudgetAmount, 28875.0);
   });
 
   test('Expense and MaintenanceItem default sample models', () {
     final expenses = Expense.defaultSampleExpenses;
     expect(expenses.length, 3);
     expect(expenses[0].title, 'Fuel Cost');
-    expect(expenses[0].amount, 62.50);
+    expect(expenses[0].amount, 9800.0);
 
     final items = MaintenanceItem.defaultSampleItems;
     expect(items.length, 5);
@@ -76,7 +76,7 @@ void main() {
     // Verify trip budget card elements
     expect(find.text('🏔 Alpine Ridge Tour'), findsOneWidget);
     expect(find.text('Trip Budget & Fuel Economics'), findsOneWidget);
-    expect(find.text('\$184.50'), findsOneWidget);
+    expect(find.text('Rs 46,125'), findsOneWidget);
     expect(find.textContaining('under target budget'), findsOneWidget);
     expect(find.text('Fuel Cost'), findsOneWidget);
     expect(find.text('Park Permits & Passes'), findsOneWidget);
@@ -93,11 +93,11 @@ void main() {
     expect(find.text('Fork Seals & Dust Boots'), findsOneWidget);
     expect(find.text('+ Add Maintenance Item'), findsOneWidget);
 
-    // Verify reports & pitstop
+    // Verify reports & service visit
     expect(find.text('Download Budget Report (PDF)'), findsOneWidget);
     expect(find.text('Download Maintenance Report (PDF)'), findsOneWidget);
-    expect(find.text('UPCOMING PITSTOP'), findsOneWidget);
-    expect(find.text('Oct 18, 10:00 AM'), findsOneWidget);
+    expect(find.text('NEXT SERVICE VISIT'), findsOneWidget);
+    expect(find.text('No service visit planned'), findsOneWidget);
   });
 
   testWidgets('AddExpenseScreen renders clean form at 360px',

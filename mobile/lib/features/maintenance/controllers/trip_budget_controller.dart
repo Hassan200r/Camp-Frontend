@@ -29,9 +29,21 @@ class TripBudgetController extends ChangeNotifier {
   List<Expense> get expenses => List.unmodifiable(_expenses);
 
   void _initializeDefaults() {
-    _budget = TripBudget.defaultSampleBudget;
-    _expenses.clear();
-    _expenses.addAll(Expense.defaultSampleExpenses);
+    if (kDebugMode) {
+      _budget = TripBudget.defaultSampleBudget;
+      _expenses.clear();
+      _expenses.addAll(Expense.defaultSampleExpenses);
+      _budget = _budget.copyWith(
+        allocatedSoFar: _expenses.fold<double>(0.0, (s, e) => s + e.amount),
+      );
+    } else {
+      _budget = const TripBudget(
+        tripName: 'Trip Budget',
+        capAmount: 0.0,
+        allocatedSoFar: 0.0,
+      );
+      _expenses.clear();
+    }
   }
 
   /// Update the trip budget.
@@ -45,7 +57,44 @@ class TripBudgetController extends ChangeNotifier {
   void addExpense(Expense expense) {
     _expenses.insert(0, expense);
     _budget = _budget.copyWith(
-      allocatedSoFar: _budget.allocatedSoFar + expense.amount,
+      allocatedSoFar: _expenses.fold<double>(0.0, (s, e) => s + e.amount),
+    );
+    notifyListeners();
+    save();
+  }
+
+  /// Update an existing expense in the ledger.
+  void updateExpense(Expense expense) {
+    final index = _expenses.indexWhere((e) => e.id == expense.id);
+    if (index != -1) {
+      _expenses[index] = expense;
+      _budget = _budget.copyWith(
+        allocatedSoFar: _expenses.fold<double>(0.0, (s, e) => s + e.amount),
+      );
+      notifyListeners();
+      save();
+    }
+  }
+
+  /// Remove an expense from the ledger by ID.
+  void deleteExpense(String id) {
+    final index = _expenses.indexWhere((e) => e.id == id);
+    if (index != -1) {
+      _expenses.removeAt(index);
+      _budget = _budget.copyWith(
+        allocatedSoFar: _expenses.fold<double>(0.0, (s, e) => s + e.amount),
+      );
+      notifyListeners();
+      save();
+    }
+  }
+
+  /// Insert an expense at a specific index (e.g. for Undo operations).
+  void insertExpense(int index, Expense expense) {
+    final safeIndex = index.clamp(0, _expenses.length);
+    _expenses.insert(safeIndex, expense);
+    _budget = _budget.copyWith(
+      allocatedSoFar: _expenses.fold<double>(0.0, (s, e) => s + e.amount),
     );
     notifyListeners();
     save();
@@ -110,6 +159,9 @@ class TripBudgetController extends ChangeNotifier {
       _budget = loadedBudget;
       _expenses.clear();
       _expenses.addAll(loadedExpenses);
+      _budget = _budget.copyWith(
+        allocatedSoFar: _expenses.fold<double>(0.0, (s, e) => s + e.amount),
+      );
       notifyListeners();
     } catch (_) {
       // Fallback on corrupt or invalid data

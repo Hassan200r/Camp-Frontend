@@ -16,6 +16,8 @@ class AppSettings {
     this.localCacheSizeGb = 1.4,
     this.language = 'English',
     this.emergencyNumber = '1122',
+    this.fuelPricePerLiter,
+    this.showBikeOnEmergencyQr = true,
   })  : id = id ?? 'settings-default',
         createdAt = (createdAt ?? DateTime.now()).toUtc(),
         updatedAt = (updatedAt ?? DateTime.now()).toUtc();
@@ -46,6 +48,8 @@ class AppSettings {
       localCacheSizeGb: (json['localCacheSizeGb'] as num?)?.toDouble() ?? 1.4,
       language: json['language'] as String? ?? 'English',
       emergencyNumber: json['emergencyNumber'] as String? ?? '1122',
+      fuelPricePerLiter: (json['fuelPricePerLiter'] as num?)?.toDouble(),
+      showBikeOnEmergencyQr: json['showBikeOnEmergencyQr'] as bool? ?? true,
     );
   }
 
@@ -64,6 +68,8 @@ class AppSettings {
   final double localCacheSizeGb;
   final String language;
   final String emergencyNumber;
+  final double? fuelPricePerLiter;
+  final bool showBikeOnEmergencyQr;
 
   AppSettings copyWith({
     String? id,
@@ -77,6 +83,8 @@ class AppSettings {
     double? localCacheSizeGb,
     String? language,
     String? emergencyNumber,
+    double? fuelPricePerLiter,
+    bool? showBikeOnEmergencyQr,
   }) {
     return AppSettings(
       id: id ?? this.id,
@@ -91,6 +99,9 @@ class AppSettings {
       localCacheSizeGb: localCacheSizeGb ?? this.localCacheSizeGb,
       language: language ?? this.language,
       emergencyNumber: emergencyNumber ?? this.emergencyNumber,
+      fuelPricePerLiter: fuelPricePerLiter ?? this.fuelPricePerLiter,
+      showBikeOnEmergencyQr:
+          showBikeOnEmergencyQr ?? this.showBikeOnEmergencyQr,
     );
   }
 
@@ -106,6 +117,8 @@ class AppSettings {
         'localCacheSizeGb': localCacheSizeGb,
         'language': language,
         'emergencyNumber': emergencyNumber,
+        'fuelPricePerLiter': fuelPricePerLiter,
+        'showBikeOnEmergencyQr': showBikeOnEmergencyQr,
       };
 
   @override
@@ -121,7 +134,9 @@ class AppSettings {
           cachedPacksSubtitle == other.cachedPacksSubtitle &&
           localCacheSizeGb == other.localCacheSizeGb &&
           language == other.language &&
-          emergencyNumber == other.emergencyNumber;
+          emergencyNumber == other.emergencyNumber &&
+          fuelPricePerLiter == other.fuelPricePerLiter &&
+          showBikeOnEmergencyQr == other.showBikeOnEmergencyQr;
 
   @override
   int get hashCode => Object.hash(
@@ -134,5 +149,7 @@ class AppSettings {
         localCacheSizeGb,
         language,
         emergencyNumber,
+        fuelPricePerLiter,
+        showBikeOnEmergencyQr,
       );
 }

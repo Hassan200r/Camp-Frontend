@@ -27,6 +27,7 @@ class LocalStore {
   static const String keyProfilePhotoPath = 'camp_profile_photo_path';
   static const String keyMechanics = 'camp_mechanics';
   static const String keyMaintenanceItems = 'camp_maintenance_items';
+  static const String keyServiceVisits = 'camp_service_visits';
   static const String keyJettingBaseline = 'camp_jetting_baseline';
   static const String keyChecklist = 'camp_safety_checklist';
   static const String keySavedPlaces = 'camp_saved_places';

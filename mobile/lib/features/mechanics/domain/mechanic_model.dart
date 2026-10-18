@@ -23,8 +23,8 @@ class Mechanic {
     required this.rating,
     required this.reviewCount,
     required this.openStatus,
-    this.phone = '',
-    this.phoneNumber,
+    String? phoneNumber,
+    String? phone,
     this.address,
     this.notes,
     this.photoPath,
@@ -34,7 +34,7 @@ class Mechanic {
     this.open24Hours = false,
     this.createdAt,
     this.updatedAt,
-  });
+  }) : phoneNumber = phoneNumber ?? phone;
 
   factory Mechanic.fromJson(Map<String, dynamic> json) {
     DateTime? parseUtc(dynamic val) {
@@ -52,7 +52,12 @@ class Mechanic {
     final updatedUtc = parseUtc(json['updatedAt']) ?? createdUtc;
 
     final rawPhone = (json['phoneNumber'] ?? json['phone']) as String?;
-    final effectivePhone = rawPhone ?? '';
+    final effectivePhone =
+        (rawPhone != null && rawPhone.trim().isNotEmpty) ? rawPhone.trim() : null;
+
+    final rawBadge = json['badgeLabel'] as String? ?? 'Added by you';
+    final effectiveBadge =
+        rawBadge == 'Community Added' ? 'Added by you' : rawBadge;
 
     return Mechanic(
       id: effectiveId,
@@ -64,7 +69,7 @@ class Mechanic {
       badgeType: (json['badgeType'] as String?) == 'emergency'
           ? BadgeType.emergency
           : BadgeType.verified,
-      badgeLabel: json['badgeLabel'] as String? ?? 'Community Added',
+      badgeLabel: effectiveBadge,
       beaconStatus: json['beaconStatus'] as String? ?? 'Active',
       beaconColor: json['beaconColor'] != null
           ? Color(json['beaconColor'] as int)
@@ -76,8 +81,7 @@ class Mechanic {
       rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
       reviewCount: (json['reviewCount'] as num?)?.toInt() ?? 1,
       openStatus: json['openStatus'] as String? ?? '',
-      phone: effectivePhone,
-      phoneNumber: (rawPhone != null && rawPhone.trim().isNotEmpty) ? rawPhone : null,
+      phoneNumber: effectivePhone,
       address: json['address'] as String?,
       notes: json['notes'] as String?,
       photoPath: (json['photoPath'] ?? json['photo']) as String?,
@@ -116,8 +120,11 @@ class Mechanic {
   final double rating;
   final int reviewCount;
   final String openStatus;
-  final String phone;
   final String? phoneNumber;
+
+  /// Legacy accessor for backwards compatibility.
+  String get phone => phoneNumber ?? '';
+
   final String? address;
   final String? notes;
   final String? photoPath;
@@ -127,7 +134,7 @@ class Mechanic {
   final bool open24Hours;
 
   /// Whether this shop has a valid phone number saved.
-  bool get hasPhone => (phoneNumber ?? phone).trim().isNotEmpty;
+  bool get hasPhone => phoneNumber != null && phoneNumber!.trim().isNotEmpty;
 
   Mechanic copyWith({
     String? id,
@@ -157,8 +164,7 @@ class Mechanic {
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
-    final effectivePhone = phone ?? (phoneNumber ?? this.phone);
-    final effectivePhoneNumber = phoneNumber ?? (phone ?? this.phoneNumber);
+    final effectivePhone = phoneNumber ?? phone ?? this.phoneNumber;
 
     return Mechanic(
       id: id ?? this.id,
@@ -176,8 +182,7 @@ class Mechanic {
       rating: rating ?? this.rating,
       reviewCount: reviewCount ?? this.reviewCount,
       openStatus: openStatus ?? this.openStatus,
-      phone: effectivePhone,
-      phoneNumber: effectivePhoneNumber,
+      phoneNumber: effectivePhone,
       address: address ?? this.address,
       notes: notes ?? this.notes,
       photoPath: photoPath ?? this.photoPath,
@@ -208,8 +213,8 @@ class Mechanic {
         'rating': rating,
         'reviewCount': reviewCount,
         'openStatus': openStatus,
-        'phone': phone,
-        'phoneNumber': phoneNumber ?? (phone.isNotEmpty ? phone : null),
+        'phoneNumber': phoneNumber,
+        'phone': phoneNumber ?? '',
         'address': address,
         'notes': notes,
         'photoPath': photoPath,
@@ -240,7 +245,6 @@ class Mechanic {
           rating: 4.9,
           reviewCount: 128,
           openStatus: '',
-          phone: '',
           phoneNumber: null,
           address: '42 Timberline Rd, Pass Junction',
           openDays: [1, 2, 3, 4, 5, 6],
@@ -272,7 +276,6 @@ class Mechanic {
           rating: 4.8,
           reviewCount: 89,
           openStatus: '',
-          phone: '',
           phoneNumber: null,
           address: 'Mile Marker 88, Babusar Valley',
           openDays: [1, 2, 3, 4, 5, 6, 7],
@@ -298,7 +301,6 @@ class Mechanic {
           rating: 4.95,
           reviewCount: 204,
           openStatus: '',
-          phone: '',
           phoneNumber: null,
           address: '104 Alpine Loop Hwy',
           openDays: [1, 2, 3, 4, 5],

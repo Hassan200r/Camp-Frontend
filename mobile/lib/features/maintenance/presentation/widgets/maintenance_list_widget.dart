@@ -14,12 +14,14 @@ class MaintenanceListWidget extends StatelessWidget {
     super.key,
     this.onItemGuidePressed,
     this.onItemTapped,
+    this.onItemDismissed,
   });
 
   final List<MaintenanceItem> items;
   final VoidCallback onAddMaintenanceItem;
   final ValueChanged<MaintenanceItem>? onItemGuidePressed;
   final ValueChanged<MaintenanceItem>? onItemTapped;
+  final ValueChanged<MaintenanceItem>? onItemDismissed;
 
   @override
   Widget build(BuildContext context) {
@@ -55,15 +57,31 @@ class MaintenanceListWidget extends StatelessWidget {
         ),
 
         // ── Maintenance Item Cards ─────────────────────────────────────────
-
-        // ── Maintenance Item Cards ─────────────────────────────────────────
         ...items.map((item) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 16),
-            child: MaintenanceItemCardWidget(
-              item: item,
-              onActionPressed: () => onItemGuidePressed?.call(item),
-              onTap: () => onItemTapped?.call(item),
+            child: Dismissible(
+              key: ValueKey(item.id),
+              direction: DismissDirection.endToStart,
+              background: Container(
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.alertRed,
+                  borderRadius: BorderRadius.circular(AppColors.radiusTile),
+                ),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              onDismissed: (_) => onItemDismissed?.call(item),
+              child: MaintenanceItemCardWidget(
+                item: item,
+                onActionPressed: () => onItemGuidePressed?.call(item),
+                onTap: () => onItemTapped?.call(item),
+              ),
             ),
           );
         }),

@@ -13,6 +13,7 @@ class LabeledTextField extends StatelessWidget {
     required this.controller,
     super.key,
     this.placeholder,
+    this.prefixText,
     this.suffixText,
     this.helperText,
     this.keyboardType,
@@ -29,11 +30,13 @@ class LabeledTextField extends StatelessWidget {
     this.maxLines = 1,
     this.maxLength,
     this.inputFormatters,
+    this.textCapitalization = TextCapitalization.none,
   });
 
   final String label;
   final TextEditingController controller;
   final String? placeholder;
+  final String? prefixText;
   final String? suffixText;
   final String? helperText;
   final TextInputType? keyboardType;
@@ -50,6 +53,7 @@ class LabeledTextField extends StatelessWidget {
   final int maxLines;
   final int? maxLength;
   final List<TextInputFormatter>? inputFormatters;
+  final TextCapitalization textCapitalization;
 
   @override
   Widget build(BuildContext context) {
@@ -64,42 +68,52 @@ class LabeledTextField extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  style: GoogleFonts.manrope(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.darkCharcoal,
-                  ),
-                ),
-                if (isError && errorLabel != null) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.alertRedBg,
-                      borderRadius: BorderRadius.circular(AppColors.radiusPill),
-                    ),
+            Expanded(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
                     child: Text(
-                      errorLabel!,
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.manrope(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.alertRed,
-                        letterSpacing: 0.4,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.darkCharcoal,
                       ),
                     ),
                   ),
+                  if (isError && errorLabel != null) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.alertRedBg,
+                        borderRadius:
+                            BorderRadius.circular(AppColors.radiusPill),
+                      ),
+                      child: Text(
+                        errorLabel!,
+                        style: GoogleFonts.manrope(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.alertRed,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-            ?rightLabelWidget,
+            if (rightLabelWidget != null) ...[
+              const SizedBox(width: 8),
+              rightLabelWidget!,
+            ],
           ],
         ),
         const SizedBox(height: 5),
@@ -120,6 +134,18 @@ class LabeledTextField extends StatelessWidget {
                 ? CrossAxisAlignment.start
                 : CrossAxisAlignment.center,
             children: [
+              if (prefixText != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 14, right: 2),
+                  child: Text(
+                    prefixText!,
+                    style: GoogleFonts.manrope(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.mutedText,
+                    ),
+                  ),
+                ),
               Expanded(
                 child: TextField(
                   controller: controller,
@@ -130,6 +156,7 @@ class LabeledTextField extends StatelessWidget {
                   maxLines: maxLines,
                   maxLength: maxLength,
                   inputFormatters: inputFormatters,
+                  textCapitalization: textCapitalization,
                   buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
                   style: AppTextStyles.body.copyWith(
                     fontWeight: FontWeight.w600,
@@ -142,9 +169,11 @@ class LabeledTextField extends StatelessWidget {
                       fontWeight: FontWeight.w500,
                       color: AppColors.mutedLight,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 13,
+                    contentPadding: EdgeInsets.only(
+                      left: prefixText != null ? 4 : 14,
+                      right: 14,
+                      top: 13,
+                      bottom: 13,
                     ),
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,

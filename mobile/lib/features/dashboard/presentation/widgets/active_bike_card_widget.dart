@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -135,8 +133,8 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
         final String fuelText = liters == null
             ? 'Set fuel level'
             : (rangeKm != null
-                ? '${liters.toStringAsFixed(1)} / ${tankCap?.toStringAsFixed(0) ?? '--'} L (est.)  •  about ${rangeKm.round()} km range'
-                : '${liters.toStringAsFixed(1)} / ${tankCap?.toStringAsFixed(0) ?? '--'} L (est.)');
+                ? '${liters.toStringAsFixed(1)} / ${tankCap?.toStringAsFixed(0) ?? '--'} L  •  about ${rangeKm.round()} km range'
+                : '${liters.toStringAsFixed(1)} / ${tankCap?.toStringAsFixed(0) ?? '--'} L');
 
         return ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 450),
@@ -571,28 +569,13 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
 
   Widget _buildBikeShowcaseContent(Bike bike) {
     if (bike.imagePath != null && bike.imagePath!.isNotEmpty) {
-      final file = File(bike.imagePath!);
-      if (file.existsSync()) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(AppColors.radiusTile - 4),
-          child: Image.file(
-            file,
-            width: double.infinity,
-            height: 130,
-            fit: BoxFit.cover,
-          ),
-        );
-      } else if (bike.imagePath!.startsWith('assets/')) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(AppColors.radiusTile - 4),
-          child: Image.asset(
-            bike.imagePath!,
-            width: double.infinity,
-            height: 130,
-            fit: BoxFit.cover,
-          ),
-        );
-      }
+      return CampBikeImage(
+        imagePath: bike.imagePath,
+        width: double.infinity,
+        height: 130,
+        fit: BoxFit.cover,
+        borderRadius: BorderRadius.circular(AppColors.radiusTile - 4),
+      );
     }
 
     return Column(

@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -237,8 +235,8 @@ class GarageScreen extends StatelessWidget {
     final String fuelText = liters == null
         ? 'Set fuel level'
         : (rangeKm != null
-            ? '${liters.toStringAsFixed(1)} / ${tankCap?.toStringAsFixed(0) ?? '--'} L (est.)  •  about ${rangeKm.round()} km range'
-            : '${liters.toStringAsFixed(1)} / ${tankCap?.toStringAsFixed(0) ?? '--'} L (est.)');
+            ? '${liters.toStringAsFixed(1)} / ${tankCap?.toStringAsFixed(0) ?? '--'} L  •  about ${rangeKm.round()} km range'
+            : '${liters.toStringAsFixed(1)} / ${tankCap?.toStringAsFixed(0) ?? '--'} L');
 
     final bikeReports =
         PostRideReportController.instance.getReportsForBike(bike.id);
@@ -370,42 +368,9 @@ class GarageScreen extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  DecoratedBox(
-                    decoration: const BoxDecoration(color: AppColors.clayDark),
-                    child: bike.imagePath != null
-                        ? (File(bike.imagePath!).existsSync()
-                            ? Image.file(
-                                File(bike.imagePath!),
-                                fit: BoxFit.cover,
-                              )
-                            : (bike.imagePath!.startsWith('assets/')
-                                ? Image.asset(
-                                    bike.imagePath!,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            const Center(
-                                      child: Icon(
-                                        Icons.two_wheeler_rounded,
-                                        size: 64,
-                                        color: AppColors.mutedLight,
-                                      ),
-                                    ),
-                                  )
-                                : const Center(
-                                    child: Icon(
-                                      Icons.two_wheeler_rounded,
-                                      size: 64,
-                                      color: AppColors.mutedLight,
-                                    ),
-                                  )))
-                        : const Center(
-                            child: Icon(
-                              Icons.two_wheeler_rounded,
-                              size: 64,
-                              color: AppColors.mutedLight,
-                            ),
-                          ),
+                  CampBikeImage(
+                    imagePath: bike.imagePath,
+                    fit: BoxFit.cover,
                   ),
                   Positioned(
                     top: 10,
