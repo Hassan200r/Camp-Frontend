@@ -22,7 +22,7 @@ void main() {
                 right: 0,
                 bottom: 24,
                 child: Center(
-                  child: CampBottomNav(selectedIndex: 0),
+                  child: CampBottomNav(selected: CampTab.home),
                 ),
               ),
             ],

@@ -376,20 +376,13 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
 
                 // ── 6. Bottom Dock Navigation (Hidden during Navigation) ─────
                 if (!isNavigating)
-                  Positioned(
+                  const Positioned(
                     left: 0,
                     right: 0,
                     bottom: 24,
                     child: Center(
                       child: CampBottomNav(
-                        selectedIndex: 2,
-                        onIndexChanged: (index) {
-                          CampBottomNav.navigateToTab(
-                            context,
-                            index,
-                            currentIndex: 2,
-                          );
-                        },
+                        selected: CampTab.navigation,
                       ),
                     ),
                   ),

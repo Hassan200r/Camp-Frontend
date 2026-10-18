@@ -172,17 +172,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
 
             // ── Floating Bottom Dock (Index 5: Profile Active) ───────────────
-            Positioned(
+            const Positioned(
               left: 0,
               right: 0,
               bottom: _kNavBottomMargin,
               child: Center(
                 child: CampBottomNav(
-                  selectedIndex: 5, // Profile tab active
-                  onIndexChanged: (index) {
-                    if (index == 5) return;
-                    CampBottomNav.navigateToTab(context, index, currentIndex: 5);
-                  },
+                  selected: CampTab.profile,
                 ),
               ),
             ),

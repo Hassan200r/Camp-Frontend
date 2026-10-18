@@ -35,7 +35,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
   bool _isListView = true;
   String _selectedFilter = 'all';
   String _searchQuery = '';
-  int _currentNavIndex = 3; // 3 is the active Mechanic (Wrench) hub
+  CampTab _currentTab = CampTab.mechanics;
   final TextEditingController _searchController = TextEditingController();
 
   List<Mechanic> get _filteredMechanics {
@@ -155,7 +155,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
 
   Future<void> _navigateToMapScreen() async {
     setState(() {
-      _currentNavIndex = 2;
+      _currentTab = CampTab.navigation;
     });
     await Navigator.pushNamed(
       context,
@@ -164,7 +164,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
     if (mounted) {
       // Strictly open Mechanic Screen (Index 3)
       setState(() {
-        _currentNavIndex = 3;
+        _currentTab = CampTab.mechanics;
         _isListView = true;
       });
     }
@@ -436,7 +436,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
                       onToggle: (isList) {
                         setState(() {
                           _isListView = isList;
-                          _currentNavIndex = 3;
+                          _currentTab = CampTab.mechanics;
                         });
                       },
                     ),
@@ -462,7 +462,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
 
                 // Floating "+ Add Mechanic" Button (FAB bottom: 96, does not overlap bottom dock at bottom: 24)
                 // Automatically hides when keyboard is open via KeyboardVisibilityBuilder
-                if (_currentNavIndex == 3 || _isListView)
+                if (_currentTab == CampTab.mechanics || _isListView)
                   Positioned(
                     right: 16,
                     bottom: 96,
@@ -511,15 +511,15 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
                   bottom: 24,
                   child: Center(
                     child: CampBottomNav(
-                      selectedIndex: 3,
-                      onIndexChanged: (index) {
-                        if (index == 3) {
+                      selected: CampTab.mechanics,
+                      onTabChanged: (tab) {
+                        if (tab == CampTab.mechanics) {
                           setState(() {
-                            _currentNavIndex = 3;
+                            _currentTab = CampTab.mechanics;
                             _isListView = true;
                           });
                         } else {
-                          CampBottomNav.navigateToTab(context, index, currentIndex: 3);
+                          CampBottomNav.navigateToTab(context, tab, currentTab: CampTab.mechanics);
                         }
                       },
                     ),

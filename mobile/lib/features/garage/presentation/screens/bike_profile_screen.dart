@@ -336,15 +336,13 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
                       ),
                     ),
                   ),
-                  Positioned(
+                  const Positioned(
                     left: 0,
                     right: 0,
                     bottom: _kNavBottomMargin,
                     child: Center(
                       child: CampBottomNav(
-                        selectedIndex: 1,
-                        onIndexChanged: (idx) =>
-                            CampBottomNav.navigateToTab(context, idx),
+                        selected: CampTab.garage,
                       ),
                     ),
                   ),
@@ -421,16 +419,13 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
                 ),
 
                 // ── Floating Bottom Dock ──────────────────────────────────────
-                Positioned(
+                const Positioned(
                   left: 0,
                   right: 0,
                   bottom: _kNavBottomMargin,
                   child: Center(
                     child: CampBottomNav(
-                      selectedIndex: 0,
-                      onIndexChanged: (idx) {
-                        CampBottomNav.navigateToTab(context, idx);
-                      },
+                      selected: CampTab.garage,
                     ),
                   ),
                 ),

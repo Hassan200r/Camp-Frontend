@@ -166,16 +166,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
             // 7. Tactical Bottom Dock (Floating)
-            Positioned(
+            const Positioned(
               left: 0,
               right: 0,
               bottom: 24,
               child: Center(
                 child: CampBottomNav(
-                  selectedIndex: 0,
-                  onIndexChanged: (index) {
-                    CampBottomNav.navigateToTab(context, index, currentIndex: 0);
-                  },
+                  selected: CampTab.home,
                 ),
               ),
             ),

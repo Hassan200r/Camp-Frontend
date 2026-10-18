@@ -293,20 +293,13 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
             ),
 
             // 9. Floating Tactical Bottom Dock (selected index: 4)
-            Positioned(
+            const Positioned(
               left: 0,
               right: 0,
               bottom: 24,
               child: Center(
                 child: CampBottomNav(
-                  selectedIndex: 4,
-                  onIndexChanged: (index) {
-                    CampBottomNav.navigateToTab(
-                      context,
-                      index,
-                      currentIndex: 4,
-                    );
-                  },
+                  selected: CampTab.finances,
                 ),
               ),
             ),

@@ -24,7 +24,7 @@ import '../widgets/season_summary_card_widget.dart';
 ///   6. [LoadMoreButtonWidget]        — "Load 20 Earlier Expedition Logs" CTA
 ///
 /// Uses [CampAppBar] (leading: back, action: LOGS) and [CampBottomNav]
-/// (selectedIndex: 4) per the CAMP design system mandate.
+/// (selected: CampTab.profile) per the CAMP design system mandate.
 class RideHistoryScreen extends StatefulWidget {
   const RideHistoryScreen({super.key});
 
@@ -177,7 +177,7 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> {
             left: 0,
             right: 0,
             bottom: 24,
-            child: Center(child: CampBottomNav(selectedIndex: 4)),
+            child: Center(child: CampBottomNav(selected: CampTab.profile)),
           ),
         ],
       ),

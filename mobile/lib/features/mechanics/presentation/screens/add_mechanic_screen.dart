@@ -426,24 +426,13 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
             ),
 
             // Floating Bottom Nav Dock — CampBottomNav hides itself when keyboard is open
-            Positioned(
+            const Positioned(
               left: 0,
               right: 0,
               bottom: 24,
               child: Center(
                 child: CampBottomNav(
-                  selectedIndex: 3,
-                  onIndexChanged: (index) {
-                    if (index == 3) {
-                      Navigator.of(context).pop();
-                    } else {
-                      CampBottomNav.navigateToTab(
-                        context,
-                        index,
-                        currentIndex: 3,
-                      );
-                    }
-                  },
+                  selected: CampTab.mechanics,
                 ),
               ),
             ),

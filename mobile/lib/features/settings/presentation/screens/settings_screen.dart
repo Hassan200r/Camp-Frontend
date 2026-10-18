@@ -752,16 +752,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
 
             // ── Floating Bottom Dock (No tab active) ─────────────────────────
-            Positioned(
+            const Positioned(
               left: 0,
               right: 0,
               bottom: _kNavBottomMargin,
               child: Center(
                 child: CampBottomNav(
-                  selectedIndex: -1,
-                  onIndexChanged: (index) {
-                    CampBottomNav.navigateToTab(context, index, currentIndex: -1);
-                  },
+                  selected: CampTab.profile,
                 ),
               ),
             ),

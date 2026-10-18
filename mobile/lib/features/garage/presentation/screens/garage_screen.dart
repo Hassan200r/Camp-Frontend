@@ -90,20 +90,13 @@ class GarageScreen extends StatelessWidget {
             ),
 
             // ── 6. Floating Bottom Navigation Dock ──────────────────────────
-            Positioned(
+            const Positioned(
               left: 0,
               right: 0,
               bottom: 24,
               child: Center(
                 child: CampBottomNav(
-                  selectedIndex: 0,
-                  onIndexChanged: (idx) {
-                    CampBottomNav.navigateToTab(
-                      context,
-                      idx,
-                      currentIndex: null,
-                    );
-                  },
+                  selected: CampTab.garage,
                 ),
               ),
             ),

@@ -90,7 +90,7 @@ class AddMotorcycleScreen extends StatelessWidget {
               bottom: 24,
               child: Center(
                 child: CampBottomNav(
-                  selectedIndex: 1,
+                  selected: CampTab.garage,
                 ),
               ),
             ),
