@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/maintenance_item_model.dart';
 
@@ -20,6 +21,17 @@ class MaintenanceItemCardWidget extends StatelessWidget {
   final VoidCallback? onTap;
 
   Widget _buildStatusValueWidget() {
+    if (item.cost != null && item.cost! > 0) {
+      return Text(
+        formatPkr(item.cost!),
+        style: GoogleFonts.manrope(
+          color: AppColors.darkCharcoal,
+          fontSize: 14,
+          fontWeight: FontWeight.w800,
+        ),
+      );
+    }
+
     final val = item.statusValueDisplay ?? '';
     if (val == 'OK') {
       return const StatusChip(
@@ -42,13 +54,23 @@ class MaintenanceItemCardWidget extends StatelessWidget {
           fontWeight: FontWeight.w800,
         ),
       );
-    } else {
+    } else if (val.isNotEmpty && !val.contains(r'$')) {
       return Text(
         val,
         style: GoogleFonts.manrope(
           color: AppColors.darkCharcoal,
           fontSize: 14,
           fontWeight: FontWeight.w800,
+        ),
+      );
+    } else {
+      return Text(
+        'Add your cost',
+        style: GoogleFonts.manrope(
+          color: AppColors.mutedText,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          fontStyle: FontStyle.italic,
         ),
       );
     }

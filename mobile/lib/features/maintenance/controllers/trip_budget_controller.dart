@@ -29,9 +29,21 @@ class TripBudgetController extends ChangeNotifier {
   List<Expense> get expenses => List.unmodifiable(_expenses);
 
   void _initializeDefaults() {
-    _budget = TripBudget.defaultSampleBudget;
-    _expenses.clear();
-    _expenses.addAll(Expense.defaultSampleExpenses);
+    if (kDebugMode) {
+      _budget = TripBudget.defaultSampleBudget;
+      _expenses.clear();
+      _expenses.addAll(Expense.defaultSampleExpenses);
+      _budget = _budget.copyWith(
+        allocatedSoFar: _expenses.fold<double>(0.0, (s, e) => s + e.amount),
+      );
+    } else {
+      _budget = const TripBudget(
+        tripName: 'Trip Budget',
+        capAmount: 0.0,
+        allocatedSoFar: 0.0,
+      );
+      _expenses.clear();
+    }
   }
 
   /// Update the trip budget.
@@ -45,7 +57,7 @@ class TripBudgetController extends ChangeNotifier {
   void addExpense(Expense expense) {
     _expenses.insert(0, expense);
     _budget = _budget.copyWith(
-      allocatedSoFar: _budget.allocatedSoFar + expense.amount,
+      allocatedSoFar: _expenses.fold<double>(0.0, (s, e) => s + e.amount),
     );
     notifyListeners();
     save();
@@ -110,6 +122,9 @@ class TripBudgetController extends ChangeNotifier {
       _budget = loadedBudget;
       _expenses.clear();
       _expenses.addAll(loadedExpenses);
+      _budget = _budget.copyWith(
+        allocatedSoFar: _expenses.fold<double>(0.0, (s, e) => s + e.amount),
+      );
       notifyListeners();
     } catch (_) {
       // Fallback on corrupt or invalid data

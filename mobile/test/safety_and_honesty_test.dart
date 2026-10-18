@@ -1,9 +1,17 @@
 import 'package:camp/core/storage/local_store.dart';
+import 'package:camp/core/utils/currency_formatter.dart';
 import 'package:camp/features/dashboard/controllers/profile_controller.dart';
 import 'package:camp/features/dashboard/domain/user_profile_model.dart';
 import 'package:camp/features/emergency_sos/domain/emergency_sos_helpers.dart';
 import 'package:camp/features/emergency_sos/presentation/widgets/emergency_contact_card.dart';
 import 'package:camp/features/emergency_sos/presentation/widgets/offline_medical_id_card.dart';
+import 'package:camp/features/garage/domain/bike_model.dart';
+import 'package:camp/features/garage/presentation/widgets/update_fuel_sheet.dart';
+import 'package:camp/features/maintenance/controllers/trip_budget_controller.dart';
+import 'package:camp/features/maintenance/domain/expense_model.dart';
+import 'package:camp/features/maintenance/domain/maintenance_prediction_engine.dart';
+import 'package:camp/features/maintenance/domain/trip_budget_model.dart';
+import 'package:camp/features/maintenance/presentation/widgets/trip_budget_card_widget.dart';
 import 'package:camp/features/mechanics/domain/mechanic_model.dart';
 import 'package:camp/features/mechanics/presentation/widgets/mechanic_card.dart';
 import 'package:camp/features/navigation/domain/location_service.dart';
@@ -207,7 +215,7 @@ void main() {
         distance: '4.5 km away',
         durationOrLocation: 'Pass Summit',
         badgeType: BadgeType.verified,
-        badgeLabel: 'Community Added',
+        badgeLabel: 'Added by you',
         beaconStatus: 'Offline',
         beaconColor: Colors.grey,
         categoryTitle1: 'SERVICES',
@@ -217,7 +225,6 @@ void main() {
         rating: 4.5,
         reviewCount: 3,
         openStatus: 'SELF SERVICE',
-        phone: '',
         phoneNumber: null,
       );
 
@@ -249,7 +256,7 @@ void main() {
         distance: '1.0 km away',
         durationOrLocation: 'Airport Road',
         badgeType: BadgeType.verified,
-        badgeLabel: 'Community Added',
+        badgeLabel: 'Added by you',
         beaconStatus: 'Active',
         beaconColor: Colors.green,
         categoryTitle1: 'SERVICES',
@@ -259,7 +266,6 @@ void main() {
         rating: 4.8,
         reviewCount: 15,
         openStatus: 'OPEN NOW',
-        phone: '+92 300 5551234',
         phoneNumber: '+92 300 5551234',
       );
 
@@ -290,7 +296,7 @@ void main() {
         distance: '2.0 km away',
         durationOrLocation: 'Main Bazaar',
         badgeType: BadgeType.verified,
-        badgeLabel: 'Community Added',
+        badgeLabel: 'Added by you',
         beaconStatus: 'Active',
         beaconColor: Colors.green,
         categoryTitle1: 'SPECIALTIES',
@@ -300,7 +306,6 @@ void main() {
         rating: 4.9,
         reviewCount: 30,
         openStatus: 'OPEN NOW',
-        phone: '+92 300 1122334',
         phoneNumber: '+92 300 1122334',
       );
 
@@ -323,7 +328,7 @@ void main() {
         distance: '10 km',
         durationOrLocation: 'Mile 40',
         badgeType: BadgeType.verified,
-        badgeLabel: 'Community Added',
+        badgeLabel: 'Added by you',
         beaconStatus: 'Active',
         beaconColor: Colors.grey,
         categoryTitle1: 'TOOLS',
@@ -333,7 +338,6 @@ void main() {
         rating: 4.0,
         reviewCount: 1,
         openStatus: 'OPEN',
-        phone: '',
         phoneNumber: null,
       );
 
@@ -371,6 +375,7 @@ void main() {
       final parsed = Mechanic.fromJson(legacyJson);
       expect(parsed.phone, '+92 345 9988776');
       expect(parsed.phoneNumber, '+92 345 9988776');
+      expect(parsed.badgeLabel, 'Added by you');
       expect(parsed.hasPhone, isTrue);
     });
 
@@ -398,6 +403,7 @@ void main() {
       final parsed = Mechanic.fromJson(newJson);
       expect(parsed.phone, '+92 321 4455667');
       expect(parsed.phoneNumber, '+92 321 4455667');
+      expect(parsed.badgeLabel, 'Added by you');
       expect(parsed.hasPhone, isTrue);
     });
   });
@@ -565,6 +571,168 @@ void main() {
       expect(find.text('Penicillin / Amoxicillin'), findsNothing);
       expect(find.textContaining('Titanium Rod'), findsNothing);
       expect(find.textContaining('without unlocking device'), findsNothing);
+    });
+  });
+
+  group('PKR Currency & Honest User-Entered Costs', () {
+    test('formatPkr formats properly across various values', () {
+      expect(formatPkr(0), 'Rs 0');
+      expect(formatPkr(999), 'Rs 999');
+      expect(formatPkr(1000), 'Rs 1,000');
+      expect(formatPkr(125000), 'Rs 125,000');
+      expect(formatPkr(1234567), 'Rs 1,234,567');
+      expect(formatPkr(12.50), 'Rs 12.50');
+      expect(formatPkr(12.5), 'Rs 12.50');
+      expect(formatPkr(12.00), 'Rs 12');
+      expect(formatPkr(-5), 'Rs 0'); // negative never shown
+      expect(formatPkr(null), 'Rs 0');
+    });
+
+    test('parsePkr parses valid PKR inputs and rejects invalid/negatives', () {
+      expect(parsePkr('12,500'), 12500.0);
+      expect(parsePkr('12500'), 12500.0);
+      expect(parsePkr('abc'), isNull);
+      expect(parsePkr('-5'), isNull);
+      expect(parsePkr(''), isNull);
+      expect(parsePkr(null), isNull);
+      expect(parsePkr('999999999999'), isNull); // exceeds kMaxPkrAmount
+    });
+
+    test('The maintenance rule engine returns no cost', () {
+      const bike = Bike(
+        id: 'test-bike',
+        make: 'Honda',
+        modelName: 'CRF300L',
+        modelYear: 2023,
+        odometerKm: 5000,
+      );
+      final assessment = MaintenancePredictionEngine.analyze(
+        bike: bike,
+        rideReports: const [],
+      );
+
+      // Verify rule engine calculates health and distance, never cost
+      expect(assessment.healthIndex, inInclusiveRange(0, 100));
+      expect(assessment.nextServiceKm, isNonNegative);
+      for (final comp in assessment.components) {
+        expect(comp.wearPercent, inInclusiveRange(0, 100));
+        expect(comp.healthScore, inInclusiveRange(0, 100));
+      }
+    });
+
+    test('Finances totals equal the sum of saved entries and empty state at zero', () {
+      final controller = TripBudgetController.instance;
+      controller.resetForTesting();
+      expect(controller.expenses.isEmpty, isTrue);
+      expect(controller.budget.allocatedSoFar, 0.0);
+
+      controller.addExpense(
+        const Expense(
+          id: 'test-exp-1',
+          category: ExpenseCategory.fuel,
+          title: 'Fuel Test',
+          amount: 2500.0,
+          trackingMode: ExpenseTrackingMode.manualEntry,
+        ),
+      );
+      controller.addExpense(
+        const Expense(
+          id: 'test-exp-2',
+          category: ExpenseCategory.parts,
+          title: 'Parts Test',
+          amount: 7500.0,
+          trackingMode: ExpenseTrackingMode.manualEntry,
+        ),
+      );
+
+      expect(controller.budget.allocatedSoFar, 10000.0);
+      expect(
+        controller.budget.allocatedSoFar,
+        controller.expenses.fold<double>(0.0, (s, e) => s + e.amount),
+      );
+    });
+
+    testWidgets('TripBudgetCardWidget renders empty state and never contains dollar signs',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: TripBudgetCardWidget(
+                tripBudget: const TripBudget(
+                  tripName: 'Test Trip',
+                  capAmount: 50000.0,
+                  allocatedSoFar: 0.0,
+                ),
+                expenses: const [],
+                onEditTrip: () {},
+                onDeleteTrip: () {},
+                onAddExpense: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Empty state prompt
+      expect(find.text('Add your first expense'), findsOneWidget);
+      // Formatted in PKR
+      expect(find.text('Rs 0'), findsOneWidget);
+      expect(find.text('/ Rs 50,000 Budget Cap'), findsOneWidget);
+
+      // Absolutely no "$" in any rendered text
+      expect(find.textContaining(r'$'), findsNothing);
+    });
+
+    testWidgets('Fuel cost shows only when fuel price is set', (tester) async {
+      const testBike = Bike(
+        id: 'fuel-test-bike',
+        make: 'Yamaha',
+        modelName: 'Tenere 700',
+        modelYear: 2023,
+        odometerKm: 2500,
+        fuelTankCapacityLiters: 16.0,
+        fuelRemainingLiters: 6.0,
+      );
+
+      // 1. Without fuel price set
+      SettingsController.instance.setFuelPricePerLiter(null);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: UpdateFuelSheet(bike: testBike),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Switch to Refill mode
+      await tester.tap(find.text('I Refilled'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Add fuel price to see cost'), findsWidgets);
+      expect(find.textContaining(r'$'), findsNothing);
+
+      // 2. With fuel price set
+      SettingsController.instance.setFuelPricePerLiter(280.0);
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: UpdateFuelSheet(bike: testBike),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Switch to Refill mode
+      await tester.tap(find.text('I Refilled'));
+      await tester.pumpAndSettle();
+
+      // Now shows PKR cost calculated at 280/L
+      expect(find.textContaining('Rs '), findsWidgets);
+      expect(find.textContaining(r'$'), findsNothing);
     });
   });
 }

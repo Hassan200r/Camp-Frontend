@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../settings/controllers/settings_controller.dart';
 import '../../domain/stat_model.dart';
 import 'dark_info_tile_widget.dart';
 import 'dark_stat_tile_widget.dart';
@@ -171,20 +173,33 @@ class LatestExpeditionCardWidget extends StatelessWidget {
           const SizedBox(height: 14),
 
           // ── Two info tiles ─────────────────────────────────────────────────
-          const Row(
+          Row(
             children: [
-              Expanded(
+              const Expanded(
                 child: DarkInfoTileWidget(
                   category: 'CARB TUNING',
                   primaryLine: 'Leaned 0.5 Turns\n61kPa at Summit • Nominal',
                 ),
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Expanded(
-                child: DarkInfoTileWidget(
-                  category: 'FUEL SPENT',
-                  primaryLine: '\$38.40 • 13.8L',
-                  noteLine: '\$3.60 under budget',
+                child: Builder(
+                  builder: (context) {
+                    final fuelPrice = SettingsController.instance.fuelPricePerLiter;
+                    final hasFuelPrice = fuelPrice != null && fuelPrice > 0;
+                    final primary = hasFuelPrice
+                        ? '${formatPkr(13.8 * fuelPrice)} • 13.8L'
+                        : '13.8L';
+                    final note = hasFuelPrice
+                        ? 'Fuel calculated at ${formatPkr(fuelPrice)}/L'
+                        : 'Add fuel price to see cost';
+
+                    return DarkInfoTileWidget(
+                      category: 'FUEL SPENT',
+                      primaryLine: primary,
+                      noteLine: note,
+                    );
+                  },
                 ),
               ),
             ],

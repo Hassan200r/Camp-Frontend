@@ -3,7 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../garage/controllers/active_bike_controller.dart';
 import '../../domain/expense_model.dart';
 import '../../domain/trip_budget_model.dart';
 import 'delete_trip_dialog_widget.dart';
@@ -113,13 +115,13 @@ class TripBudgetCardWidget extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // ── Big Amount & Est. Cap ────────────────────────────────────────
+          // ── Big Amount & Budget Cap ────────────────────────────────────────
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                '\$${tripBudget.allocatedSoFar.toStringAsFixed(2)}',
+                formatPkr(tripBudget.allocatedSoFar),
                 style: AppTextStyles.bigStat.copyWith(fontSize: 26),
               ),
               const SizedBox(width: 8),
@@ -129,7 +131,7 @@ class TripBudgetCardWidget extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        '/ \$${tripBudget.capAmount.toStringAsFixed(0)} Est. Cap',
+                        '/ ${formatPkr(tripBudget.capAmount)} Budget Cap',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTextStyles.bodySecondary.copyWith(
@@ -170,8 +172,8 @@ class TripBudgetCardWidget extends StatelessWidget {
               Expanded(
                 child: Text(
                   isUnder
-                      ? '\$${underBudget.toStringAsFixed(2)} under target budget'
-                      : '\$${(-underBudget).toStringAsFixed(2)} over target budget',
+                      ? '${formatPkr(underBudget)} under target budget'
+                      : '${formatPkr(-underBudget)} over target budget',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.manrope(
@@ -214,12 +216,114 @@ class TripBudgetCardWidget extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+
+          // ── Cost per km & Category Breakdown ─────────────────────────────
+          Builder(
+            builder: (context) {
+              final activeBike = ActiveBikeController.instance.activeBike;
+              final num? distanceKm = (activeBike != null && activeBike.odometerKm > 0)
+                  ? activeBike.odometerKm
+                  : null;
+              final num totalCost = tripBudget.allocatedSoFar;
+              final String costPerKmDisplay =
+                  (distanceKm != null && distanceKm > 0 && totalCost > 0)
+                      ? '${formatPkr(totalCost / distanceKm)}/km'
+                      : '-';
+
+              final categoryTotals = <ExpenseCategory, double>{};
+              for (final exp in expenses) {
+                categoryTotals[exp.category] =
+                    (categoryTotals[exp.category] ?? 0.0) + exp.amount;
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Cost per km',
+                        style: AppTextStyles.caption.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        costPerKmDisplay,
+                        style: GoogleFonts.manrope(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.darkCharcoal,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (categoryTotals.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: categoryTotals.entries.map((entry) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.clayDark,
+                            borderRadius:
+                                BorderRadius.circular(AppColors.radiusPill),
+                          ),
+                          child: Text(
+                            '${entry.key.displayName}: ${formatPkr(entry.value)}',
+                            style: GoogleFonts.manrope(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.darkCharcoal,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
+
+          const SizedBox(height: 12),
           const Divider(height: 1),
           const SizedBox(height: 12),
 
           // ── Expense Line Items ────────────────────────────────────────────
-          ...expenses.map((expense) {
+          if (expenses.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.receipt_long_outlined,
+                      size: 32,
+                      color: AppColors.mutedLight,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Add your first expense',
+                      style: GoogleFonts.manrope(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.mutedText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ...expenses.map((expense) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: GestureDetector(
@@ -251,19 +355,19 @@ class TripBudgetCardWidget extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 6,
+                              runSpacing: 2,
                               children: [
-                                Flexible(
-                                  child: Text(
-                                    expense.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppTextStyles.itemTitle.copyWith(
-                                      fontSize: 13.5,
-                                    ),
+                                Text(
+                                  expense.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.itemTitle.copyWith(
+                                    fontSize: 13.5,
                                   ),
                                 ),
-                                const SizedBox(width: 6),
                                 StatusChip(
                                   label: expense.trackingMode.label,
                                   variant:
@@ -297,7 +401,7 @@ class TripBudgetCardWidget extends StatelessWidget {
 
                       // Amount
                       Text(
-                        '\$${expense.amount.toStringAsFixed(2)}',
+                        formatPkr(expense.amount),
                         style: GoogleFonts.manrope(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,

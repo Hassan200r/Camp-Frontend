@@ -33,6 +33,7 @@ class SettingsController extends ChangeNotifier {
   double _localCacheSizeGb = 1.4;
   String _language = 'English';
   String _emergencyNumber = '1122';
+  double? _fuelPricePerLiter;
 
   // ── Getters ────────────────────────────────────────────────────────────────
   UnitsSystem get units => _units;
@@ -45,6 +46,7 @@ class SettingsController extends ChangeNotifier {
   double get localCacheSizeGb => _localCacheSizeGb;
   String get language => _language;
   String get emergencyNumber => _emergencyNumber;
+  double? get fuelPricePerLiter => _fuelPricePerLiter;
 
   /// Human-readable representation of local cache size
   String get localCacheDisplay {
@@ -113,6 +115,14 @@ class SettingsController extends ChangeNotifier {
     save();
   }
 
+  /// Update the rider's saved fuel price per litre in PKR.
+  void setFuelPricePerLiter(double? price) {
+    if (_fuelPricePerLiter == price) return;
+    _fuelPricePerLiter = price;
+    notifyListeners();
+    save();
+  }
+
   /// Reset all preferences to factory defaults (useful for tests).
   void reset() {
     _units = UnitsSystem.metric;
@@ -123,6 +133,7 @@ class SettingsController extends ChangeNotifier {
     _localCacheSizeGb = 1.4;
     _language = 'English';
     _emergencyNumber = '1122';
+    _fuelPricePerLiter = null;
     notifyListeners();
   }
 
@@ -147,12 +158,14 @@ class SettingsController extends ChangeNotifier {
       _notificationsEnabled = settings.notificationsEnabled;
       _privacySharingEnabled = settings.privacySharingEnabled;
       _emergencyNumber = settings.emergencyNumber;
+      _fuelPricePerLiter = settings.fuelPricePerLiter;
       notifyListeners();
     } catch (_) {
       _units = UnitsSystem.metric;
       _notificationsEnabled = true;
       _privacySharingEnabled = true;
       _emergencyNumber = '1122';
+      _fuelPricePerLiter = null;
       notifyListeners();
     }
   }
@@ -166,6 +179,7 @@ class SettingsController extends ChangeNotifier {
         notificationsEnabled: _notificationsEnabled,
         privacySharingEnabled: _privacySharingEnabled,
         emergencyNumber: _emergencyNumber,
+        fuelPricePerLiter: _fuelPricePerLiter,
       );
       await repo.saveSettings(settings);
     } catch (_) {

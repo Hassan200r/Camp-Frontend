@@ -29,6 +29,7 @@ class MaintenanceItem {
     this.actionLabel,
     this.trailingNote,
     this.cost,
+    this.mechanicName,
     this.statusValueDisplay,
     this.subtitle,
     this.conditionNote,
@@ -80,6 +81,7 @@ class MaintenanceItem {
       actionLabel: json['actionLabel'] as String?,
       trailingNote: json['trailingNote'] as String?,
       cost: (json['cost'] as num?)?.toDouble(),
+      mechanicName: (json['mechanicName'] ?? json['mechanic'] ?? json['shopName']) as String?,
       statusValueDisplay: json['statusValueDisplay'] as String?,
       subtitle: json['subtitle'] as String?,
       conditionNote: json['conditionNote'] as String?,
@@ -108,12 +110,14 @@ class MaintenanceItem {
   final String? actionLabel;
   final String? trailingNote;
   final double? cost;
+  final String? mechanicName;
   final String? statusValueDisplay;
   final String? subtitle;
   final String? conditionNote;
   final IconData? icon;
 
-  /// Default 5 items matching the CAMP expedition maintenance telemetry spec
+  /// Default 5 items matching the CAMP expedition maintenance telemetry spec.
+  /// Costs are user-entered only; no hardcoded demo dollar estimates.
   static List<MaintenanceItem> get defaultSampleItems => const [
         MaintenanceItem(
           id: 'maint-1',
@@ -121,8 +125,6 @@ class MaintenanceItem {
           category: 'Brakes',
           status: MaintenanceStatus.dueSoon,
           trackingMode: MaintenanceTrackingMode.auto,
-          cost: 85.0,
-          statusValueDisplay: '\$85',
           subtitle: 'Sintered Compound • Brembo Rear',
           conditionNote: 'Due in 350 mi',
           actionLabel: 'View Guide',
@@ -170,8 +172,6 @@ class MaintenanceItem {
           category: 'Suspension',
           status: MaintenanceStatus.dueSoon,
           trackingMode: MaintenanceTrackingMode.manual,
-          cost: 65.0,
-          statusValueDisplay: '\$65',
           subtitle: 'WP XPLOR 48mm • Inspect seal weeping',
           conditionNote: 'Due soon • 12,500 mi',
           actionLabel: 'View Guide',
@@ -191,6 +191,7 @@ class MaintenanceItem {
     String? actionLabel,
     String? trailingNote,
     double? cost,
+    String? mechanicName,
     String? statusValueDisplay,
     String? subtitle,
     String? conditionNote,
@@ -210,6 +211,7 @@ class MaintenanceItem {
       actionLabel: actionLabel ?? this.actionLabel,
       trailingNote: trailingNote ?? this.trailingNote,
       cost: cost ?? this.cost,
+      mechanicName: mechanicName ?? this.mechanicName,
       statusValueDisplay: statusValueDisplay ?? this.statusValueDisplay,
       subtitle: subtitle ?? this.subtitle,
       conditionNote: conditionNote ?? this.conditionNote,
@@ -233,6 +235,7 @@ class MaintenanceItem {
         'actionLabel': actionLabel,
         'trailingNote': trailingNote,
         'cost': cost,
+        'mechanicName': mechanicName,
         'statusValueDisplay': statusValueDisplay,
         'subtitle': subtitle,
         'conditionNote': conditionNote,
@@ -255,6 +258,7 @@ class MaintenanceItem {
           actionLabel == other.actionLabel &&
           trailingNote == other.trailingNote &&
           cost == other.cost &&
+          mechanicName == other.mechanicName &&
           statusValueDisplay == other.statusValueDisplay &&
           subtitle == other.subtitle &&
           conditionNote == other.conditionNote;
@@ -272,6 +276,7 @@ class MaintenanceItem {
         actionLabel,
         trailingNote,
         cost,
+        mechanicName,
         statusValueDisplay,
         subtitle,
         conditionNote,

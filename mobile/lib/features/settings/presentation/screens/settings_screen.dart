@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/camp_app_bar.dart';
 import '../../../../core/widgets/camp_bottom_nav.dart';
 import '../../../../core/widgets/camp_card.dart';
@@ -484,6 +485,92 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (text.isNotEmpty) {
                 settings.setEmergencyNumber(text);
                 _showNotification('Emergency number set to $text');
+              }
+              Navigator.of(dialogCtx).pop();
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFuelPriceDialog(SettingsController settings) {
+    final controller = TextEditingController(
+      text: settings.fuelPricePerLiter != null
+          ? settings.fuelPricePerLiter!.toStringAsFixed(0)
+          : '',
+    );
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: AppColors.clay,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppColors.radiusCard),
+        ),
+        title: Text(
+          'Fuel Price per Litre (PKR)',
+          style: GoogleFonts.manrope(
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            color: AppColors.darkCharcoal,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Set your local fuel price per litre in PKR. Used for trip fuel economics and refills.',
+              style: GoogleFonts.manrope(
+                fontSize: 12.5,
+                color: AppColors.mutedText,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                prefixText: 'Rs ',
+                hintText: 'e.g. 280',
+                isDense: true,
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: const Text('Cancel'),
+          ),
+          if (settings.fuelPricePerLiter != null)
+            TextButton(
+              onPressed: () {
+                settings.setFuelPricePerLiter(null);
+                Navigator.of(dialogCtx).pop();
+                _showNotification('Fuel price cleared');
+              },
+              child: const Text(
+                'Clear',
+                style: TextStyle(color: AppColors.alertRed),
+              ),
+            ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.tacticalOrange,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              final text = controller.text.trim();
+              final parsed = parsePkr(text);
+              if (parsed != null && parsed > 0) {
+                settings.setFuelPricePerLiter(parsed);
+                _showNotification('Fuel price set to ${formatPkr(parsed)}/L');
+              } else if (text.isEmpty) {
+                settings.setFuelPricePerLiter(null);
+                _showNotification('Fuel price cleared');
               }
               Navigator.of(dialogCtx).pop();
             },
@@ -1195,6 +1282,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             onTap: () => _showEmergencyNumberSelector(settings),
+          ),
+          const Divider(height: 1, color: Color(0x10000000)),
+          SettingsRowWidget(
+            icon: Icons.local_gas_station_rounded,
+            title: 'Fuel Price per Litre',
+            subtitle: 'Used for fuel economics calculations',
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  settings.fuelPricePerLiter != null
+                      ? '${formatPkr(settings.fuelPricePerLiter!)}/L'
+                      : 'Not set',
+                  style: GoogleFonts.manrope(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: settings.fuelPricePerLiter != null
+                        ? AppColors.darkCharcoal
+                        : AppColors.mutedText,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.mutedLight,
+                  size: 20,
+                ),
+              ],
+            ),
+            onTap: () => _showFuelPriceDialog(settings),
           ),
         ],
       ),

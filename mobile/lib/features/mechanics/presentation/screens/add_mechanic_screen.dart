@@ -278,7 +278,7 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
           ? address
           : (existing?.durationOrLocation ?? 'Added by Rider'),
       badgeType: existing?.badgeType ?? BadgeType.verified,
-      badgeLabel: existing?.badgeLabel ?? 'Community Added',
+      badgeLabel: existing?.badgeLabel ?? 'Added by you',
       beaconStatus: existing?.beaconStatus ?? 'Active',
       beaconColor: existing?.beaconColor ?? AppColors.statusGreen,
       categoryTitle1: 'SPECIALTIES',
@@ -288,7 +288,6 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
       rating: existing?.rating ?? 5.0,
       reviewCount: existing?.reviewCount ?? 1,
       openStatus: existing?.openStatus ?? '',
-      phone: phone,
       phoneNumber: phone.isNotEmpty ? phone : null,
       address: address.isNotEmpty ? address : null,
       notes: notes.isNotEmpty ? notes : null,

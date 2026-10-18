@@ -95,13 +95,13 @@ class TripBudget {
     );
   }
 
-  /// Default trip budget for Alpine Ridge Tour
+  /// Default trip budget for Alpine Ridge Tour (Demo data)
   static const TripBudget defaultSampleBudget = TripBudget(
     tripName: 'Alpine Ridge Tour',
-    capAmount: 300.0,
+    capAmount: 75000.0,
     startDate: 'Oct 12, 2026',
     endDate: 'Oct 18, 2026',
-    allocatedSoFar: 184.50,
+    allocatedSoFar: 46125.0,
   );
 
   @override

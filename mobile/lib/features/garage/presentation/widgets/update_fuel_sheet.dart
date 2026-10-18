@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../maintenance/controllers/trip_budget_controller.dart';
+import '../../../maintenance/domain/expense_model.dart';
+import '../../../settings/controllers/settings_controller.dart';
 import '../../controllers/active_bike_controller.dart';
 import '../../domain/bike_model.dart';
 import '../../domain/fuel_estimator.dart';
@@ -115,6 +119,22 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
     );
     ActiveBikeController.instance.updateBike(updated);
     FuelTrackerService.instance.resetLowFuelFlag();
+
+    final fuelPrice = SettingsController.instance.fuelPricePerLiter;
+    if (fuelPrice != null && litersAdded > 0) {
+      TripBudgetController.instance.addExpense(
+        Expense(
+          id: 'exp-fuel-${DateTime.now().millisecondsSinceEpoch}',
+          title: 'Fuel Refill (${litersAdded.toStringAsFixed(1)} L)',
+          amount: double.parse((litersAdded * fuelPrice).toStringAsFixed(2)),
+          category: ExpenseCategory.fuel,
+          dateRecorded: DateTime.now(),
+          trackingMode: ExpenseTrackingMode.manualEntry,
+          subtitle: '${widget.bike.make} ${widget.bike.modelName}',
+        ),
+      );
+    }
+
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -231,6 +251,21 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
     final pct = FuelEstimator.percent(newLevel, _tankCapacity);
     if (pct != null && pct >= 15.0) {
       FuelTrackerService.instance.resetLowFuelFlag();
+    }
+
+    final fuelPrice = SettingsController.instance.fuelPricePerLiter;
+    if (fuelPrice != null && _addedLiters > 0) {
+      TripBudgetController.instance.addExpense(
+        Expense(
+          id: 'exp-fuel-${DateTime.now().millisecondsSinceEpoch}',
+          title: 'Fuel Refill (${_addedLiters.toStringAsFixed(1)} L)',
+          amount: double.parse((_addedLiters * fuelPrice).toStringAsFixed(2)),
+          category: ExpenseCategory.fuel,
+          dateRecorded: DateTime.now(),
+          trackingMode: ExpenseTrackingMode.manualEntry,
+          subtitle: '${widget.bike.make} ${widget.bike.modelName}',
+        ),
+      );
     }
 
     Navigator.of(context).pop();
@@ -510,6 +545,30 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
                     ),
                     onPressed: _handleFilledToFull,
                   ),
+                  Builder(
+                    builder: (context) {
+                      final fuelPrice =
+                          SettingsController.instance.fuelPricePerLiter;
+                      final litersNeeded = (_tankCapacity -
+                              (widget.bike.fuelRemainingLiters ?? 0.0))
+                          .clamp(0.0, _tankCapacity);
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Center(
+                          child: Text(
+                            fuelPrice != null
+                                ? '${litersNeeded.toStringAsFixed(1)} L • ${formatPkr(litersNeeded * fuelPrice)}'
+                                : '${litersNeeded.toStringAsFixed(1)} L • Add fuel price to see cost',
+                            style: GoogleFonts.manrope(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.mutedText,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 20),
                   Text(
                     'Option 2: Added Partial Liters',
@@ -540,13 +599,34 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
                           borderRadius: BorderRadius.circular(8),
                           boxShadow: AppColors.skeuInset,
                         ),
-                        child: Text(
-                          '+${_addedLiters.toStringAsFixed(1)} L',
-                          style: GoogleFonts.manrope(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.darkCharcoal,
-                          ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '+${_addedLiters.toStringAsFixed(1)} L',
+                              style: GoogleFonts.manrope(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.darkCharcoal,
+                              ),
+                            ),
+                            Builder(
+                              builder: (context) {
+                                final fuelPrice =
+                                    SettingsController.instance.fuelPricePerLiter;
+                                return Text(
+                                  fuelPrice != null
+                                      ? formatPkr(_addedLiters * fuelPrice)
+                                      : 'Add fuel price to see cost',
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.mutedText,
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ),
                       IconButton(

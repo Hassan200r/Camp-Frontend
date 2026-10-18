@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/trip_budget_model.dart';
 
@@ -33,7 +34,9 @@ class _EditTripBudgetScreenState extends State<EditTripBudgetScreen> {
     super.initState();
     _tripNameCtrl = TextEditingController(text: widget.initialBudget.tripName);
     _budgetCapCtrl = TextEditingController(
-      text: widget.initialBudget.capAmount.toStringAsFixed(2),
+      text: widget.initialBudget.capAmount > 0
+          ? widget.initialBudget.capAmount.toInt().toString()
+          : '',
     );
     _startDate = widget.initialBudget.startDate ?? 'Oct 12, 2026';
     _endDate = widget.initialBudget.endDate ?? 'Oct 18, 2026';
@@ -52,14 +55,14 @@ class _EditTripBudgetScreenState extends State<EditTripBudgetScreen> {
   }
 
   double get _currentCap {
-    final parsed = double.tryParse(_budgetCapCtrl.text.trim());
-    return (parsed != null && parsed > 0) ? parsed : widget.initialBudget.capAmount;
+    final parsed = parsePkr(_budgetCapCtrl.text.trim());
+    return parsed ?? widget.initialBudget.capAmount;
   }
 
   void _stepBudget(double delta) {
     final current = _currentCap;
-    final next = (current + delta).clamp(10.0, 50000.0);
-    _budgetCapCtrl.text = next.toStringAsFixed(2);
+    final next = (current + delta).clamp(0.0, kMaxPkrAmount);
+    _budgetCapCtrl.text = next.toInt().toString();
   }
 
   void _saveBudget() {
@@ -93,7 +96,7 @@ class _EditTripBudgetScreenState extends State<EditTripBudgetScreen> {
             const SizedBox(width: 8),
             Flexible(
               child: Text(
-                'Target Ceiling',
+                'Ceiling (PKR)',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: AppTextStyles.overline,
@@ -117,9 +120,9 @@ class _EditTripBudgetScreenState extends State<EditTripBudgetScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                '\$',
+                'Rs',
                 style: GoogleFonts.manrope(
-                  fontSize: 26,
+                  fontSize: 22,
                   fontWeight: FontWeight.w800,
                   color: AppColors.mutedText,
                 ),
@@ -137,6 +140,7 @@ class _EditTripBudgetScreenState extends State<EditTripBudgetScreen> {
                   ),
                   cursorColor: AppColors.tacticalOrange,
                   decoration: const InputDecoration(
+                    hintText: '0',
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
@@ -386,7 +390,7 @@ class _EditTripBudgetScreenState extends State<EditTripBudgetScreen> {
                             ),
                           ),
                           Text(
-                            '\$${_allocatedSoFar.toStringAsFixed(2)}',
+                            formatPkr(_allocatedSoFar),
                             style: GoogleFonts.manrope(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
@@ -394,7 +398,7 @@ class _EditTripBudgetScreenState extends State<EditTripBudgetScreen> {
                             ),
                           ),
                           Text(
-                            ' of \$${cap.toStringAsFixed(2)}',
+                            ' of ${formatPkr(cap)}',
                             style: AppTextStyles.bodySecondary.copyWith(
                               fontSize: 13,
                             ),
@@ -420,9 +424,13 @@ class _EditTripBudgetScreenState extends State<EditTripBudgetScreen> {
                         runSpacing: 4,
                         children: [
                           Text(
-                            'Under budget by \$${underBudget > 0 ? underBudget.toStringAsFixed(2) : '0.00'}',
+                            underBudget >= 0
+                                ? 'Under budget by ${formatPkr(underBudget)}'
+                                : 'Over budget by ${formatPkr(-underBudget)}',
                             style: GoogleFonts.manrope(
-                              color: AppColors.statusGreen,
+                              color: underBudget >= 0
+                                  ? AppColors.statusGreen
+                                  : AppColors.alertRed,
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),

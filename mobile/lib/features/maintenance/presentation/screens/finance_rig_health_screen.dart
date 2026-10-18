@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
+import '../../../../core/data/app_repositories.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
 import '../../../garage/controllers/active_bike_controller.dart';
@@ -43,6 +45,18 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
     _maintenanceItems = kDebugMode
         ? List.from(MaintenanceItem.defaultSampleItems)
         : <MaintenanceItem>[];
+    _loadPersistedItems();
+  }
+
+  Future<void> _loadPersistedItems() async {
+    try {
+      final loaded = await AppRepositories.instance.maintenanceRepository.loadMaintenanceItems();
+      if (loaded.isNotEmpty && mounted) {
+        setState(() {
+          _maintenanceItems = loaded;
+        });
+      }
+    } catch (_) {}
   }
 
   void _showNotification(String message) {
@@ -85,7 +99,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
     if (result != null && mounted) {
       TripBudgetController.instance.addExpense(result);
       _showNotification(
-        'Added ${result.title} (\$${result.amount.toStringAsFixed(2)})',
+        'Added ${result.title} (${formatPkr(result.amount)})',
       );
     }
   }
@@ -98,6 +112,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
       setState(() {
         _maintenanceItems.add(result);
       });
+      AppRepositories.instance.maintenanceRepository.saveMaintenanceItems(_maintenanceItems);
       _showNotification('Added ${result.name} to maintenance list');
     }
   }
@@ -245,7 +260,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                         onAddExpense: _pushAddExpense,
                         onExpenseTapped: (exp) {
                           _showNotification(
-                            '${exp.title}: \$${exp.amount.toStringAsFixed(2)}',
+                            '${exp.title}: ${formatPkr(exp.amount)}',
                           );
                         },
                       ),
