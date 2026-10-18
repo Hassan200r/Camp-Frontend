@@ -32,6 +32,8 @@ class BikeOnboardingController extends ChangeNotifier {
   );
   String? _vin;
   String? _nickname;
+  String? _plateNumber;
+  String? _color;
   String? _imagePath;
 
   // ── Getters ────────────────────────────────────────────────────────────────
@@ -50,6 +52,9 @@ class BikeOnboardingController extends ChangeNotifier {
   ServiceRecord get lastTuneUp => _lastTuneUp;
   String? get vin => _vin;
   String? get nickname => _nickname;
+  String? get plateNumber => _plateNumber;
+  String? get color => _color;
+  String? get colour => _color;
   String? get imagePath => _imagePath;
 
   /// Whether the 3 mandatory gating fields are populated and valid:
@@ -157,6 +162,22 @@ class BikeOnboardingController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setPlateNumber(String? value) {
+    final clean = value?.trim().toUpperCase();
+    final effective = (clean != null && clean.isNotEmpty) ? clean : null;
+    if (_plateNumber == effective) return;
+    _plateNumber = effective;
+    notifyListeners();
+  }
+
+  void setColor(String? value) {
+    final clean = value?.trim();
+    final effective = (clean != null && clean.isNotEmpty) ? clean : null;
+    if (_color == effective) return;
+    _color = effective;
+    notifyListeners();
+  }
+
   void setImagePath(String? value) {
     if (_imagePath == value) return;
     _imagePath = value;
@@ -253,6 +274,8 @@ class BikeOnboardingController extends ChangeNotifier {
       lastTuneUp: _lastTuneUp,
       vin: _vin,
       nickname: _nickname,
+      plateNumber: _plateNumber,
+      color: _color,
       imagePath: _imagePath,
     );
   }
@@ -280,6 +303,8 @@ class BikeOnboardingController extends ChangeNotifier {
     );
     _vin = null;
     _nickname = null;
+    _plateNumber = null;
+    _color = null;
     _imagePath = null;
     notifyListeners();
   }

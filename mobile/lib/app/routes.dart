@@ -7,6 +7,7 @@ abstract final class CampRoutes {
   static const String forgotPassword = '/forgot-password';
 
   static const String addBike = '/add-bike';
+  static const String addMotorcycle = addBike;
   static const String bikeDetails = '/bike-details';
   static const String bikeScan = '/bike-scan';
   static const String bikeProfile = '/bike-profile';

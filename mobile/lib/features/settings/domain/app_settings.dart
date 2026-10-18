@@ -17,6 +17,7 @@ class AppSettings {
     this.language = 'English',
     this.emergencyNumber = '1122',
     this.fuelPricePerLiter,
+    this.showBikeOnEmergencyQr = true,
   })  : id = id ?? 'settings-default',
         createdAt = (createdAt ?? DateTime.now()).toUtc(),
         updatedAt = (updatedAt ?? DateTime.now()).toUtc();
@@ -48,6 +49,7 @@ class AppSettings {
       language: json['language'] as String? ?? 'English',
       emergencyNumber: json['emergencyNumber'] as String? ?? '1122',
       fuelPricePerLiter: (json['fuelPricePerLiter'] as num?)?.toDouble(),
+      showBikeOnEmergencyQr: json['showBikeOnEmergencyQr'] as bool? ?? true,
     );
   }
 
@@ -67,6 +69,7 @@ class AppSettings {
   final String language;
   final String emergencyNumber;
   final double? fuelPricePerLiter;
+  final bool showBikeOnEmergencyQr;
 
   AppSettings copyWith({
     String? id,
@@ -81,6 +84,7 @@ class AppSettings {
     String? language,
     String? emergencyNumber,
     double? fuelPricePerLiter,
+    bool? showBikeOnEmergencyQr,
   }) {
     return AppSettings(
       id: id ?? this.id,
@@ -96,6 +100,8 @@ class AppSettings {
       language: language ?? this.language,
       emergencyNumber: emergencyNumber ?? this.emergencyNumber,
       fuelPricePerLiter: fuelPricePerLiter ?? this.fuelPricePerLiter,
+      showBikeOnEmergencyQr:
+          showBikeOnEmergencyQr ?? this.showBikeOnEmergencyQr,
     );
   }
 
@@ -112,6 +118,7 @@ class AppSettings {
         'language': language,
         'emergencyNumber': emergencyNumber,
         'fuelPricePerLiter': fuelPricePerLiter,
+        'showBikeOnEmergencyQr': showBikeOnEmergencyQr,
       };
 
   @override
@@ -128,7 +135,8 @@ class AppSettings {
           localCacheSizeGb == other.localCacheSizeGb &&
           language == other.language &&
           emergencyNumber == other.emergencyNumber &&
-          fuelPricePerLiter == other.fuelPricePerLiter;
+          fuelPricePerLiter == other.fuelPricePerLiter &&
+          showBikeOnEmergencyQr == other.showBikeOnEmergencyQr;
 
   @override
   int get hashCode => Object.hash(
@@ -142,5 +150,6 @@ class AppSettings {
         language,
         emergencyNumber,
         fuelPricePerLiter,
+        showBikeOnEmergencyQr,
       );
 }

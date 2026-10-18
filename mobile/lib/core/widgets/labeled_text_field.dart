@@ -30,6 +30,7 @@ class LabeledTextField extends StatelessWidget {
     this.maxLines = 1,
     this.maxLength,
     this.inputFormatters,
+    this.textCapitalization = TextCapitalization.none,
   });
 
   final String label;
@@ -52,6 +53,7 @@ class LabeledTextField extends StatelessWidget {
   final int maxLines;
   final int? maxLength;
   final List<TextInputFormatter>? inputFormatters;
+  final TextCapitalization textCapitalization;
 
   @override
   Widget build(BuildContext context) {
@@ -154,6 +156,7 @@ class LabeledTextField extends StatelessWidget {
                   maxLines: maxLines,
                   maxLength: maxLength,
                   inputFormatters: inputFormatters,
+                  textCapitalization: textCapitalization,
                   buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
                   style: AppTextStyles.body.copyWith(
                     fontWeight: FontWeight.w600,

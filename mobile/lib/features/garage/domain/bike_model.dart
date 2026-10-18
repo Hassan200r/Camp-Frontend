@@ -99,6 +99,8 @@ class Bike {
     this.lastTuneUp,
     this.vin,
     this.nickname,
+    this.plateNumber,
+    this.color,
     this.lastUpdated,
     this.createdAt,
     this.updatedAt,
@@ -182,6 +184,8 @@ class Bike {
           : null,
       vin: json['vin'] as String?,
       nickname: json['nickname'] as String?,
+      plateNumber: (json['plateNumber'] ?? json['plate'] ?? json['licensePlate']) as String?,
+      color: (json['color'] ?? json['colour']) as String?,
       lastUpdated: json['lastUpdated'] != null
           ? DateTime.tryParse(json['lastUpdated'] as String)
           : null,
@@ -283,6 +287,15 @@ class Bike {
   /// Optional rider nickname for the motorcycle (e.g. Black Beast).
   final String? nickname;
 
+  /// Vehicle registration plate number (e.g. "LEB-20-4567").
+  final String? plateNumber;
+
+  /// Vehicle body colour (e.g. "Grand Prix Red").
+  final String? color;
+
+  /// Convenience getter for vehicle colour.
+  String? get colour => color;
+
   /// Timestamp of when the motorcycle profile/mileage/service was last updated.
   final DateTime? lastUpdated;
 
@@ -324,6 +337,8 @@ class Bike {
     ServiceRecord? lastTuneUp,
     String? vin,
     String? nickname,
+    String? plateNumber,
+    String? color,
     DateTime? lastUpdated,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -371,6 +386,8 @@ class Bike {
       lastTuneUp: lastTuneUp ?? this.lastTuneUp,
       vin: vin ?? this.vin,
       nickname: nickname ?? this.nickname,
+      plateNumber: plateNumber ?? this.plateNumber,
+      color: color ?? this.color,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? DateTime.now().toUtc(),
@@ -409,6 +426,8 @@ class Bike {
           lastTuneUp == other.lastTuneUp &&
           vin == other.vin &&
           nickname == other.nickname &&
+          plateNumber == other.plateNumber &&
+          color == other.color &&
           lastUpdated == other.lastUpdated;
 
   @override
@@ -436,6 +455,8 @@ class Bike {
         lastTuneUp,
         vin,
         nickname,
+        plateNumber,
+        color,
         lastUpdated,
       ]);
 
@@ -466,6 +487,8 @@ class Bike {
         'lastTuneUp': lastTuneUp?.toJson(),
         'vin': vin,
         'nickname': nickname,
+        'plateNumber': plateNumber,
+        'color': color,
         'lastUpdated': lastUpdated?.toIso8601String(),
       };
 }

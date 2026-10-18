@@ -202,6 +202,8 @@ class ActiveBikeController extends ChangeNotifier {
         ),
         vin: 'WB10J9309PZE84102',
         nickname: 'GS #441',
+        plateNumber: 'LEB-20-4567',
+        color: 'Triple Black',
       ),
       Bike(
         id: 'bike-rebel-500',
@@ -232,6 +234,8 @@ class ActiveBikeController extends ChangeNotifier {
         ),
         vin: 'JH2PC5601NM000000',
         nickname: 'Urban Shadow',
+        plateNumber: 'KHI-22-8819',
+        color: 'Matte Armored Silver',
       ),
     ]);
     _activeBikeId = 'bike-bmw-1250';
