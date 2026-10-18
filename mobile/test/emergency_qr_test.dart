@@ -291,7 +291,7 @@ void main() {
 
       // BMW R 1250 GS is active in default fleet with LEB-20-4567 plate
       expect(find.text('Bike details in QR'), findsOneWidget);
-      expect(find.text('Bike: BMW R 1250 GS Adventure, LEB-20-4567'), findsOneWidget);
+      expect(find.text('BMW R 1250 GS Adventure (2023)'), findsOneWidget);
       expect(find.text('LEB-20-4567'), findsOneWidget);
     });
 
@@ -304,7 +304,7 @@ void main() {
       await tester.pumpWidget(buildQrApp());
       await tester.pumpAndSettle();
 
-      final switchFinder = find.byType(Switch);
+      final switchFinder = find.byKey(const Key('switch_bike_details'));
       expect(switchFinder, findsOneWidget);
 
       // Toggle off
@@ -312,7 +312,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(SettingsController.instance.showBikeOnEmergencyQr, isFalse);
-      expect(find.text('Bike: BMW R 1250 GS Adventure, LEB-20-4567'), findsNothing);
+      expect(find.text('LEB-20-4567'), findsNothing);
     });
 
     testWidgets('Displays hint when active bike has no plate', (tester) async {
@@ -333,7 +333,7 @@ void main() {
       await tester.pumpWidget(buildQrApp());
       await tester.pumpAndSettle();
 
-      expect(find.text('Bike: Ducati DesertX'), findsOneWidget);
+      expect(find.text('Ducati DesertX (2024)'), findsOneWidget);
       expect(find.text('Add your plate number to help identify the bike'), findsOneWidget);
     });
   });

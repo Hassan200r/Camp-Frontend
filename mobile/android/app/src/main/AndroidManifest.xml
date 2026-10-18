@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
@@ -9,6 +10,11 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Internet permission for live tile fetching, routing, and geocoding. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Required for saving to gallery on Android 10 (API 29) and lower -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"
+        tools:replace="android:maxSdkVersion" />
 
     <queries>
         <intent>
@@ -31,7 +37,8 @@
     <application
         android:label="Camp"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:requestLegacyExternalStorage="true">
         <service
             android:name="com.baseflow.geolocator.GeolocatorLocationService"
             android:enabled="true"

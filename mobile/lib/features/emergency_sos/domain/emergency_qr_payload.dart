@@ -62,6 +62,10 @@ class EmergencyQrPayloadBuilder {
     required String emergencyContactPhone,
     required String emergencyContactRelation,
     Bike? bike,
+    bool includeBloodType = true,
+    bool includeAllergies = true,
+    bool includeMedicalNotes = true,
+    bool includeEmergencyContact = true,
     bool includeBike = true,
     int maxLength = defaultMaxLength,
   }) {
@@ -103,14 +107,25 @@ class EmergencyQrPayloadBuilder {
       final buffer = StringBuffer();
       buffer.writeln('CAMP EMERGENCY MEDICAL ID');
       buffer.writeln('Name: $cleanName');
-      buffer.writeln('Blood Type: $cleanBlood');
-      buffer.writeln('Allergies: $cleanAllergies');
-      buffer.writeln('Medical Notes: ${notes.isNotEmpty ? notes : 'None'}');
-      buffer.write('ICE Contact: $iceContactStr');
-      if (bikeLine != null) {
-        buffer.write('\n$bikeLine');
+      if (includeBloodType) {
+        buffer.writeln('Blood Type: $cleanBlood');
       }
-      return buffer.toString();
+      if (includeAllergies) {
+        buffer.writeln('Allergies: $cleanAllergies');
+      }
+      if (includeMedicalNotes) {
+        buffer.writeln('Medical Notes: ${notes.isNotEmpty ? notes : 'None'}');
+      }
+      if (includeEmergencyContact) {
+        buffer.write('ICE Contact: $iceContactStr');
+      }
+      if (bikeLine != null) {
+        if (buffer.isNotEmpty && !buffer.toString().endsWith('\n')) {
+          buffer.write('\n');
+        }
+        buffer.write(bikeLine);
+      }
+      return buffer.toString().trimRight();
     }
 
     final initialPayload = assemble(cleanNotes);

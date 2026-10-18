@@ -1,15 +1,17 @@
 import 'dart:io';
-import 'dart:ui' as ui;
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:gal/gal.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/camp_app_bar.dart';
 import '../../../bike_scan/presentation/screens/bike_details_screen.dart';
 import '../../../dashboard/controllers/profile_controller.dart';
@@ -17,45 +19,40 @@ import '../../../garage/controllers/active_bike_controller.dart';
 import '../../../garage/domain/bike_model.dart';
 import '../../../settings/controllers/settings_controller.dart';
 import '../../domain/emergency_qr_payload.dart';
+import '../../services/emergency_qr_export_service.dart';
 
 /// Screen displaying the rider's Emergency Medical & ICE QR Card.
-/// Includes active motorcycle details from BikeRepository, customizable via settings toggle.
-/// Designed to be saved as a high-resolution PNG image or printed to carry on rides.
+/// Generates real scannable QR codes with Error Correction Level Q,
+/// per-field inclusion toggles, scan density warnings, and standalone QR exports.
 class EmergencyQrScreen extends StatefulWidget {
   const EmergencyQrScreen({super.key});
+
+  static const Key qrKey = Key('emergency_qr_repaint_boundary');
 
   @override
   State<EmergencyQrScreen> createState() => _EmergencyQrScreenState();
 }
 
 class _EmergencyQrScreenState extends State<EmergencyQrScreen> {
-  final GlobalKey _cardRepaintKey = GlobalKey();
-  bool _isDownloading = false;
 
-  Future<void> _downloadCardPng(EmergencyQrPayloadResult payloadResult) async {
-    if (_isDownloading) return;
-    setState(() => _isDownloading = true);
+  // Per-field inclusion toggles
+  bool _includeBloodType = true;
+  bool _includeAllergies = true;
+  bool _includeMedicalNotes = true;
+  bool _includeEmergencyContact = true;
+
+  bool _isSavingPng = false;
+  bool _isSavingPdf = false;
+  bool _isSharing = false;
+
+  Future<void> _saveQrAsPng(String payload) async {
+    if (_isSavingPng) return;
+    setState(() => _isSavingPng = true);
 
     try {
-      // Allow render pass to settle
-      await Future<void>.delayed(const Duration(milliseconds: 60));
-
-      final boundary = _cardRepaintKey.currentContext?.findRenderObject()
-          as RenderRepaintBoundary?;
-      if (boundary == null) {
-        throw Exception('Card boundary not ready');
-      }
-
-      final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (byteData == null) {
-        throw Exception('Failed to encode PNG bytes');
-      }
-
-      final bytes = byteData.buffer.asUint8List();
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/camp_emergency_id.png');
-      await file.writeAsBytes(bytes);
+      final pngBytes =
+          await EmergencyQrExportService.buildEmergencyQrPng(payload);
+      await Gal.putImageBytes(pngBytes, name: 'camp_emergency_qr');
 
       if (mounted) {
         HapticFeedback.mediumImpact();
@@ -72,7 +69,7 @@ class _EmergencyQrScreenState extends State<EmergencyQrScreen> {
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Emergency card PNG saved (camp_emergency_id.png)',
+                    'QR saved to photo gallery',
                     style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
@@ -83,16 +80,64 @@ class _EmergencyQrScreenState extends State<EmergencyQrScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            action: SnackBarAction(
-              label: 'Share',
-              textColor: AppColors.tacticalOrange,
-              onPressed: () {
-                // ignore: deprecated_member_use
-                Share.share(
-                  payloadResult.payload,
-                  subject: 'CAMP Emergency Medical & Bike ID',
-                );
-              },
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save to gallery: $e'),
+            backgroundColor: AppColors.alertRed,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingPng = false);
+    }
+  }
+
+  Future<void> _saveQrAsPdf(String payload) async {
+    if (_isSavingPdf) return;
+    setState(() => _isSavingPdf = true);
+
+    try {
+      final pdfBytes =
+          await EmergencyQrExportService.buildEmergencyQrPdf(payload);
+      final savedPath = await FilePicker.saveFile(
+        dialogTitle: 'Save Emergency QR PDF',
+        fileName: 'camp_emergency_qr.pdf',
+        bytes: pdfBytes,
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+
+      if (savedPath != null && mounted) {
+        HapticFeedback.mediumImpact();
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.greenAccent,
+                  size: 20,
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'PDF saved successfully',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.darkCharcoal,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         );
@@ -101,15 +146,42 @@ class _EmergencyQrScreenState extends State<EmergencyQrScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to save card: $e'),
+            content: Text('Failed to save PDF: $e'),
             backgroundColor: AppColors.alertRed,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
     } finally {
+      if (mounted) setState(() => _isSavingPdf = false);
+    }
+  }
+
+  Future<void> _shareQrImage(String payload) async {
+    if (_isSharing) return;
+    setState(() => _isSharing = true);
+
+    try {
+      final pngBytes =
+          await EmergencyQrExportService.buildEmergencyQrPng(payload);
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File('${tempDir.path}/camp_emergency_qr.png');
+      await tempFile.writeAsBytes(pngBytes);
+
+      // ignore: deprecated_member_use
+      await Share.shareXFiles([XFile(tempFile.path)]);
+    } catch (e) {
       if (mounted) {
-        setState(() => _isDownloading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to share QR image: $e'),
+            backgroundColor: AppColors.alertRed,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
+    } finally {
+      if (mounted) setState(() => _isSharing = false);
     }
   }
 
@@ -146,8 +218,30 @@ class _EmergencyQrScreenState extends State<EmergencyQrScreen> {
           emergencyContactPhone: contactPhone,
           emergencyContactRelation: contactRelation,
           bike: activeBike,
+          includeBloodType: _includeBloodType,
+          includeAllergies: _includeAllergies,
+          includeMedicalNotes: _includeMedicalNotes,
+          includeEmergencyContact: _includeEmergencyContact,
           includeBike: bikeDetailsToggle,
         );
+
+        // Density warning logic
+        final List<String> fieldsToShorten = [];
+        if (_includeMedicalNotes && medicalNotes.length > 35) {
+          fieldsToShorten.add('Medical notes (${medicalNotes.length} chars)');
+        }
+        if (_includeAllergies && allergies.length > 25) {
+          fieldsToShorten.add('Allergies (${allergies.length} chars)');
+        }
+        if (name.length > 25) {
+          fieldsToShorten.add('Full name (${name.length} chars)');
+        }
+        if (_includeEmergencyContact && contactName.length > 25) {
+          fieldsToShorten.add('Contact name');
+        }
+
+        final bool isPayloadDense =
+            payloadResult.totalLength > 240 || payloadResult.isNotesTruncated;
 
         return Scaffold(
           backgroundColor: AppColors.clay,
@@ -179,7 +273,7 @@ class _EmergencyQrScreenState extends State<EmergencyQrScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Save a screenshot or download this emergency card to keep in your jacket or tank bag.',
+                          'Scan this QR code with any smartphone camera to access vital medical & contact information offline.',
                           style: GoogleFonts.manrope(
                             fontSize: 12.5,
                             color: const Color(0xFF334155),
@@ -194,12 +288,12 @@ class _EmergencyQrScreenState extends State<EmergencyQrScreen> {
 
                 const SizedBox(height: 14),
 
-                // Truncation Notice Banner (Tells rider if medical notes were shortened)
+                // Truncation Notice Banner
                 if (payloadResult.isNotesTruncated) ...[
                   Container(
                     width: double.infinity,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFFBEB),
                       borderRadius: BorderRadius.circular(14),
@@ -228,7 +322,7 @@ class _EmergencyQrScreenState extends State<EmergencyQrScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Your medical notes were trimmed to keep the emergency QR scannable offline by first responders.',
+                                'Notes were trimmed to ensure first responders can read the code reliably offline in field conditions.',
                                 style: GoogleFonts.manrope(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w600,
@@ -245,7 +339,58 @@ class _EmergencyQrScreenState extends State<EmergencyQrScreen> {
                   const SizedBox(height: 14),
                 ],
 
-                // Settings Toggle Card: "Bike details"
+                // Density warning banner if payload is long
+                if (isPayloadDense) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFFDE68A)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.warning_amber_rounded,
+                          color: Color(0xFFD97706),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'High QR Density Warning',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF92400E),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'The QR code contains ${payloadResult.totalLength} characters and may take longer to scan. Consider shortening: ${fieldsToShorten.isNotEmpty ? fieldsToShorten.join(', ') : 'Medical notes / Allergies'}.',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFFB45309),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+
+                // Per-field toggles section
                 Container(
                   width: double.infinity,
                   padding:
@@ -255,60 +400,83 @@ class _EmergencyQrScreenState extends State<EmergencyQrScreen> {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: AppColors.clay,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.two_wheeler_rounded,
-                                color: AppColors.darkCharcoal,
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Bike details in QR',
-                                style: GoogleFonts.manrope(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF0F172A),
-                                ),
-                              ),
-                              Text(
-                                activeBike != null
-                                    ? '${activeBike.make} ${activeBike.modelName}'
-                                    : 'No active bike',
-                                style: GoogleFonts.manrope(
-                                  fontSize: 11.5,
-                                  color: const Color(0xFF64748B),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                      Text(
+                        'FIELDS INCLUDED IN QR',
+                        style: AppTextStyles.overline,
                       ),
-                      Switch(
+                      const SizedBox(height: 8),
+
+                      // Bike details toggle
+                      _buildToggleRow(
+                        key: const Key('toggle_bike_details_row'),
+                        switchKey: const Key('switch_bike_details'),
+                        title: 'Bike details in QR',
+                        subtitle: activeBike != null
+                            ? '${activeBike.make} ${activeBike.modelName}'
+                            : 'No active bike',
                         value: bikeDetailsToggle,
-                        activeThumbColor: AppColors.tacticalOrange,
-                        activeTrackColor: AppColors.tacticalOrange.withValues(alpha: 0.5),
+                        icon: Icons.two_wheeler_rounded,
                         onChanged: (val) {
                           HapticFeedback.selectionClick();
                           settings.setShowBikeOnEmergencyQr(val);
                         },
+                      ),
+                      const Divider(height: 12, color: Color(0xFFE2E8F0)),
+
+                      // Blood type toggle
+                      _buildToggleRow(
+                        key: const Key('toggle_blood_type_row'),
+                        switchKey: const Key('switch_blood_type'),
+                        title: 'Blood group',
+                        subtitle: bloodType.isNotEmpty ? bloodType : 'Not set',
+                        value: _includeBloodType,
+                        icon: Icons.bloodtype_rounded,
+                        onChanged: (val) =>
+                            setState(() => _includeBloodType = val),
+                      ),
+                      const Divider(height: 12, color: Color(0xFFE2E8F0)),
+
+                      // Allergies toggle
+                      _buildToggleRow(
+                        key: const Key('toggle_allergies_row'),
+                        switchKey: const Key('switch_allergies'),
+                        title: 'Allergies',
+                        subtitle: allergies.isNotEmpty ? allergies : 'None',
+                        value: _includeAllergies,
+                        icon: Icons.coronavirus_outlined,
+                        onChanged: (val) =>
+                            setState(() => _includeAllergies = val),
+                      ),
+                      const Divider(height: 12, color: Color(0xFFE2E8F0)),
+
+                      // Medical notes toggle
+                      _buildToggleRow(
+                        key: const Key('toggle_medical_notes_row'),
+                        switchKey: const Key('switch_medical_notes'),
+                        title: 'Medical notes',
+                        subtitle:
+                            medicalNotes.isNotEmpty ? medicalNotes : 'None',
+                        value: _includeMedicalNotes,
+                        icon: Icons.notes_rounded,
+                        onChanged: (val) =>
+                            setState(() => _includeMedicalNotes = val),
+                      ),
+                      const Divider(height: 12, color: Color(0xFFE2E8F0)),
+
+                      // Emergency contact toggle
+                      _buildToggleRow(
+                        key: const Key('toggle_emergency_contact_row'),
+                        switchKey: const Key('switch_emergency_contact'),
+                        title: 'Emergency contact',
+                        subtitle:
+                            contactName.isNotEmpty ? contactName : 'Not set',
+                        value: _includeEmergencyContact,
+                        icon: Icons.contact_phone_outlined,
+                        onChanged: (val) =>
+                            setState(() => _includeEmergencyContact = val),
                       ),
                     ],
                   ),
@@ -316,119 +484,131 @@ class _EmergencyQrScreenState extends State<EmergencyQrScreen> {
 
                 const SizedBox(height: 16),
 
-                // Physical Card Preview (Rendered & exported to PNG)
-                RepaintBoundary(
-                  key: _cardRepaintKey,
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 20,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                      border: Border.all(
-                        color: const Color(0xFFE2E8F0),
-                        width: 1.5,
+                // Physical Card Preview
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 6),
                       ),
+                    ],
+                    border: Border.all(
+                      color: const Color(0xFFE2E8F0),
+                      width: 1.5,
                     ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Red emergency header band
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 12,
-                          ),
-                          color: const Color(0xFFDC2626),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.medical_services_rounded,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'CAMP EMERGENCY MEDICAL ID',
-                                    style: GoogleFonts.manrope(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 0.6,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Text(
-                                'OFFLINE',
-                                style: GoogleFonts.manrope(
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Red emergency header band
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 12,
                         ),
+                        color: const Color(0xFFDC2626),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.medical_services_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'CAMP EMERGENCY MEDICAL ID',
+                                  style: GoogleFonts.manrope(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.6,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              'OFFLINE',
+                              style: GoogleFonts.manrope(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
 
-                        Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // QR Graphic Container
-                              Center(
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Real Scannable QR Graphic Container
+                            Center(
+                              child: RepaintBoundary(
+                                key: EmergencyQrScreen.qrKey,
                                 child: Container(
-                                  width: 180,
-                                  height: 180,
+                                  width: 220,
+                                  height: 220,
+                                  padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
                                       color: const Color(0xFF0F172A),
-                                      width: 3,
+                                      width: 2.0,
                                     ),
                                   ),
-                                  child: const Center(
-                                    child: Icon(
-                                      Icons.qr_code_2_rounded,
-                                      size: 150,
+                                  child: QrImageView(
+                                    data: payloadResult.payload,
+                                    version: QrVersions.auto,
+                                    errorCorrectionLevel: QrErrorCorrectLevel.Q,
+                                    size: 184,
+                                    padding: EdgeInsets.zero,
+                                    backgroundColor: Colors.white,
+                                    eyeStyle: const QrEyeStyle(
+                                      eyeShape: QrEyeShape.square,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                    dataModuleStyle: const QrDataModuleStyle(
+                                      dataModuleShape: QrDataModuleShape.square,
                                       color: Color(0xFF0F172A),
                                     ),
                                   ),
                                 ),
                               ),
+                            ),
 
-                              const SizedBox(height: 16),
+                            const SizedBox(height: 16),
 
-                              // Rider Name
-                              Center(
-                                child: Text(
-                                  name.isNotEmpty ? name : 'Motorcycle Rider',
-                                  style: GoogleFonts.manrope(
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.w900,
-                                    color: const Color(0xFF0F172A),
-                                  ),
+                            // Rider Name
+                            Center(
+                              child: Text(
+                                name.isNotEmpty ? name : 'Motorcycle Rider',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.w900,
+                                  color: const Color(0xFF0F172A),
                                 ),
                               ),
+                            ),
 
-                              const SizedBox(height: 16),
-                              const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                              const SizedBox(height: 16),
+                            const SizedBox(height: 16),
+                            const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                            const SizedBox(height: 16),
 
-                              // Medical Details Grid
+                            // Medical Details Grid
+                            if (_includeBloodType) ...[
                               _buildInfoRow(
                                 label: 'BLOOD TYPE',
                                 value: bloodType.isNotEmpty
@@ -437,90 +617,166 @@ class _EmergencyQrScreenState extends State<EmergencyQrScreen> {
                                 isHighlight: bloodType.isNotEmpty,
                               ),
                               const SizedBox(height: 10),
+                            ],
+                            if (_includeAllergies) ...[
                               _buildInfoRow(
                                 label: 'ALLERGIES',
-                                value: allergies.isNotEmpty
-                                    ? allergies
-                                    : 'Not set',
+                                value:
+                                    allergies.isNotEmpty ? allergies : 'None',
                               ),
                               const SizedBox(height: 10),
+                            ],
+                            if (_includeMedicalNotes) ...[
                               _buildInfoRow(
                                 label: 'MEDICAL NOTES',
                                 value: medicalNotes.isNotEmpty
                                     ? medicalNotes
-                                    : 'Not set',
+                                    : 'None',
                               ),
+                              const SizedBox(height: 10),
+                            ],
 
-                              const SizedBox(height: 16),
+                            // Emergency Contact (renamed from ICE CONTACT & ICE PHONE)
+                            if (_includeEmergencyContact) ...[
                               const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                              const SizedBox(height: 16),
-
-                              // Emergency Contact
+                              const SizedBox(height: 14),
                               _buildInfoRow(
-                                label: 'ICE CONTACT',
+                                label: 'Emergency contact',
                                 value: contactName.isNotEmpty
                                     ? '$contactName ${contactRelation.isNotEmpty ? "($contactRelation)" : ""}'
                                     : 'Not set',
                               ),
                               const SizedBox(height: 10),
                               _buildInfoRow(
-                                label: 'ICE PHONE',
+                                label: 'Contact phone',
                                 value: contactPhone.isNotEmpty
                                     ? contactPhone
                                     : 'Not set',
                               ),
-
-                              // Motorcycle Section (when toggle is ON)
-                              if (bikeDetailsToggle) ...[
-                                const SizedBox(height: 16),
-                                const Divider(
-                                    height: 1, color: Color(0xFFE2E8F0)),
-                                const SizedBox(height: 16),
-                                _buildBikeDetailsSection(
-                                  context: context,
-                                  activeBike: activeBike,
-                                ),
-                              ],
                             ],
-                          ),
+
+                            // Motorcycle Section (when toggle is ON)
+                            if (bikeDetailsToggle) ...[
+                              const SizedBox(height: 14),
+                              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                              const SizedBox(height: 14),
+                              _buildBikeDetailsSection(
+                                context: context,
+                                activeBike: activeBike,
+                              ),
+                            ],
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
 
                 const SizedBox(height: 20),
 
-                // Download PNG Action Button
+                // ── Buttons Section ──────────────────────────────────────────
+                // Row: Save QR as PNG + Small Secondary Share Icon
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          onPressed: _isSavingPng
+                              ? null
+                              : () => _saveQrAsPng(payloadResult.payload),
+                          icon: _isSavingPng
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.image_outlined, size: 20),
+                          label: Text(
+                            _isSavingPng ? 'Saving...' : 'Save QR as PNG',
+                            style: GoogleFonts.manrope(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.darkCharcoal,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      height: 48,
+                      width: 48,
+                      decoration: BoxDecoration(
+                        color: AppColors.clayDark,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.6),
+                        ),
+                        boxShadow: AppColors.skeuRaisedSmall,
+                      ),
+                      child: IconButton(
+                        tooltip: 'Share QR image',
+                        icon: _isSharing
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(
+                                Icons.share_outlined,
+                                color: AppColors.darkCharcoal,
+                                size: 20,
+                              ),
+                        onPressed: _isSharing
+                            ? null
+                            : () => _shareQrImage(payloadResult.payload),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                // Save QR as PDF button
                 SizedBox(
                   width: double.infinity,
                   height: 48,
-                  child: ElevatedButton.icon(
-                    onPressed: _isDownloading
+                  child: OutlinedButton.icon(
+                    onPressed: _isSavingPdf
                         ? null
-                        : () => _downloadCardPng(payloadResult),
-                    icon: _isDownloading
+                        : () => _saveQrAsPdf(payloadResult.payload),
+                    icon: _isSavingPdf
                         ? const SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: AppColors.darkCharcoal,
                             ),
                           )
-                        : const Icon(Icons.download_rounded, size: 20),
+                        : const Icon(Icons.picture_as_pdf_outlined, size: 20),
                     label: Text(
-                      _isDownloading
-                          ? 'Generating PNG...'
-                          : 'Download Emergency Card (PNG)',
+                      _isSavingPdf ? 'Preparing PDF...' : 'Save QR as PDF',
                       style: GoogleFonts.manrope(
-                        fontSize: 14.5,
+                        fontSize: 14,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.darkCharcoal,
-                      foregroundColor: Colors.white,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.darkCharcoal,
+                      backgroundColor: Colors.white,
+                      side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.5),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -554,6 +810,65 @@ class _EmergencyQrScreenState extends State<EmergencyQrScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildToggleRow({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required IconData icon,
+    required ValueChanged<bool> onChanged,
+    Key? key,
+    Key? switchKey,
+  }) {
+    return Padding(
+      key: key,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Icon(icon, size: 18, color: const Color(0xFF64748B)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: GoogleFonts.manrope(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF0F172A),
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.manrope(
+                          fontSize: 11,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            key: switchKey,
+            value: value,
+            activeThumbColor: AppColors.tacticalOrange,
+            activeTrackColor: AppColors.tacticalOrange.withValues(alpha: 0.5),
+            onChanged: onChanged,
+          ),
+        ],
+      ),
     );
   }
 
@@ -622,28 +937,7 @@ class _EmergencyQrScreenState extends State<EmergencyQrScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Prominent Bike Line (as formatted in requirement)
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Text(
-            hasPlate
-                ? 'Bike: $bikeMakeModel, ${activeBike.plateNumber}'
-                : 'Bike: $bikeMakeModel',
-            style: GoogleFonts.manrope(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
-        ),
-
+        // Note: Duplicate "Bike: ..." pill has been removed per requirement 4.
         _buildInfoRow(
           label: 'BIKE',
           value: activeBike.modelYear > 1900
@@ -726,7 +1020,7 @@ class _EmergencyQrScreenState extends State<EmergencyQrScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 110,
+          width: 130,
           child: Text(
             label,
             style: GoogleFonts.manrope(
