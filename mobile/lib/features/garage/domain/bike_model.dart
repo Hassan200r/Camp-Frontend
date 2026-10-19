@@ -308,6 +308,25 @@ class Bike {
   /// Convenience getter for modelYear.
   int get year => modelYear;
 
+  /// Convenience getter for mileage in kilometers.
+  int get mileageKm => odometerKm;
+
+  /// Formatted subtitle as `<year> <make>`, hiding parts that are missing.
+  String get formattedSubtitle => formatSubtitle(year: modelYear, make: make);
+
+  /// Static helper to format `<year> <make>`, hiding parts that are missing.
+  static String formatSubtitle({int? year, String? make}) {
+    final parts = <String>[];
+    if (year != null && year > 0) {
+      parts.add(year.toString());
+    }
+    final trimmedMake = make?.trim();
+    if (trimmedMake != null && trimmedMake.isNotEmpty) {
+      parts.add(trimmedMake);
+    }
+    return parts.join(' • ');
+  }
+
   /// Fallback getter ensuring a non-null timestamp for relative time display.
   DateTime get lastUpdatedAt =>
       lastUpdated ?? DateTime.now().subtract(const Duration(hours: 2, minutes: 15));

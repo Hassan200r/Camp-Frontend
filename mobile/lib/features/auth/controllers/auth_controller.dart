@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../../core/data/app_repositories.dart';
 import '../domain/auth_state.dart';
 import '../domain/user_model.dart';
 
@@ -104,6 +105,7 @@ class AuthController extends ChangeNotifier {
       currentUser: user,
       errorMessage: null,
     );
+    AppRepositories.instance.sessionRepository.setLoggedIn(true);
     notifyListeners();
     return true;
   }
@@ -167,6 +169,7 @@ class AuthController extends ChangeNotifier {
       currentUser: newUser,
       errorMessage: null,
     );
+    AppRepositories.instance.sessionRepository.setLoggedIn(true);
     notifyListeners();
     return true;
   }
@@ -187,6 +190,7 @@ class AuthController extends ChangeNotifier {
       activeHelmetToken: 'SCHUBERTH-C5-BT-ACTIVE',
       errorMessage: null,
     );
+    AppRepositories.instance.sessionRepository.setLoggedIn(true);
     notifyListeners();
     return true;
   }
@@ -209,9 +213,10 @@ class AuthController extends ChangeNotifier {
     return true;
   }
 
-  /// Sign Out current rider
+  /// Sign Out current rider (ends session, keeps local data)
   void signOut() {
     _state = const AuthState(status: AuthStatus.unauthenticated);
+    AppRepositories.instance.sessionRepository.clearSession();
     notifyListeners();
   }
 }

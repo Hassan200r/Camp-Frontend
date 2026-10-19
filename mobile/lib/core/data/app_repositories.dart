@@ -15,6 +15,8 @@ import 'ride_report_repository.dart';
 import 'ride_report_repository_local.dart';
 import 'service_visit_repository.dart';
 import 'service_visit_repository_local.dart';
+import 'session_repository.dart';
+import 'session_repository_local.dart';
 import 'settings_repository.dart';
 import 'settings_repository_local.dart';
 
@@ -31,6 +33,7 @@ class AppRepositories {
     FinanceRepository? financeRepository,
     PlaceRepository? placeRepository,
     ServiceVisitRepository? serviceVisitRepository,
+    SessionRepository? sessionRepository,
   })  : profileRepository = profileRepository ?? ProfileRepositoryLocal(),
         bikeRepository = bikeRepository ?? BikeRepositoryLocal(),
         mechanicRepository = mechanicRepository ?? MechanicRepositoryLocal(),
@@ -39,7 +42,8 @@ class AppRepositories {
         maintenanceRepository = maintenanceRepository ?? MaintenanceRepositoryLocal(),
         financeRepository = financeRepository ?? FinanceRepositoryLocal(),
         placeRepository = placeRepository ?? PlaceRepositoryLocal(),
-        serviceVisitRepository = serviceVisitRepository ?? ServiceVisitRepositoryLocal();
+        serviceVisitRepository = serviceVisitRepository ?? ServiceVisitRepositoryLocal(),
+        sessionRepository = sessionRepository ?? SessionRepositoryLocal();
 
   static AppRepositories instance = AppRepositories();
 
@@ -52,6 +56,7 @@ class AppRepositories {
   final FinanceRepository financeRepository;
   final PlaceRepository placeRepository;
   final ServiceVisitRepository serviceVisitRepository;
+  final SessionRepository sessionRepository;
 
   /// Initialize persistent storage backing the repositories.
   Future<void> init() async {
@@ -72,6 +77,8 @@ class AppRepositories {
     MaintenanceRepository? maintenanceRepository,
     FinanceRepository? financeRepository,
     PlaceRepository? placeRepository,
+    ServiceVisitRepository? serviceVisitRepository,
+    SessionRepository? sessionRepository,
   }) {
     instance = AppRepositories(
       profileRepository: profileRepository,
@@ -82,6 +89,8 @@ class AppRepositories {
       maintenanceRepository: maintenanceRepository,
       financeRepository: financeRepository,
       placeRepository: placeRepository,
+      serviceVisitRepository: serviceVisitRepository,
+      sessionRepository: sessionRepository,
     );
   }
 

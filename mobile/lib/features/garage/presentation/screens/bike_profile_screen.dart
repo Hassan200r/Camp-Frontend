@@ -5,35 +5,18 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
+import '../../../../core/data/app_repositories.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../bike_scan/presentation/screens/bike_details_screen.dart';
 import '../../../maintenance/controllers/post_ride_report_controller.dart';
 import '../../../maintenance/domain/maintenance_item_model.dart';
 import '../../../maintenance/domain/maintenance_prediction_engine.dart';
+import '../../../maintenance/domain/post_ride_report.dart';
 import '../../controllers/active_bike_controller.dart';
 import '../../domain/bike_model.dart';
 import '../../domain/fuel_estimator.dart';
 import '../../services/fuel_tracker_service.dart';
 import '../widgets/update_fuel_sheet.dart';
-
-/// Lightweight data model for recent trips associated with a bike.
-class _RecentBikeTrip {
-  const _RecentBikeTrip({
-    required this.id,
-    required this.bikeId,
-    required this.title,
-    required this.dateDisplay,
-    required this.fuelEfficiencyKmPerL,
-    required this.distanceKm,
-  });
-
-  final String id;
-  final String bikeId;
-  final String title;
-  final String dateDisplay;
-  final double fuelEfficiencyKmPerL;
-  final int distanceKm;
-}
 
 /// Read-only detail view for a single motorcycle in CAMP.
 /// Displays telemetry status, specifications, maintenance health summary,
@@ -58,46 +41,36 @@ class BikeProfileScreen extends StatefulWidget {
 class _BikeProfileScreenState extends State<BikeProfileScreen> {
   final ActiveBikeController _bikeController = ActiveBikeController.instance;
 
+  List<MaintenanceItem> _maintenanceItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMaintenanceItems();
+  }
+
+  Future<void> _loadMaintenanceItems() async {
+    try {
+      final items = await AppRepositories.instance.maintenanceRepository.loadMaintenanceItems();
+      if (mounted) {
+        setState(() {
+          _maintenanceItems = items;
+        });
+      }
+    } catch (_) {}
+  }
+
   /// Navigation height constants for anti-overlap calculation:
   static const double _kNavHeight = 64.0;
   static const double _kNavBottomMargin = 24.0;
   static const double _kScrollBottomPadding =
       _kNavHeight + _kNavBottomMargin + 32.0;
 
-  // TODO: Connect to live Trip repository once Ride History data layer is merged.
-  static const List<_RecentBikeTrip> _kPlaceholderTrips = [
-    _RecentBikeTrip(
-      id: 'trip-1',
-      bikeId: 'bike-bmw-1250',
-      title: 'Alpine Ridge Tour',
-      dateDisplay: 'Oct 14, 2026',
-      fuelEfficiencyKmPerL: 22.1,
-      distanceKm: 412,
-    ),
-    _RecentBikeTrip(
-      id: 'trip-2',
-      bikeId: 'bike-bmw-1250',
-      title: 'Black Forest Loop',
-      dateDisplay: 'Sep 28, 2026',
-      fuelEfficiencyKmPerL: 23.4,
-      distanceKm: 285,
-    ),
-    _RecentBikeTrip(
-      id: 'trip-3',
-      bikeId: 'bike-rebel-500',
-      title: 'Pacific Coast Highway Sunset',
-      dateDisplay: 'Aug 19, 2026',
-      fuelEfficiencyKmPerL: 26.8,
-      distanceKm: 164,
-    ),
-  ];
-
   Bike? _resolveCurrentBike() {
     // 1. Check if bike ID was provided in constructor or via route arguments
+    final args = ModalRoute.of(context)?.settings.arguments;
     final argId = widget.bikeId ??
-        (ModalRoute.of(context)?.settings.arguments is String
-            ? ModalRoute.of(context)?.settings.arguments as String
-            : null);
+        (args is String ? args : (args is Bike ? args.id : null));
 
     if (argId != null) {
       final found = _bikeController.getBikeById(argId);
@@ -452,7 +425,7 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
     final titleOverline =
         isActive ? 'ACTIVE RIG' : 'STANDBY FLEET';
 
-    final subtitleText = '${bike.modelYear} • ${bike.make}';
+    final subtitleText = bike.formattedSubtitle;
 
     return CampCard(
       padding: const EdgeInsets.all(14),
@@ -605,10 +578,10 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
   Widget _buildSpecificationsCard(Bike bike) {
     final displacementText = bike.displacement != null
         ? '${_formatNumber(bike.displacement!)} cc'
-        : '1,254 cc';
-    final engineSubtitle = bike.make == 'BMW'
+        : 'Not set';
+    final engineSubtitle = bike.make == 'BMW' && (bike.displacement ?? 0) > 1000
         ? 'Boxer Twin'
-        : (bike.bikeType != null ? '${bike.bikeType} Engine' : 'Boxer Twin');
+        : (bike.bikeType != null ? '${bike.bikeType} Engine' : (bike.displacement != null ? '${bike.displacement} cc' : 'Engine specs'));
 
     final isEfi = bike.fuelSystem == FuelSystem.efi;
     final fuelSystemTitle = isEfi ? 'Fuel Injection (EFI)' : 'Carburetor';
@@ -618,17 +591,21 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
             ? bike.carburetorType!
             : 'Mechanical');
 
-    final tankCapacity = bike.fuelTankCapacityLiters ?? 30.0;
+    final tankCapacity = bike.fuelTankCapacityLiters;
     final liters = bike.fuelRemainingLiters;
     final range = FuelEstimator.rangeKm(liters, bike.fuelAverageKmPerLiter);
-    final tankTitle = liters != null
-        ? '${liters.toStringAsFixed(1)} / ${tankCapacity.toStringAsFixed(0)} L'
-        : '${tankCapacity % 1 == 0 ? tankCapacity.toInt().toString() : tankCapacity.toStringAsFixed(1)} L';
-    final tankSubtitle = range != null
-        ? 'about ${range.round()} km range'
-        : (liters != null
-            ? 'Tap to log refill'
-            : '${(tankCapacity * 0.264172).toStringAsFixed(1)} gal cap');
+    final tankTitle = tankCapacity != null
+        ? (liters != null
+            ? '${liters.toStringAsFixed(1)} / ${tankCapacity.toStringAsFixed(0)} L'
+            : '${tankCapacity % 1 == 0 ? tankCapacity.toInt().toString() : tankCapacity.toStringAsFixed(1)} L')
+        : 'Not set';
+    final tankSubtitle = tankCapacity != null
+        ? (range != null
+            ? 'about ${range.round()} km range'
+            : (liters != null
+                ? 'Tap to log refill'
+                : '${(tankCapacity * 0.264172).toStringAsFixed(1)} gal cap'))
+        : 'Tap Edit to set';
 
     final fuelAvgValue = bike.fuelAverageKmPerLiter;
     final fuelAvgTitle = fuelAvgValue != null
@@ -640,8 +617,8 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
         ? '${bike.preciseOdometerKm!.toStringAsFixed(1)} km'
         : '${_formatNumber(bike.odometerKm)} km';
 
-    final rigCategory = bike.bikeType ?? 'Adventure';
-    final rigSubtitle = _getCategorySubtitle(rigCategory);
+    final rigCategory = bike.bikeType ?? 'Motorcycle';
+    final rigSubtitle = bike.bikeType != null ? _getCategorySubtitle(rigCategory) : 'Category not set';
 
     return CampCard(
       padding: const EdgeInsets.all(AppColors.cardPadding),
@@ -829,17 +806,7 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
 
   // ── 4. Maintenance Health Card ─────────────────────────────────────────────
   Widget _buildMaintenanceHealthCard(Bike bike) {
-    // TODO: Connect this section to the reactive repository once Finances & Rig Health data layer merges.
-    // Currently pulling summarized diagnostics from MaintenanceItem.defaultSampleItems.
-    final items = MaintenanceItem.defaultSampleItems;
-    final rearBrake = items.firstWhere(
-      (i) => i.id == 'maint-1',
-      orElse: () => items.first,
-    );
-    final forkSeals = items.firstWhere(
-      (i) => i.id == 'maint-5',
-      orElse: () => items.last,
-    );
+    final items = _maintenanceItems;
 
     final oilChangeDisplay = _formatServiceRecord(bike.lastOilChange);
     final tuneUpDisplay = _formatServiceRecord(bike.lastTuneUp);
@@ -1026,19 +993,35 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          _buildDiagnosticItemRow(
-            title: rearBrake.name,
-            indicatorText: 'Due Soon (~400 km)',
-            dotColor: const Color(0xFFF59E0B),
-            isAlert: true,
-          ),
-          const SizedBox(height: 8),
-          _buildDiagnosticItemRow(
-            title: forkSeals.name,
-            indicatorText: 'Inspected • OK',
-            dotColor: const Color(0xFF10B981),
-            isAlert: false,
-          ),
+          if (items.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Text(
+                'No maintenance components logged yet for this motorcycle.',
+                style: AppTextStyles.caption.copyWith(color: AppColors.mutedText),
+              ),
+            )
+          else ...[
+            for (final item in items.take(3)) ...[
+              _buildDiagnosticItemRow(
+                title: item.name,
+                indicatorText: switch (item.status) {
+                  MaintenanceStatus.overdue => 'Overdue',
+                  MaintenanceStatus.dueSoon => 'Due Soon',
+                  MaintenanceStatus.ok => 'OK',
+                  MaintenanceStatus.diyRec => 'DIY Rec',
+                },
+                dotColor: switch (item.status) {
+                  MaintenanceStatus.overdue => AppColors.alertRed,
+                  MaintenanceStatus.dueSoon => const Color(0xFFF59E0B),
+                  MaintenanceStatus.ok => const Color(0xFF10B981),
+                  MaintenanceStatus.diyRec => const Color(0xFFF59E0B),
+                },
+                isAlert: item.status != MaintenanceStatus.ok,
+              ),
+              const SizedBox(height: 8),
+            ],
+          ],
           const SizedBox(height: 14),
           GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -1318,10 +1301,7 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
 
   // ── 6. Recent Trips (On This Bike) Card ────────────────────────────────────
   Widget _buildRecentTripsCard(Bike bike) {
-    final trips = _kPlaceholderTrips
-        .where((t) => t.bikeId == bike.id)
-        .toList();
-    final displayTrips = trips.isNotEmpty ? trips : _kPlaceholderTrips.take(2).toList();
+    final reports = PostRideReportController.instance.getReportsForBike(bike.id);
 
     return CampCard(
       padding: const EdgeInsets.all(AppColors.cardPadding),
@@ -1358,69 +1338,117 @@ class _BikeProfileScreenState extends State<BikeProfileScreen> {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  _showNotification('Opening full trip logbook for ${bike.modelName}...');
-                },
-                child: Text(
-                  'See all (${displayTrips.length + 16})',
-                  style: GoogleFonts.manrope(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.tacticalOrangeDark,
+              if (reports.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    Navigator.of(context).pushNamed(CampRoutes.rideHistory);
+                  },
+                  child: Text(
+                    'See all (${reports.length})',
+                    style: GoogleFonts.manrope(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.tacticalOrangeDark,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
           const SizedBox(height: 12),
-          ...displayTrips.map((trip) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: InsetTile(
-                padding: const EdgeInsets.all(12),
-                borderRadius: AppColors.radiusTile,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          if (reports.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Center(
+                child: Column(
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            trip.title,
-                            style: GoogleFonts.manrope(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.darkCharcoal,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            '${trip.dateDisplay} • ${trip.fuelEfficiencyKmPerL.toStringAsFixed(1)} km/L',
-                            style: AppTextStyles.caption.copyWith(fontSize: 11),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
+                    const Icon(Icons.route_rounded, size: 30, color: AppColors.mutedLight),
+                    const SizedBox(height: 6),
                     Text(
-                      '${trip.distanceKm} km',
+                      'No rides yet on this bike',
                       style: GoogleFonts.manrope(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
                         color: AppColors.darkCharcoal,
                       ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Completed rides for this motorcycle will appear here.',
+                      style: AppTextStyles.caption.copyWith(color: AppColors.mutedText),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               ),
-            );
-          }),
+            )
+          else ...[
+            for (final report in reports.take(3)) ...[
+              _buildReportRow(report),
+              const SizedBox(height: 8),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReportRow(PostRideReport report) {
+    final title = report.routeTitle.isNotEmpty
+        ? report.routeTitle
+        : 'Ride on ${report.formattedDate}';
+    final duration = report.durationHours != null
+        ? '${report.durationHours!.toStringAsFixed(1)} hrs'
+        : (report.durationMinutes != null ? '${report.durationMinutes} min' : '—');
+
+    return InsetTile(
+      padding: const EdgeInsets.all(12),
+      borderRadius: AppColors.radiusTile,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: GoogleFonts.manrope(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.darkCharcoal,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${report.distanceKm.toStringAsFixed(1)} km',
+                style: GoogleFonts.manrope(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.tacticalOrangeDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                report.formattedDate,
+                style: AppTextStyles.caption,
+              ),
+              Text(
+                duration,
+                style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
         ],
       ),
     );

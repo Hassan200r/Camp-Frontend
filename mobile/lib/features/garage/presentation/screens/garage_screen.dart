@@ -60,22 +60,27 @@ class GarageScreen extends StatelessWidget {
 
                       const SizedBox(height: 16),
 
-                      // ── 3. Active Bike Card ───────────────────────────────
-                      if (activeBike != null) ...[
-                        _buildActiveBikeCard(context, activeBike),
+                      if (bikes.isEmpty) ...[
+                        _buildEmptyGarageCard(context),
                         const SizedBox(height: AppColors.cardGap),
-                      ],
+                      ] else ...[
+                        // ── 3. Active Bike Card ───────────────────────────────
+                        if (activeBike != null) ...[
+                          _buildActiveBikeCard(context, activeBike),
+                          const SizedBox(height: AppColors.cardGap),
+                        ],
 
-                      // ── 4. Standby Bike Cards ─────────────────────────────
-                      ...standbyBikes.map((bike) => Padding(
-                            padding: const EdgeInsets.only(
-                                bottom: AppColors.cardGap),
-                            child: _buildStandbyBikeCard(
-                              context,
-                              bike,
-                              bikeController,
-                            ),
-                          )),
+                        // ── 4. Standby Bike Cards ─────────────────────────────
+                        ...standbyBikes.map((bike) => Padding(
+                              padding: const EdgeInsets.only(
+                                  bottom: AppColors.cardGap),
+                              child: _buildStandbyBikeCard(
+                                context,
+                                bike,
+                                bikeController,
+                              ),
+                            )),
+                      ],
 
                       // ── 5. Register Additional Bike Card ──────────────────
                       _buildRegisterAdditionalBikeCard(context),
@@ -219,6 +224,57 @@ class GarageScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 2b. Empty Garage State Card
+  // ──────────────────────────────────────────────────────────────────────────
+  Widget _buildEmptyGarageCard(BuildContext context) {
+    return CampCard(
+      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+      borderRadius: AppColors.radiusCard,
+      color: AppColors.clay,
+      shadows: AppColors.skeuRaised,
+      child: Center(
+        child: Column(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.clayDark,
+                boxShadow: AppColors.skeuRecessed,
+              ),
+              child: const Center(
+                child: Icon(Icons.two_wheeler_rounded, size: 30, color: AppColors.mutedText),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'No motorcycles in garage',
+              style: GoogleFonts.manrope(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppColors.darkCharcoal,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Add your motorcycle to track maintenance and stats.',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.caption.copyWith(color: AppColors.mutedText),
+            ),
+            const SizedBox(height: 18),
+            PrimaryButton(
+              label: 'Add motorcycle',
+              icon: Icons.add_rounded,
+              onTap: () => Navigator.of(context).pushNamed(CampRoutes.addBike),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -447,7 +503,7 @@ class GarageScreen extends StatelessWidget {
                       Text('ENGINE', style: AppTextStyles.overline),
                       const SizedBox(height: 4),
                       Text(
-                        '${_formatKm(bike.displacement ?? 1254)} cc',
+                        bike.displacement != null ? '${_formatKm(bike.displacement!)} cc' : 'Not set',
                         style: AppTextStyles.statMedium.copyWith(fontSize: 17),
                       ),
                       const SizedBox(height: 2),
@@ -469,12 +525,14 @@ class GarageScreen extends StatelessWidget {
                       Text('FUEL TANK', style: AppTextStyles.overline),
                       const SizedBox(height: 4),
                       Text(
-                        '${bike.fuelTankCapacityLiters?.toStringAsFixed(0) ?? '30'} L',
+                        bike.fuelTankCapacityLiters != null ? '${bike.fuelTankCapacityLiters!.toStringAsFixed(0)} L' : 'Not set',
                         style: AppTextStyles.statMedium.copyWith(fontSize: 17),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${((bike.fuelTankCapacityLiters ?? 30.0) / 3.78541).toStringAsFixed(1)} gal cap',
+                        bike.fuelTankCapacityLiters != null
+                            ? '${(bike.fuelTankCapacityLiters! / 3.78541).toStringAsFixed(1)} gal cap'
+                            : 'Capacity not set',
                         style: AppTextStyles.caption,
                       ),
                     ],
@@ -974,7 +1032,9 @@ class GarageScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${bike.displacement != null ? '${_formatKm(bike.displacement!)} cc' : '889 cc'} ${_engineSubtitle(bike)}',
+                        bike.displacement != null
+                            ? '${_formatKm(bike.displacement!)} cc • ${_engineSubtitle(bike)}'
+                            : _engineSubtitle(bike),
                         style: GoogleFonts.manrope(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
@@ -983,7 +1043,7 @@ class GarageScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        '${bike.fuelTankCapacityLiters?.toStringAsFixed(0) ?? '20'} L Tank • ${_formatKm(bike.odometerKm)} km logged',
+                        '${bike.fuelTankCapacityLiters != null ? '${bike.fuelTankCapacityLiters!.toStringAsFixed(0)} L Tank • ' : ''}${_formatKm(bike.odometerKm)} km logged',
                         style: AppTextStyles.caption,
                       ),
                       const SizedBox(height: 4),
@@ -1030,15 +1090,6 @@ class GarageScreen extends StatelessWidget {
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Last Synced 4d ago',
-                      style: GoogleFonts.manrope(
-                        fontSize: 10,
-                        color: AppColors.mutedText,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -1309,25 +1360,7 @@ class GarageScreen extends StatelessWidget {
   }
 
   String _buildSubtitle(Bike bike) {
-    final parts = <String>[];
-    if (bike.edition != null && bike.edition!.isNotEmpty) {
-      parts.add(bike.edition!.startsWith('Edition ')
-          ? bike.edition!
-          : 'Edition ${bike.edition!}');
-    }
-    parts.add(bike.modelYear.toString());
-    if (bike.nickname != null && bike.nickname!.isNotEmpty) {
-      parts.add(bike.nickname!);
-    } else if (bike.vin != null && bike.vin!.isNotEmpty) {
-      parts.add(
-        bike.vin!.length >= 6
-            ? 'VIN ...${bike.vin!.substring(bike.vin!.length - 6)}'
-            : 'VIN ${bike.vin!}',
-      );
-    } else {
-      parts.add(bike.make);
-    }
-    return parts.join(' • ');
+    return bike.formattedSubtitle;
   }
 
   String _engineSubtitle(Bike bike) {
@@ -1335,18 +1368,22 @@ class GarageScreen extends StatelessWidget {
       return 'Boxer Twin';
     }
     if (bike.bikeType != null && bike.bikeType!.isNotEmpty) {
-      if (bike.bikeType == 'Adventure') return 'Parallel Twin';
-      if (bike.bikeType == 'Cruiser') return 'Parallel Twin';
       return '${bike.bikeType} Engine';
     }
-    return 'Parallel Twin';
+    if (bike.displacement != null) {
+      return '${bike.displacement} cc';
+    }
+    return 'Engine Specs';
   }
 
   String _oilSummary(Bike bike) {
     if (bike.lastOilChange?.km != null) {
       return '${_formatKm(bike.lastOilChange!.km!)} km ago';
     }
-    return '3,200 km ago';
+    if (bike.lastOilChange?.date != null) {
+      return _formatDate(bike.lastOilChange!.date!);
+    }
+    return 'No record';
   }
 
   String _tuneUpSummary(Bike bike) {
@@ -1356,7 +1393,7 @@ class GarageScreen extends StatelessWidget {
     if (bike.lastTuneUp?.km != null) {
       return '${_formatKm(bike.lastTuneUp!.km!)} km';
     }
-    return 'Jun 04, 2026';
+    return 'No record';
   }
 
   String _formatDate(DateTime date) {

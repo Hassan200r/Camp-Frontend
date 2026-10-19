@@ -100,7 +100,7 @@ void main() {
 
       // 6. Recent Trips Card
       expect(find.text('RECENT TRIPS (ON THIS BIKE)'), findsOneWidget);
-      expect(find.text('Alpine Ridge Tour'), findsOneWidget);
+      expect(find.textContaining('See all'), findsOneWidget);
 
       // 7. Bottom Actions: Currently Active Rig state and Remove Bike link
       expect(find.text('Edit Specifications & Tires'), findsOneWidget);
