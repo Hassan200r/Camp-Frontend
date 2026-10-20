@@ -98,7 +98,7 @@ void main() {
         homeCity: 'Gilgit',
         dob: '1995-04-12',
         avatarPath: '/path/avatar.jpg',
-        ridingTier: 'ADV PRO',
+        ridingTier: 'Explorer',
         experienceIndex: 2,
         ridingStyles: const {'Touring', 'Enduro'},
         unitIndex: 0,

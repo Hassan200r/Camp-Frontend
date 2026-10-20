@@ -18,6 +18,7 @@ class AppSettings {
     this.emergencyNumber = '1122',
     this.fuelPricePerLiter,
     this.showBikeOnEmergencyQr = true,
+    this.recentActivityClearedAt,
   })  : id = id ?? 'settings-default',
         createdAt = (createdAt ?? DateTime.now()).toUtc(),
         updatedAt = (updatedAt ?? DateTime.now()).toUtc();
@@ -50,6 +51,7 @@ class AppSettings {
       emergencyNumber: json['emergencyNumber'] as String? ?? '1122',
       fuelPricePerLiter: (json['fuelPricePerLiter'] as num?)?.toDouble(),
       showBikeOnEmergencyQr: json['showBikeOnEmergencyQr'] as bool? ?? true,
+      recentActivityClearedAt: parseUtc(json['recentActivityClearedAt']),
     );
   }
 
@@ -70,6 +72,7 @@ class AppSettings {
   final String emergencyNumber;
   final double? fuelPricePerLiter;
   final bool showBikeOnEmergencyQr;
+  final DateTime? recentActivityClearedAt;
 
   AppSettings copyWith({
     String? id,
@@ -85,6 +88,8 @@ class AppSettings {
     String? emergencyNumber,
     double? fuelPricePerLiter,
     bool? showBikeOnEmergencyQr,
+    DateTime? recentActivityClearedAt,
+    bool clearRecentActivityClearedAt = false,
   }) {
     return AppSettings(
       id: id ?? this.id,
@@ -102,6 +107,9 @@ class AppSettings {
       fuelPricePerLiter: fuelPricePerLiter ?? this.fuelPricePerLiter,
       showBikeOnEmergencyQr:
           showBikeOnEmergencyQr ?? this.showBikeOnEmergencyQr,
+      recentActivityClearedAt: clearRecentActivityClearedAt
+          ? null
+          : (recentActivityClearedAt ?? this.recentActivityClearedAt),
     );
   }
 
@@ -119,6 +127,8 @@ class AppSettings {
         'emergencyNumber': emergencyNumber,
         'fuelPricePerLiter': fuelPricePerLiter,
         'showBikeOnEmergencyQr': showBikeOnEmergencyQr,
+        'recentActivityClearedAt':
+            recentActivityClearedAt?.toUtc().toIso8601String(),
       };
 
   @override
@@ -136,7 +146,8 @@ class AppSettings {
           language == other.language &&
           emergencyNumber == other.emergencyNumber &&
           fuelPricePerLiter == other.fuelPricePerLiter &&
-          showBikeOnEmergencyQr == other.showBikeOnEmergencyQr;
+          showBikeOnEmergencyQr == other.showBikeOnEmergencyQr &&
+          recentActivityClearedAt == other.recentActivityClearedAt;
 
   @override
   int get hashCode => Object.hash(
@@ -151,5 +162,6 @@ class AppSettings {
         emergencyNumber,
         fuelPricePerLiter,
         showBikeOnEmergencyQr,
+        recentActivityClearedAt,
       );
 }

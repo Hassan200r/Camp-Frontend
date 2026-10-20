@@ -28,7 +28,7 @@ void main() {
 
     // 2. Cockpit Hero Card
     expect(find.text('Elena Vance'), findsOneWidget);
-    expect(find.text('ADV PRO'), findsOneWidget);
+    expect(find.text('ADV PRO'), findsNothing);
     expect(find.text('Edit Profile'), findsOneWidget);
     expect(find.byIcon(Icons.qr_code_2_rounded), findsOneWidget);
 

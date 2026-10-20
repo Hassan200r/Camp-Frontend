@@ -35,6 +35,7 @@ class SettingsController extends ChangeNotifier {
   String _emergencyNumber = '1122';
   double? _fuelPricePerLiter;
   bool _showBikeOnEmergencyQr = true;
+  DateTime? _recentActivityClearedAt;
 
   // ── Getters ────────────────────────────────────────────────────────────────
   UnitsSystem get units => _units;
@@ -49,6 +50,7 @@ class SettingsController extends ChangeNotifier {
   String get language => _language;
   String get emergencyNumber => _emergencyNumber;
   double? get fuelPricePerLiter => _fuelPricePerLiter;
+  DateTime? get recentActivityClearedAt => _recentActivityClearedAt;
 
   /// Human-readable representation of local cache size
   String get localCacheDisplay {
@@ -133,6 +135,14 @@ class SettingsController extends ChangeNotifier {
     save();
   }
 
+  /// Sets the cutoff timestamp for hiding prior entries from the Home recent activity feed.
+  /// Never deletes underlying records in other repositories.
+  Future<void> clearRecentActivity() async {
+    _recentActivityClearedAt = DateTime.now().toUtc();
+    notifyListeners();
+    await save();
+  }
+
   /// Reset all preferences to factory defaults (useful for tests).
   void reset() {
     _units = UnitsSystem.metric;
@@ -145,6 +155,7 @@ class SettingsController extends ChangeNotifier {
     _emergencyNumber = '1122';
     _fuelPricePerLiter = null;
     _showBikeOnEmergencyQr = true;
+    _recentActivityClearedAt = null;
     notifyListeners();
   }
 
@@ -171,6 +182,7 @@ class SettingsController extends ChangeNotifier {
       _emergencyNumber = settings.emergencyNumber;
       _fuelPricePerLiter = settings.fuelPricePerLiter;
       _showBikeOnEmergencyQr = settings.showBikeOnEmergencyQr;
+      _recentActivityClearedAt = settings.recentActivityClearedAt;
       notifyListeners();
     } catch (_) {
       _units = UnitsSystem.metric;
@@ -179,6 +191,7 @@ class SettingsController extends ChangeNotifier {
       _emergencyNumber = '1122';
       _fuelPricePerLiter = null;
       _showBikeOnEmergencyQr = true;
+      _recentActivityClearedAt = null;
       notifyListeners();
     }
   }
@@ -194,6 +207,7 @@ class SettingsController extends ChangeNotifier {
         emergencyNumber: _emergencyNumber,
         fuelPricePerLiter: _fuelPricePerLiter,
         showBikeOnEmergencyQr: _showBikeOnEmergencyQr,
+        recentActivityClearedAt: _recentActivityClearedAt,
       );
       await repo.saveSettings(settings);
     } catch (_) {

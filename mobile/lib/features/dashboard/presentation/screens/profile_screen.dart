@@ -22,7 +22,7 @@ import '../../domain/profile_stats.dart';
 import '../widgets/app_drawer_widget.dart';
 
 /// CAMP Rider Profile Screen
-/// High-fidelity skeuomorphic cockpit profile displaying telemetry records,
+/// High-fidelity skeuomorphic cockpit profile displaying rider profile,
 /// touring tiers, trail badges, garage fleet, health status, and settings.
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -223,7 +223,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final avatarPath = profile.avatarPath;
         final displayName = profile.fullName;
         final firstName = profile.firstName;
-        final ridingTier = profile.ridingTier;
         final activeBike = ActiveBikeController.instance.activeBike;
         final bikeSubtitle = activeBike != null
             ? 'Cockpit Link Active • ${activeBike.name}'
@@ -232,7 +231,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top section: Avatar + Info + Online badge
+          // Top section: Avatar + Info
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             child: Row(
@@ -293,23 +292,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF5A391D),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              ridingTier,
-                              style: GoogleFonts.manrope(
-                                color: const Color(0xFFFCD34D),
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                       const SizedBox(height: 3),
@@ -321,47 +303,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           fontWeight: FontWeight.w500,
                         ),
                         overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Green ONLINE pill
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF14241B),
-                    borderRadius: BorderRadius.circular(AppColors.radiusTile),
-                    border: Border.all(
-                      color: AppColors.statusGreen.withValues(alpha: 0.4),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.statusGreen,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.statusGreen.withValues(alpha: 0.6),
-                              blurRadius: 6,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        'ONLINE',
-                        style: GoogleFonts.manrope(
-                          color: AppColors.statusGreen,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                        ),
                       ),
                     ],
                   ),

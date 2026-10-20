@@ -10,6 +10,8 @@ import '../../../garage/domain/bike_model.dart';
 import '../../../garage/domain/fuel_estimator.dart';
 import '../../../garage/presentation/widgets/update_fuel_sheet.dart';
 import '../../../garage/services/fuel_tracker_service.dart';
+import '../../../maintenance/controllers/maintenance_controller.dart';
+import '../../../maintenance/domain/maintenance_prediction_engine.dart';
 
 /// Active Motorcycle Overview — skeuomorphic raised card bound to [ActiveBikeController] and [FuelTrackerService].
 class ActiveBikeCardWidget extends StatefulWidget {
@@ -54,6 +56,7 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
       listenable: Listenable.merge([
         ActiveBikeController.instance,
         FuelTrackerService.instance,
+        MaintenanceController.instance,
       ]),
       builder: (context, _) {
         final bike = ActiveBikeController.instance.activeBike;
@@ -300,7 +303,7 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
                             Text(
                               fuelTracker.isRiding
                                   ? '${fuelTracker.rideDistanceKm.toStringAsFixed(1)} km tracked'
-                                  : 'Live distance & fuel estimate',
+                                  : 'Distance & fuel estimate',
                               style: GoogleFonts.manrope(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -515,49 +518,81 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
               const SizedBox(height: 16),
 
               // ── Service Status ────────────────────────────────────────────
-              CampCard(
-                borderRadius: AppColors.radiusTile,
-                shadows: AppColors.skeuRaisedSmall,
-                padding: const EdgeInsets.all(14),
-                child: Row(
-                  children: [
-                    const IconTile(
-                      icon: Icons.tune_rounded,
-                      iconColor: AppColors.terracotta,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              Builder(
+                builder: (context) {
+                  final hasData = MaintenanceController.instance.hasMaintenanceData(bike);
+                  final urgentItem = MaintenanceController.instance.mostUrgentItem(bike.id);
+
+                  final String statusSubtitle;
+                  final Widget statusTrailing;
+
+                  if (!hasData) {
+                    statusSubtitle = 'Set up your service schedule';
+                    statusTrailing = const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.mutedLight,
+                      size: 20,
+                    );
+                  } else if (urgentItem != null) {
+                    final isOverdue = urgentItem.status == ComponentStatus.overdue;
+                    if (isOverdue) {
+                      statusSubtitle = '${urgentItem.name} overdue';
+                      statusTrailing = const StatusChip(
+                        label: 'OVERDUE',
+                        variant: StatusChipVariant.danger,
+                      );
+                    } else {
+                      statusSubtitle = '${urgentItem.name} in ${urgentItem.remainingKm} km';
+                      statusTrailing = const StatusChip(
+                        label: 'DUE SOON',
+                        variant: StatusChipVariant.warning,
+                      );
+                    }
+                  } else {
+                    statusSubtitle = 'All maintenance up to date';
+                    statusTrailing = const StatusChip(
+                      label: 'ALL OK',
+                      variant: StatusChipVariant.success,
+                    );
+                  }
+
+                  return InkWell(
+                    onTap: () => CampBottomNav.navigateToTab(context, CampTab.finances),
+                    borderRadius: BorderRadius.circular(AppColors.radiusTile),
+                    child: CampCard(
+                      borderRadius: AppColors.radiusTile,
+                      shadows: AppColors.skeuRaisedSmall,
+                      padding: const EdgeInsets.all(14),
+                      child: Row(
                         children: [
-                          Text('Service Status',
-                              style: AppTextStyles.itemTitle),
-                          const SizedBox(height: 3),
-                          Text(
-                            bike.lastOilChange != null
-                                ? 'Last oil change: ${bike.lastOilChange!.km ?? 0} km'
-                                : 'All systems verified',
-                            style: AppTextStyles.caption,
+                          const IconTile(
+                            icon: Icons.tune_rounded,
+                            iconColor: AppColors.terracotta,
                           ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Service Status',
+                                    style: AppTextStyles.itemTitle),
+                                const SizedBox(height: 3),
+                                Text(
+                                  statusSubtitle,
+                                  style: AppTextStyles.caption,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          statusTrailing,
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '${bike.odometerKm}',
-                          style: AppTextStyles.statMedium.copyWith(
-                            color: AppColors.tacticalOrange,
-                            fontSize: 16,
-                          ),
-                        ),
-                        Text('KM LOGGED', style: AppTextStyles.overline),
-                      ],
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
             ],
           ),

@@ -11,6 +11,7 @@ import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../garage/controllers/active_bike_controller.dart';
+import '../../../maintenance/controllers/maintenance_controller.dart';
 import '../../controllers/profile_controller.dart';
 import '../../domain/weather_service.dart';
 
@@ -182,6 +183,7 @@ class _CockpitStatusCardWidgetState extends State<CockpitStatusCardWidget> {
       listenable: Listenable.merge([
         ProfileController.instance,
         ActiveBikeController.instance,
+        MaintenanceController.instance,
       ]),
       builder: (context, _) {
         final profile = ProfileController.instance;
@@ -228,13 +230,13 @@ class _CockpitStatusCardWidgetState extends State<CockpitStatusCardWidget> {
 
         final weatherText = _weatherData != null
             ? '${_weatherData!.tempInt}° • ${_weatherData!.condition}'
-            : '--° • Add weather API key';
+            : 'Weather unavailable';
 
         return CockpitHeroCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Top Section: Avatar + Rider Info + ONLINE pill ───────────────
+              // ── Top Section: Avatar + Rider Info ─────────────────────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
                 child: Row(
@@ -298,15 +300,36 @@ class _CockpitStatusCardWidgetState extends State<CockpitStatusCardWidget> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 3),
-                          Text(
-                            activeBike != null
-                                ? 'Active Rig • ${activeBike.name}'
-                                : 'No Active Motorcycle',
-                            style: GoogleFonts.manrope(
-                              color: const Color(0xFF94A3B8),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
+                          Builder(
+                            builder: (context) {
+                              if (activeBike == null) {
+                                return Text(
+                                  'No Active Motorcycle',
+                                  style: GoogleFonts.manrope(
+                                    color: const Color(0xFF94A3B8),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                );
+                              }
+                              final hasData = MaintenanceController.instance.hasMaintenanceData(activeBike);
+                              String bikeLine = 'Active Rig • ${activeBike.name}';
+                              if (hasData) {
+                                final dueCount = MaintenanceController.instance.countDueItems(activeBike.id);
+                                final status = dueCount > 0
+                                    ? '$dueCount ${dueCount == 1 ? 'item' : 'items'} due'
+                                    : 'All up to date';
+                                bikeLine = 'Active Rig • ${activeBike.name} • $status';
+                              }
+                              return Text(
+                                bikeLine,
+                                style: GoogleFonts.manrope(
+                                  color: const Color(0xFF94A3B8),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),

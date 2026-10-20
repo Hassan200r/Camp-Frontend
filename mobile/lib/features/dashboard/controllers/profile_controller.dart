@@ -25,7 +25,7 @@ class ProfileController extends ChangeNotifier {
   String? _homeCity;
   String? _dob;
   String? _avatarPath;
-  String _ridingTier = 'ADV PRO';
+  String _ridingTier = '';
   int _experienceIndex = 2; // 0=Beginner, 1=Intermediate, 2=Advanced
   Set<String> _ridingStyles = {'Touring'};
   int _unitIndex = 0; // 0=Metric, 1=Imperial
@@ -143,7 +143,7 @@ class ProfileController extends ChangeNotifier {
     _homeCity = null;
     _dob = null;
     _avatarPath = null;
-    _ridingTier = 'ADV PRO';
+    _ridingTier = '';
     _experienceIndex = 2;
     _ridingStyles = {'Touring'};
     _unitIndex = 0;

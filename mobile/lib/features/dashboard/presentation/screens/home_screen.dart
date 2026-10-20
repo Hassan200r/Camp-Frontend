@@ -8,6 +8,8 @@ import '../widgets/active_bike_card_widget.dart';
 import '../widgets/app_drawer_widget.dart';
 import '../widgets/app_header_widget.dart';
 import '../widgets/cockpit_status_card_widget.dart';
+import '../widgets/group_beacon_card_widget.dart';
+import '../widgets/home_weather_card_widget.dart';
 import '../widgets/maintenance_alert_card_widget.dart';
 import '../widgets/recent_updates_feed_widget.dart';
 import '../widgets/voice_copilot_bar_widget.dart';
@@ -39,45 +41,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showGroupBeaconDialog() {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.clay,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppColors.radiusCard),
-        ),
-        title: const Text(
-          'Group Beacon',
-          style: TextStyle(
-            color: AppColors.darkCharcoal,
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        content: const Text(
-          'No nearby riders yet. Group beacon needs an online service (coming later).',
-          style: TextStyle(
-            color: Color(0xFF4B5563),
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text(
-              'OK',
-              style: TextStyle(
-                color: AppColors.tacticalOrange,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -138,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     // 4. Maintenance Alert Card (dismissible)
                     if (!_maintenanceAlertDismissed) ...[
                       MaintenanceAlertCardWidget(
-                        onScheduleService: () => Navigator.of(context).pushNamed(CampRoutes.mechanics),
+                        onScheduleService: () => CampBottomNav.navigateToTab(context, CampTab.finances),
                         onDismiss: () {
                           setState(() => _maintenanceAlertDismissed = true);
                           _showNotification('Maintenance alert dismissed');
@@ -154,12 +117,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: AppColors.cardGap),
 
-                    // 6. Recent Updates Feed
-                    RecentUpdatesFeedWidget(
-                      onMarkAllRead: () => _showNotification('All updates marked as read'),
-                      onViewRadar: () => Navigator.of(context).pushNamed(CampRoutes.weatherDetail),
-                      onLocateBeacon: _showGroupBeaconDialog,
-                    ),
+                    // 6. Restored Weather Card (outside Recent activity)
+                    const HomeWeatherCardWidget(),
+
+                    const SizedBox(height: AppColors.cardGap),
+
+                    // 7. Restored Group Beacon Card (outside Recent activity)
+                    const GroupBeaconCardWidget(),
+
+                    const SizedBox(height: AppColors.cardGap),
+
+                    // 8. Recent Activity Feed
+                    const RecentUpdatesFeedWidget(),
                   ],
                 ),
               ),

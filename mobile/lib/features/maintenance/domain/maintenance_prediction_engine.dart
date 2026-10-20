@@ -189,7 +189,7 @@ class MaintenancePredictionEngine {
     bool isMountain,
   ) {
     final record = bike.lastOilChange;
-    final kmSinceOil = record?.km ?? 3200;
+    final kmSinceOil = record?.km ?? (bike.odometerKm > 0 ? (bike.odometerKm % 5000) : 0);
 
     // Standard interval: 5,000 km or 90 days
     const baseIntervalKm = 5000;
@@ -260,7 +260,7 @@ class MaintenancePredictionEngine {
     bool isOffRoad,
     bool isMountain,
   ) {
-    final kmSinceTuneUp = bike.lastTuneUp?.km ?? (bike.odometerKm > 0 ? (bike.odometerKm % 15000) : 5000);
+    final kmSinceTuneUp = bike.lastTuneUp?.km ?? (bike.odometerKm > 0 ? (bike.odometerKm % 15000) : 0);
 
     // Standard chain interval: 15,000 km
     const baseIntervalKm = 15000;
@@ -325,7 +325,7 @@ class MaintenancePredictionEngine {
     bool isOffRoad,
     bool isMountain,
   ) {
-    final kmSinceTuneUp = bike.lastTuneUp?.km ?? 4500;
+    final kmSinceTuneUp = bike.lastTuneUp?.km ?? (bike.odometerKm > 0 ? (bike.odometerKm % 12000) : 0);
     const baseIntervalKm = 12000;
 
     double dustMultiplier = 1.0;
@@ -387,7 +387,7 @@ class MaintenancePredictionEngine {
     bool isCity,
     bool isMountain,
   ) {
-    final kmSinceTuneUp = bike.lastTuneUp?.km ?? 4200;
+    final kmSinceTuneUp = bike.lastTuneUp?.km ?? (bike.odometerKm > 0 ? (bike.odometerKm % 10000) : 0);
     const baseIntervalKm = 10000;
 
     double brakeMultiplier = 1.0;
