@@ -1,20 +1,15 @@
 import 'expense_model.dart';
 import 'post_ride_report.dart';
 
-/// Calculates cost per km purely from ride reports during the trip budget dates
-/// or expense period. Never divides by bike odometer!
-///
-/// Returns null if no distance was covered or totalCost <= 0 (rendered as "-").
-double? calculateCostPerKm({
-  required num totalCost,
+/// Calculates total distance covered in ride reports during the trip budget dates
+/// or expense period.
+double calculateTripDistance({
   DateTime? tripStartDate,
   DateTime? tripEndDate,
   List<Expense> expenses = const [],
   List<PostRideReport> reports = const [],
   String? bikeId,
 }) {
-  if (totalCost <= 0) return null;
-
   DateTime? start = tripStartDate;
   DateTime? end = tripEndDate;
 
@@ -58,6 +53,31 @@ double? calculateCostPerKm({
     }
     totalDistance += report.distanceKm;
   }
+
+  return totalDistance;
+}
+
+/// Calculates cost per km purely from ride reports during the trip budget dates
+/// or expense period. Never divides by bike odometer!
+///
+/// Returns null if no distance was covered or totalCost <= 0 (rendered as "-").
+double? calculateCostPerKm({
+  required num totalCost,
+  DateTime? tripStartDate,
+  DateTime? tripEndDate,
+  List<Expense> expenses = const [],
+  List<PostRideReport> reports = const [],
+  String? bikeId,
+}) {
+  if (totalCost <= 0) return null;
+
+  final totalDistance = calculateTripDistance(
+    tripStartDate: tripStartDate,
+    tripEndDate: tripEndDate,
+    expenses: expenses,
+    reports: reports,
+    bikeId: bikeId,
+  );
 
   if (totalDistance <= 0.0) return null;
   return totalCost / totalDistance;

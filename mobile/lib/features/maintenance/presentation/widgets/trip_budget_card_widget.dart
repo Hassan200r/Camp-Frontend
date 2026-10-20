@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../bike_scan/presentation/screens/bike_details_screen.dart';
 import '../../../garage/controllers/active_bike_controller.dart';
+import '../../../garage/domain/bike_model.dart';
+import '../../../settings/controllers/settings_controller.dart';
 import '../../controllers/post_ride_report_controller.dart';
 import '../../controllers/trip_budget_controller.dart';
 import '../../domain/cost_per_km_calculator.dart';
@@ -227,6 +231,82 @@ class TripBudgetCardWidget extends StatelessWidget {
     );
   }
 
+  Widget _buildFuelCostSubtitle(
+    BuildContext context, {
+    required bool hasFuelPrice,
+    required double? fuelPrice,
+    required bool hasBikeAvg,
+    required double? bikeAvg,
+    required Bike? activeBike,
+  }) {
+    if (hasFuelPrice && hasBikeAvg) {
+      final String avgStr = bikeAvg!.truncateToDouble() == bikeAvg
+          ? '${bikeAvg.toInt()} km/L'
+          : '${bikeAvg.toStringAsFixed(1)} km/L';
+      return Text(
+        '${formatPkr(fuelPrice)}/L ÷ $avgStr',
+        style: GoogleFonts.manrope(
+          fontSize: 11,
+          color: AppColors.mutedText,
+          fontWeight: FontWeight.w500,
+        ),
+      );
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        if (!hasFuelPrice)
+          GestureDetector(
+            onTap: () => Navigator.of(context).pushNamed(CampRoutes.settings),
+            child: Text(
+              'Set fuel price',
+              style: GoogleFonts.manrope(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.tacticalOrange,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+        if (!hasFuelPrice && !hasBikeAvg)
+          Text(
+            '•',
+            style: GoogleFonts.manrope(
+              fontSize: 11,
+              color: AppColors.mutedLight,
+            ),
+          ),
+        if (!hasBikeAvg)
+          GestureDetector(
+            onTap: () {
+              if (activeBike != null) {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (context) =>
+                        BikeDetailsScreen(initialBike: activeBike),
+                  ),
+                );
+              } else {
+                Navigator.of(context).pushNamed(CampRoutes.garage);
+              }
+            },
+            child: Text(
+              "Set your bike's average",
+              style: GoogleFonts.manrope(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.tacticalOrange,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final double underBudget = tripBudget.underBudgetAmount;
@@ -440,25 +520,55 @@ class TripBudgetCardWidget extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // ── Cost per km & Category Breakdown ─────────────────────────────
-          Builder(
-            builder: (context) {
+          // ── Cost per km & Fuel Economics ─────────────────────────────────
+          ListenableBuilder(
+            listenable: Listenable.merge([
+              SettingsController.instance,
+              ActiveBikeController.instance,
+              PostRideReportController.instance,
+            ]),
+            builder: (context, _) {
               final reports = PostRideReportController.instance.reports;
+              final activeBike = ActiveBikeController.instance.activeBike;
+              final double totalDistance = calculateTripDistance(
+                tripStartDate: tripBudget.parsedStartDate,
+                tripEndDate: tripBudget.parsedEndDate,
+                expenses: expenses,
+                reports: reports,
+                bikeId: activeBike?.id,
+              );
               final double? costPerKm = calculateCostPerKm(
                 totalCost: tripBudget.allocatedSoFar,
                 tripStartDate: tripBudget.parsedStartDate,
                 tripEndDate: tripBudget.parsedEndDate,
                 expenses: expenses,
                 reports: reports,
+                bikeId: activeBike?.id,
               );
               final String costPerKmDisplay =
                   costPerKm != null ? '${formatPkr(costPerKm)}/km' : '-';
 
-              final categoryTotals = <ExpenseCategory, double>{};
-              for (final exp in expenses) {
-                categoryTotals[exp.category] =
-                    (categoryTotals[exp.category] ?? 0.0) + exp.amount;
-              }
+              final String distanceStr =
+                  totalDistance.truncateToDouble() == totalDistance
+                      ? '${totalDistance.toInt()} km'
+                      : '${totalDistance.toStringAsFixed(1)} km';
+              final String costPerKmInputs = totalDistance > 0
+                  ? '${formatPkr(tripBudget.allocatedSoFar)} ÷ $distanceStr'
+                  : '${formatPkr(tripBudget.allocatedSoFar)} ÷ 0 km';
+
+              final double? fuelPrice =
+                  SettingsController.instance.fuelPricePerLiter;
+              // Don't compute mileage from expenses. Use only the rider-entered bike average.
+              // Later, a learned average from full-to-full refills can replace the manual one (Step 4 speed-band learner).
+              final double? bikeAvg = activeBike?.fuelAverageKmPerLiter;
+
+              final bool hasFuelPrice = fuelPrice != null && fuelPrice > 0;
+              final bool hasBikeAvg = bikeAvg != null && bikeAvg > 0;
+              final double? fuelCostPerKm = (hasFuelPrice && hasBikeAvg)
+                  ? (fuelPrice / bikeAvg)
+                  : null;
+              final String fuelCostPerKmDisplay =
+                  fuelCostPerKm != null ? '${formatPkr(fuelCostPerKm)}/km' : '-';
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -483,34 +593,45 @@ class TripBudgetCardWidget extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (categoryTotals.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: categoryTotals.entries.map((entry) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.clayDark,
-                            borderRadius:
-                                BorderRadius.circular(AppColors.radiusPill),
-                          ),
-                          child: Text(
-                            '${entry.key.displayName}: ${formatPkr(entry.value)}',
-                            style: GoogleFonts.manrope(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.darkCharcoal,
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                  const SizedBox(height: 2),
+                  Text(
+                    costPerKmInputs,
+                    style: GoogleFonts.manrope(
+                      fontSize: 11,
+                      color: AppColors.mutedText,
+                      fontWeight: FontWeight.w500,
                     ),
-                  ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Fuel cost per km',
+                        style: AppTextStyles.caption.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        fuelCostPerKmDisplay,
+                        style: GoogleFonts.manrope(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.darkCharcoal,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  _buildFuelCostSubtitle(
+                    context,
+                    hasFuelPrice: hasFuelPrice,
+                    fuelPrice: fuelPrice,
+                    hasBikeAvg: hasBikeAvg,
+                    bikeAvg: bikeAvg,
+                    activeBike: activeBike,
+                  ),
                 ],
               );
             },

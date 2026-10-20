@@ -2,6 +2,9 @@ import 'dart:typed_data';
 
 import 'package:camp/core/storage/local_store.dart';
 import 'package:camp/core/utils/currency_formatter.dart';
+import 'package:camp/features/garage/controllers/active_bike_controller.dart';
+import 'package:camp/features/garage/domain/bike_model.dart';
+import 'package:camp/features/maintenance/controllers/post_ride_report_controller.dart';
 import 'package:camp/features/maintenance/controllers/service_visit_controller.dart';
 import 'package:camp/features/maintenance/controllers/trip_budget_controller.dart';
 import 'package:camp/features/maintenance/domain/cost_per_km_calculator.dart';
@@ -12,7 +15,9 @@ import 'package:camp/features/maintenance/domain/service_visit_model.dart';
 import 'package:camp/features/maintenance/domain/trip_budget_model.dart';
 import 'package:camp/features/maintenance/presentation/widgets/delete_trip_dialog_widget.dart';
 import 'package:camp/features/maintenance/presentation/widgets/service_visit_card_widget.dart';
+import 'package:camp/features/maintenance/presentation/widgets/trip_budget_card_widget.dart';
 import 'package:camp/features/maintenance/services/pdf_report_service.dart';
+import 'package:camp/features/settings/controllers/settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -561,6 +566,293 @@ void main() {
       expect(find.text('Roadside Mechanic'), findsOneWidget);
       expect(find.text('📞 Call Shop'), findsNothing);
       expect(find.text('🗺 Directions'), findsNothing);
+    });
+  });
+
+  group('TripBudgetCardWidget Hero Card & Fuel Economics Tests', () {
+    final tripStartDate = DateTime(2026, 10, 10);
+    final tripEndDate = DateTime(2026, 10, 20);
+
+    const testExpenses = [
+      Expense(
+        id: 'e1',
+        title: 'Dinner at Abbottabad',
+        amount: 2500.0,
+        category: ExpenseCategory.food,
+        trackingMode: ExpenseTrackingMode.manualEntry,
+      ),
+      Expense(
+        id: 'e2',
+        title: 'Fuel refill',
+        amount: 4500.0,
+        category: ExpenseCategory.fuel,
+        trackingMode: ExpenseTrackingMode.manualEntry,
+      ),
+      Expense(
+        id: 'e3',
+        title: 'Brake pad replacement',
+        amount: 3000.0,
+        category: ExpenseCategory.service,
+        trackingMode: ExpenseTrackingMode.manualEntry,
+      ),
+      Expense(
+        id: 'e4',
+        title: 'Toll & misc',
+        amount: 3000.0,
+        category: ExpenseCategory.other,
+        trackingMode: ExpenseTrackingMode.manualEntry,
+      ),
+    ];
+
+    setUp(() {
+      ActiveBikeController.instance.resetForTesting();
+      PostRideReportController.instance.resetForTesting();
+      SettingsController.instance.resetForTesting();
+    });
+
+    testWidgets('Chips row not present; total, budget cap, progress bar and Cost per km kept',
+        (tester) async {
+      final budget = TripBudget(
+        tripName: 'Karakoram Tour',
+        capAmount: 50000.0,
+        allocatedSoFar: 13000.0,
+        startDate: tripStartDate.toIso8601String(),
+        endDate: tripEndDate.toIso8601String(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: TripBudgetCardWidget(
+                tripBudget: budget,
+                expenses: testExpenses,
+                onEditTrip: () {},
+                onDeleteTrip: () {},
+                onAddExpense: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Category chips row must be completely removed:
+      // The chips "Other: Rs 3,000", "Food: Rs 2,500", "Service: Rs 3,000", "Fuel: Rs 4,500" must not be present
+      expect(find.text('Other: Rs 3,000'), findsNothing);
+      expect(find.text('Food: Rs 2,500'), findsNothing);
+      expect(find.text('Service: Rs 3,000'), findsNothing);
+      expect(find.text('Fuel: Rs 4,500'), findsNothing);
+
+      // Keep total, budget cap, over/under budget text, progress bar, Cost per km
+      expect(find.text('Rs 13,000'), findsOneWidget);
+      expect(find.text('/ Rs 50,000 Budget Cap'), findsOneWidget);
+      expect(find.textContaining('under target budget'), findsOneWidget);
+      expect(find.text('Allocation Spent'), findsOneWidget);
+      expect(find.text('Cost per km'), findsOneWidget);
+      expect(find.text('Fuel cost per km'), findsOneWidget);
+    });
+
+    testWidgets('Line shows total, distance and fuel price when all data is present',
+        (tester) async {
+      SettingsController.instance.setFuelPricePerLiter(390.0);
+      ActiveBikeController.instance.addBike(
+        const Bike(
+          id: 'bike-1',
+          make: 'Honda',
+          modelName: 'CB500X',
+          modelYear: 2023,
+          odometerKm: 5000,
+          fuelAverageKmPerLiter: 40.0,
+        ),
+        setActive: true,
+      );
+      PostRideReportController.instance.addReport(
+        PostRideReport(
+          id: 'r1',
+          bikeId: 'bike-1',
+          date: DateTime(2026, 10, 15),
+          distanceKm: 200.0,
+          terrainTags: const ['Highway'],
+        ),
+      );
+
+      final budget = TripBudget(
+        tripName: 'Karakoram Tour',
+        capAmount: 50000.0,
+        allocatedSoFar: 20000.0,
+        startDate: tripStartDate.toIso8601String(),
+        endDate: tripEndDate.toIso8601String(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: TripBudgetCardWidget(
+                tripBudget: budget,
+                expenses: testExpenses,
+                onEditTrip: () {},
+                onDeleteTrip: () {},
+                onAddExpense: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Total Cost per km = 20,000 PKR / 200 km = Rs 100/km
+      expect(find.text('Rs 100/km'), findsOneWidget);
+      // Muted line shows total and distance: "Rs 20,000 ÷ 200 km"
+      expect(find.text('Rs 20,000 ÷ 200 km'), findsOneWidget);
+
+      // Fuel cost per km = 390 / 40 = Rs 9.75/km
+      expect(find.text('Rs 9.75/km'), findsOneWidget);
+      // Muted line shows fuel price and bike average: "Rs 390/L ÷ 40 km/L"
+      expect(find.text('Rs 390/L ÷ 40 km/L'), findsOneWidget);
+    });
+
+    testWidgets('Fuel price missing shows the "Set fuel price" link and keeps "-" for fuel cost',
+        (tester) async {
+      SettingsController.instance.setFuelPricePerLiter(null);
+      ActiveBikeController.instance.addBike(
+        const Bike(
+          id: 'bike-1',
+          make: 'Honda',
+          modelName: 'CB500X',
+          modelYear: 2023,
+          odometerKm: 5000,
+          fuelAverageKmPerLiter: 40.0,
+        ),
+        setActive: true,
+      );
+
+      final budget = TripBudget(
+        tripName: 'Karakoram Tour',
+        capAmount: 50000.0,
+        allocatedSoFar: 20000.0,
+        startDate: tripStartDate.toIso8601String(),
+        endDate: tripEndDate.toIso8601String(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: TripBudgetCardWidget(
+                tripBudget: budget,
+                expenses: const [],
+                onEditTrip: () {},
+                onDeleteTrip: () {},
+                onAddExpense: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Fuel price missing shows "Set fuel price" link
+      expect(find.text('Set fuel price'), findsOneWidget);
+      // No guessing or fallback numbers
+      expect(find.text('Rs 9.75/km'), findsNothing);
+      expect(find.textContaining('÷ 40 km/L'), findsNothing);
+    });
+
+    testWidgets('Distance missing keeps "-" for total Cost per km',
+        (tester) async {
+      SettingsController.instance.setFuelPricePerLiter(390.0);
+      ActiveBikeController.instance.addBike(
+        const Bike(
+          id: 'bike-1',
+          make: 'Honda',
+          modelName: 'CB500X',
+          modelYear: 2023,
+          odometerKm: 5000,
+          fuelAverageKmPerLiter: 40.0,
+        ),
+        setActive: true,
+      );
+      // Ensure no reports exist for the trip period
+      PostRideReportController.instance.resetForTesting();
+
+      final budget = TripBudget(
+        tripName: 'Karakoram Tour',
+        capAmount: 50000.0,
+        allocatedSoFar: 20000.0,
+        startDate: tripStartDate.toIso8601String(),
+        endDate: tripEndDate.toIso8601String(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: TripBudgetCardWidget(
+                tripBudget: budget,
+                expenses: const [],
+                onEditTrip: () {},
+                onDeleteTrip: () {},
+                onAddExpense: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Total Cost per km displays "-" when distance is missing
+      expect(find.text('-'), findsOneWidget);
+      expect(find.text('Rs 20,000 ÷ 0 km'), findsOneWidget);
+
+      // Fuel cost per km still works if fuel price and bike average exist
+      expect(find.text('Rs 9.75/km'), findsOneWidget);
+      expect(find.text('Rs 390/L ÷ 40 km/L'), findsOneWidget);
+    });
+
+    testWidgets('Bike average missing shows "Set your bike\'s average" link',
+        (tester) async {
+      SettingsController.instance.setFuelPricePerLiter(390.0);
+      ActiveBikeController.instance.addBike(
+        const Bike(
+          id: 'bike-1',
+          make: 'Honda',
+          modelName: 'CB500X',
+          modelYear: 2023,
+          odometerKm: 5000,
+          fuelAverageKmPerLiter: null,
+        ),
+        setActive: true,
+      );
+
+      final budget = TripBudget(
+        tripName: 'Karakoram Tour',
+        capAmount: 50000.0,
+        allocatedSoFar: 20000.0,
+        startDate: tripStartDate.toIso8601String(),
+        endDate: tripEndDate.toIso8601String(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: TripBudgetCardWidget(
+                tripBudget: budget,
+                expenses: const [],
+                onEditTrip: () {},
+                onDeleteTrip: () {},
+                onAddExpense: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text("Set your bike's average"), findsOneWidget);
+      expect(find.text('Rs 9.75/km'), findsNothing);
     });
   });
 }
