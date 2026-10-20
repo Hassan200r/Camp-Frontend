@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_theme.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../maintenance/controllers/trip_budget_controller.dart';
@@ -13,13 +14,22 @@ import '../../domain/fuel_estimator.dart';
 import '../../services/fuel_tracker_service.dart';
 
 /// Modal bottom sheet allowing riders to set their current fuel in liters
-/// or log a refill with full-to-full fuel average learning.
+/// or log/edit a refill with live 3-field recalculation.
 class UpdateFuelSheet extends StatefulWidget {
-  const UpdateFuelSheet({required this.bike, super.key});
+  const UpdateFuelSheet({
+    required this.bike,
+    this.initialExpense,
+    super.key,
+  });
 
   final Bike bike;
+  final Expense? initialExpense;
 
-  static Future<void> show(BuildContext context, Bike bike) {
+  static Future<void> show(
+    BuildContext context,
+    Bike bike, {
+    Expense? initialExpense,
+  }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -27,7 +37,10 @@ class UpdateFuelSheet extends StatefulWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (context) => UpdateFuelSheet(bike: bike),
+      builder: (context) => UpdateFuelSheet(
+        bike: bike,
+        initialExpense: initialExpense,
+      ),
     );
   }
 
@@ -38,8 +51,15 @@ class UpdateFuelSheet extends StatefulWidget {
 class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
   late double _tankCapacity;
   late double _liters;
-  double _addedLiters = 5.0;
   bool _showRefillSection = false;
+
+  late final TextEditingController _litresController;
+  late final TextEditingController _pricePerLitreController;
+  late final TextEditingController _totalPaidController;
+
+  bool _isRecalculating = false;
+  bool _isFullTank = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -53,7 +73,129 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
             : _tankCapacity * 0.5);
 
     _liters = initial.clamp(0.0, _tankCapacity);
-    _addedLiters = (_tankCapacity * 0.5).clamp(1.0, _tankCapacity);
+    _showRefillSection = widget.initialExpense != null;
+    _isFullTank = widget.initialExpense?.isFullTank ?? false;
+
+    if (widget.initialExpense != null) {
+      final exp = widget.initialExpense!;
+      _litresController = TextEditingController(
+        text: exp.litres != null ? _formatNum(exp.litres!) : '',
+      );
+      _pricePerLitreController = TextEditingController(
+        text: exp.pricePerLitre != null ? _formatPrice(exp.pricePerLitre!) : '',
+      );
+      _totalPaidController = TextEditingController(
+        text: exp.amount > 0 ? exp.amount.round().toString() : '',
+      );
+    } else {
+      _litresController = TextEditingController();
+      final settingsPrice = SettingsController.instance.fuelPricePerLiter;
+      _pricePerLitreController = TextEditingController(
+        text: (settingsPrice != null && settingsPrice > 0)
+            ? _formatPrice(settingsPrice)
+            : '',
+      );
+      _totalPaidController = TextEditingController();
+    }
+  }
+
+  @override
+  void dispose() {
+    _litresController.dispose();
+    _pricePerLitreController.dispose();
+    _totalPaidController.dispose();
+    super.dispose();
+  }
+
+  static String _formatPrice(double val) {
+    final rounded = double.parse(val.toStringAsFixed(2));
+    if (rounded.truncateToDouble() == rounded) {
+      return rounded.toInt().toString();
+    }
+    return rounded.toStringAsFixed(2);
+  }
+
+  static String _formatNum(double val) {
+    final rounded = double.parse(val.toStringAsFixed(2));
+    if (rounded.truncateToDouble() == rounded) {
+      return rounded.toInt().toString();
+    }
+    return rounded.toString();
+  }
+
+  void _onLitresChanged(String val) {
+    if (_isRecalculating) return;
+    setState(() => _errorMessage = null);
+
+    final litres = double.tryParse(val.trim());
+    if (litres == null || litres <= 0) return;
+
+    final price = double.tryParse(_pricePerLitreController.text.trim());
+    final total = parsePkr(_totalPaidController.text.trim());
+
+    if (price != null && price > 0) {
+      _isRecalculating = true;
+      final computedTotal = (litres * price).roundToDouble();
+      _totalPaidController.text = computedTotal.round().toString();
+      _isRecalculating = false;
+      setState(() {});
+    } else if (total != null && total > 0) {
+      _isRecalculating = true;
+      final computedPrice = total / litres;
+      _pricePerLitreController.text = _formatPrice(computedPrice);
+      _isRecalculating = false;
+      setState(() {});
+    }
+  }
+
+  void _onPriceChanged(String val) {
+    if (_isRecalculating) return;
+    setState(() => _errorMessage = null);
+
+    final price = double.tryParse(val.trim());
+    if (price == null || price <= 0) return;
+
+    final litres = double.tryParse(_litresController.text.trim());
+    final total = parsePkr(_totalPaidController.text.trim());
+
+    if (litres != null && litres > 0) {
+      _isRecalculating = true;
+      final computedTotal = (litres * price).roundToDouble();
+      _totalPaidController.text = computedTotal.round().toString();
+      _isRecalculating = false;
+      setState(() {});
+    } else if (total != null && total > 0) {
+      _isRecalculating = true;
+      final computedLitres = total / price;
+      _litresController.text = _formatNum(computedLitres);
+      _isRecalculating = false;
+      setState(() {});
+    }
+  }
+
+  void _onTotalPaidChanged(String val) {
+    if (_isRecalculating) return;
+    setState(() => _errorMessage = null);
+
+    final total = parsePkr(val.trim());
+    if (total == null || total <= 0) return;
+
+    final litres = double.tryParse(_litresController.text.trim());
+    final price = double.tryParse(_pricePerLitreController.text.trim());
+
+    if (litres != null && litres > 0) {
+      _isRecalculating = true;
+      final computedPrice = total / litres;
+      _pricePerLitreController.text = _formatPrice(computedPrice);
+      _isRecalculating = false;
+      setState(() {});
+    } else if (price != null && price > 0) {
+      _isRecalculating = true;
+      final computedLitres = total / price;
+      _litresController.text = _formatNum(computedLitres);
+      _isRecalculating = false;
+      setState(() {});
+    }
   }
 
   void _saveCurrentFuel() {
@@ -71,57 +213,120 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
     Navigator.of(context).pop();
   }
 
-  Future<void> _handleFilledToFull() async {
-    final prevFullOdo = widget.bike.lastFullRefillOdometer;
+  Future<void> _saveRefillExpense() async {
+    final litresText = _litresController.text.trim();
+    final priceText = _pricePerLitreController.text.trim();
+    final totalText = _totalPaidController.text.trim();
+
+    final litres = double.tryParse(litresText);
+    final price = double.tryParse(priceText);
+    final total = parsePkr(totalText);
+
+    if (litres == null || litres <= 0) {
+      setState(() => _errorMessage = 'Litres must be greater than 0');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Litres must be greater than 0'),
+          backgroundColor: AppColors.alertRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (price == null || price <= 0) {
+      setState(() => _errorMessage = 'Price per litre must be greater than 0');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Price per litre must be greater than 0'),
+          backgroundColor: AppColors.alertRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (total == null || total <= 0) {
+      setState(() => _errorMessage = 'Total paid must be greater than 0');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Total paid must be greater than 0'),
+          backgroundColor: AppColors.alertRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final roundedPrice = double.parse(price.toStringAsFixed(2));
+    final roundedTotal = total.roundToDouble();
+
+    // 1. Update fuel level on bike
     final currentOdo = widget.bike.preciseOdometerKm ??
         widget.bike.odometerKm.toDouble();
-    final litersAdded = (_tankCapacity - (widget.bike.fuelRemainingLiters ?? 0.0))
-        .clamp(0.0, _tankCapacity);
+    final prevFullOdo = widget.bike.lastFullRefillOdometer;
 
-    void addFuelExpense() {
-      final fuelPrice = SettingsController.instance.fuelPricePerLiter;
-      if (fuelPrice != null && litersAdded > 0) {
-        TripBudgetController.instance.addExpense(
-          Expense(
-            id: 'exp-fuel-${DateTime.now().millisecondsSinceEpoch}',
-            title: 'Fuel Refill (${litersAdded.toStringAsFixed(1)} L)',
-            amount: double.parse((litersAdded * fuelPrice).toStringAsFixed(2)),
-            category: ExpenseCategory.fuel,
-            dateRecorded: DateTime.now(),
-            trackingMode: ExpenseTrackingMode.manualEntry,
-            subtitle: '${widget.bike.make} ${widget.bike.modelName}',
-          ),
-        );
+    final currentRemaining = widget.bike.fuelRemainingLiters ?? 0.0;
+    final double newRemaining;
+    if (widget.initialExpense != null) {
+      // Editing a refill must not double-count:
+      // Saving an edited refill adjusts the fuel level only by the difference
+      // between the new and old litres, never by the full litres again.
+      // If a full-tank refill is edited, don't force the level to full again
+      // unless the flag was just turned on.
+      final oldIsFull = widget.initialExpense!.isFullTank;
+      final oldLitres = widget.initialExpense!.litres ?? 0.0;
+      final diff = litres - oldLitres;
+
+      if (!oldIsFull && _isFullTank) {
+        // Flag was just turned on
+        newRemaining = _tankCapacity;
+      } else {
+        newRemaining = (currentRemaining + diff).clamp(0.0, _tankCapacity);
+      }
+    } else {
+      // When on: after saving, the bike's fuel level becomes full capacity. Litres are still stored as entered.
+      // When off: the level rises by the litres entered, capped at capacity.
+      if (_isFullTank) {
+        newRemaining = _tankCapacity;
+      } else {
+        newRemaining = (currentRemaining + litres).clamp(0.0, _tankCapacity);
       }
     }
 
-    // Full-to-full learning check
-    if (prevFullOdo != null && litersAdded > 0.5) {
+    // The Step 4 learner uses full-to-full pairs.
+    final isFull = _isFullTank || (newRemaining >= _tankCapacity - 0.2);
+
+    // Full-to-full learning check if filled to full on a new refill
+    if (widget.initialExpense == null &&
+        isFull &&
+        prevFullOdo != null &&
+        litres > 0.5) {
       final distanceTraveled = currentOdo - prevFullOdo;
       if (distanceTraveled > 10.0) {
         final computedAvg = FuelEstimator.computeFullToFullEfficiency(
           distanceTraveled,
-          litersAdded,
+          litres,
         );
 
         if (computedAvg != null && computedAvg > 0) {
           final roundedAvg = double.parse(computedAvg.toStringAsFixed(1));
           final shouldUpdate = await _showLearningDialog(
             distanceTraveled: distanceTraveled,
-            litersAdded: litersAdded,
+            litersAdded: litres,
             computedAvg: roundedAvg,
           );
 
           if (shouldUpdate == true) {
-            final updated = widget.bike.copyWith(
+            final updatedBike = widget.bike.copyWith(
               fuelRemainingLiters: _tankCapacity,
               fuelAverageKmPerLiter: roundedAvg,
               lastFullRefillOdometer: currentOdo,
               lastFuelUpdate: DateTime.now(),
             );
-            ActiveBikeController.instance.updateBike(updated);
+            ActiveBikeController.instance.updateBike(updatedBike);
             FuelTrackerService.instance.resetLowFuelFlag();
-            addFuelExpense();
+            _writeExpense(litres, roundedPrice, roundedTotal);
             if (mounted) Navigator.of(context).pop();
             return;
           }
@@ -129,17 +334,71 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
       }
     }
 
-    // Default full refill without average update
-    final updated = widget.bike.copyWith(
-      fuelRemainingLiters: _tankCapacity,
-      lastFullRefillOdometer: currentOdo,
+    final updatedBike = widget.bike.copyWith(
+      fuelRemainingLiters: double.parse(newRemaining.toStringAsFixed(1)),
+      lastFullRefillOdometer:
+          isFull ? currentOdo : widget.bike.lastFullRefillOdometer,
       lastFuelUpdate: DateTime.now(),
     );
-    ActiveBikeController.instance.updateBike(updated);
-    FuelTrackerService.instance.resetLowFuelFlag();
-    addFuelExpense();
+    ActiveBikeController.instance.updateBike(updatedBike);
+
+    final pct = FuelEstimator.percent(newRemaining, _tankCapacity);
+    if (pct != null && pct >= 15.0) {
+      FuelTrackerService.instance.resetLowFuelFlag();
+    }
+
+    // 2. Save expense record
+    _writeExpense(litres, roundedPrice, roundedTotal);
 
     if (mounted) Navigator.of(context).pop();
+  }
+
+  void _writeExpense(double litres, double roundedPrice, double roundedTotal) {
+    final litresStr = litres.truncateToDouble() == litres
+        ? litres.toInt().toString()
+        : litres.toStringAsFixed(1);
+
+    if (widget.initialExpense != null) {
+      final updated = widget.initialExpense!.copyWith(
+        title: 'Fuel Refill ($litresStr L)',
+        amount: roundedTotal,
+        litres: litres,
+        pricePerLitre: roundedPrice,
+        isFullTank: _isFullTank,
+        updatedAt: DateTime.now().toUtc(),
+      );
+      TripBudgetController.instance.updateExpense(updated);
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Updated refill (${formatPkr(roundedTotal)})'),
+          backgroundColor: AppColors.darkCharcoal,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      final newExp = Expense(
+        id: 'exp-fuel-${DateTime.now().millisecondsSinceEpoch}',
+        title: 'Fuel Refill ($litresStr L)',
+        amount: roundedTotal,
+        litres: litres,
+        pricePerLitre: roundedPrice,
+        isFullTank: _isFullTank,
+        category: ExpenseCategory.fuel,
+        dateRecorded: DateTime.now(),
+        trackingMode: ExpenseTrackingMode.manualEntry,
+        subtitle: '${widget.bike.make} ${widget.bike.modelName}',
+      );
+      TripBudgetController.instance.addExpense(newExp);
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Added refill (${formatPkr(roundedTotal)})'),
+          backgroundColor: AppColors.darkCharcoal,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Future<bool?> _showLearningDialog({
@@ -243,36 +502,77 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
     );
   }
 
-  void _handlePartialRefill() {
-    final current = widget.bike.fuelRemainingLiters ?? 0.0;
-    final newLevel = (current + _addedLiters).clamp(0.0, _tankCapacity);
-    final updated = widget.bike.copyWith(
-      fuelRemainingLiters: double.parse(newLevel.toStringAsFixed(1)),
-      lastFuelUpdate: DateTime.now(),
-    );
-    ActiveBikeController.instance.updateBike(updated);
-
-    final pct = FuelEstimator.percent(newLevel, _tankCapacity);
-    if (pct != null && pct >= 15.0) {
-      FuelTrackerService.instance.resetLowFuelFlag();
-    }
-
-    final fuelPrice = SettingsController.instance.fuelPricePerLiter;
-    if (fuelPrice != null && _addedLiters > 0) {
-      TripBudgetController.instance.addExpense(
-        Expense(
-          id: 'exp-fuel-${DateTime.now().millisecondsSinceEpoch}',
-          title: 'Fuel Refill (${_addedLiters.toStringAsFixed(1)} L)',
-          amount: double.parse((_addedLiters * fuelPrice).toStringAsFixed(2)),
-          category: ExpenseCategory.fuel,
-          dateRecorded: DateTime.now(),
-          trackingMode: ExpenseTrackingMode.manualEntry,
-          subtitle: '${widget.bike.make} ${widget.bike.modelName}',
+  void _confirmDeleteRefill(BuildContext context, Expense expense) {
+    showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.clay,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Delete Expense?',
+          style: GoogleFonts.manrope(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: AppColors.darkCharcoal,
+          ),
         ),
-      );
-    }
-
-    Navigator.of(context).pop();
+        content: Text(
+          'Are you sure you want to delete ${expense.title} (${formatPkr(expense.amount)})?',
+          style: AppTextStyles.bodySecondary.copyWith(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.manrope(
+                fontWeight: FontWeight.w700,
+                color: AppColors.mutedText,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.alertRed,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () {
+              Navigator.of(ctx).pop(true);
+              final removedIndex =
+                  TripBudgetController.instance.expenses.indexOf(expense);
+              TripBudgetController.instance.deleteExpense(expense.id);
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Deleted ${expense.title}'),
+                  backgroundColor: AppColors.darkCharcoal,
+                  behavior: SnackBarBehavior.floating,
+                  action: SnackBarAction(
+                    label: 'Undo',
+                    textColor: AppColors.tacticalOrange,
+                    onPressed: () {
+                      TripBudgetController.instance.insertExpense(
+                        removedIndex,
+                        expense,
+                      );
+                    },
+                  ),
+                ),
+              );
+            },
+            child: Text(
+              'Delete',
+              style: GoogleFonts.manrope(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -280,6 +580,10 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
     final fuelAvg = widget.bike.fuelAverageKmPerLiter;
     final range = FuelEstimator.rangeKm(_liters, fuelAvg);
     final pct = FuelEstimator.percent(_liters, _tankCapacity) ?? 0.0;
+    final isEditing = widget.initialExpense != null;
+
+    final litersNeeded = (_tankCapacity - (widget.bike.fuelRemainingLiters ?? 0.0))
+        .clamp(0.0, _tankCapacity);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -288,10 +592,11 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
         top: 12,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
           // Drag handle
           Center(
             child: Container(
@@ -327,7 +632,7 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Fuel Level & Refill',
+                      isEditing ? 'Edit Fuel Refill' : 'Fuel Level & Refill',
                       style: GoogleFonts.manrope(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -351,75 +656,76 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
 
           const SizedBox(height: 20),
 
-          // Mode toggle: Set current fuel vs I refilled
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _showRefillSection = false),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: !_showRefillSection
-                          ? AppColors.tacticalOrange
-                          : AppColors.clay,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: !_showRefillSection
-                          ? AppColors.orangeGlow
-                          : AppColors.skeuRaisedSmall,
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Set Current Fuel',
-                        style: GoogleFonts.manrope(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: !_showRefillSection
-                              ? Colors.white
-                              : AppColors.darkCharcoal,
+          // Mode toggle (hidden when editing a specific expense)
+          if (!isEditing) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _showRefillSection = false),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: !_showRefillSection
+                            ? AppColors.tacticalOrange
+                            : AppColors.clay,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: !_showRefillSection
+                            ? AppColors.orangeGlow
+                            : AppColors.skeuRaisedSmall,
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Set Current Fuel',
+                          style: GoogleFonts.manrope(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: !_showRefillSection
+                                ? Colors.white
+                                : AppColors.darkCharcoal,
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _showRefillSection = true),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: _showRefillSection
-                          ? AppColors.tacticalOrange
-                          : AppColors.clay,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: _showRefillSection
-                          ? AppColors.orangeGlow
-                          : AppColors.skeuRaisedSmall,
-                    ),
-                    child: Center(
-                      child: Text(
-                        'I Refilled',
-                        style: GoogleFonts.manrope(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: _showRefillSection
-                              ? Colors.white
-                              : AppColors.darkCharcoal,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _showRefillSection = true),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _showRefillSection
+                            ? AppColors.tacticalOrange
+                            : AppColors.clay,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: _showRefillSection
+                            ? AppColors.orangeGlow
+                            : AppColors.skeuRaisedSmall,
+                      ),
+                      child: Center(
+                        child: Text(
+                          'I Refilled',
+                          style: GoogleFonts.manrope(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: _showRefillSection
+                                ? Colors.white
+                                : AppColors.darkCharcoal,
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 18),
+              ],
+            ),
+            const SizedBox(height: 18),
+          ],
 
           if (!_showRefillSection) ...[
-            // ── Set Current Fuel Mode ──
+            // ── Set Current Fuel Mode (live fuel estimate stays as is) ──
             Container(
               padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
               decoration: BoxDecoration(
@@ -506,7 +812,7 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
               isFullWidth: true,
             ),
           ] else ...[
-            // ── I Refilled Mode ──
+            // ── Refill Mode (3 live calculating fields) ──
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -517,145 +823,290 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    'Option 1: Complete Fill-Up',
-                    style: GoogleFonts.manrope(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.mutedText,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.tacticalOrange,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 2,
-                    ),
-                    icon: const Icon(
-                      Icons.local_gas_station_rounded,
-                      color: Colors.white,
-                    ),
-                    label: Text(
-                      'Filled to full (${_tankCapacity.toStringAsFixed(0)} L)',
-                      style: GoogleFonts.manrope(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                    onPressed: _handleFilledToFull,
-                  ),
-                  Builder(
-                    builder: (context) {
-                      final fuelPrice =
-                          SettingsController.instance.fuelPricePerLiter;
-                      final litersNeeded = (_tankCapacity -
-                              (widget.bike.fuelRemainingLiters ?? 0.0))
-                          .clamp(0.0, _tankCapacity);
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Center(
-                          child: Text(
-                            fuelPrice != null
-                                ? '${litersNeeded.toStringAsFixed(1)} L • ${formatPkr(litersNeeded * fuelPrice)}'
-                                : '${litersNeeded.toStringAsFixed(1)} L • Add fuel price to see cost',
-                            style: GoogleFonts.manrope(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.mutedText,
-                            ),
+                  // Quick presets for litres
+                  if (!isEditing) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'QUICK FILL',
+                          style: GoogleFonts.manrope(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.mutedText,
                           ),
                         ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Option 2: Added Partial Liters',
-                    style: GoogleFonts.manrope(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.mutedText,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        onPressed: _addedLiters > 1.0
-                            ? () => setState(() => _addedLiters -= 1.0)
-                            : null,
-                        icon: const Icon(Icons.remove_circle_outline_rounded),
-                        color: AppColors.tacticalOrange,
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: AppColors.skeuInset,
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '+${_addedLiters.toStringAsFixed(1)} L',
+                        if (litersNeeded > 0)
+                          GestureDetector(
+                            onTap: () {
+                              _litresController.text = _formatNum(litersNeeded);
+                              _onLitresChanged(_litresController.text);
+                            },
+                            child: Text(
+                              'To Full (+${_formatNum(litersNeeded)} L)',
                               style: GoogleFonts.manrope(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.darkCharcoal,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.tacticalOrange,
                               ),
                             ),
-                            Builder(
-                              builder: (context) {
-                                final fuelPrice =
-                                    SettingsController.instance.fuelPricePerLiter;
-                                return Text(
-                                  fuelPrice != null
-                                      ? formatPkr(_addedLiters * fuelPrice)
-                                      : 'Add fuel price to see cost',
-                                  style: GoogleFonts.manrope(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.mutedText,
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: _addedLiters < _tankCapacity
-                            ? () => setState(() => _addedLiters += 1.0)
-                            : null,
-                        icon: const Icon(Icons.add_circle_outline_rounded),
-                        color: AppColors.tacticalOrange,
-                      ),
-                    ],
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        _quickLitersChip('+2 L', 2.0),
+                        const SizedBox(width: 8),
+                        _quickLitersChip('+5 L', 5.0),
+                        const SizedBox(width: 8),
+                        _quickLitersChip('+10 L', 10.0),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Field 1: Litres
+                  _buildInputRow(
+                    label: 'LITRES',
+                    controller: _litresController,
+                    hint: '0',
+                    suffix: 'L',
+                    onChanged: _onLitresChanged,
                   ),
-                  const SizedBox(height: 12),
+
+                  const SizedBox(height: 14),
+
+                  // Field 2: Price per litre
+                  _buildInputRow(
+                    label: 'PRICE PER LITRE',
+                    controller: _pricePerLitreController,
+                    hint: '0',
+                    prefix: 'Rs ',
+                    suffix: '/ L',
+                    onChanged: _onPriceChanged,
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // Field 3: Total paid
+                  _buildInputRow(
+                    label: 'TOTAL PAID',
+                    controller: _totalPaidController,
+                    hint: '0',
+                    prefix: 'Rs ',
+                    suffix: 'PKR',
+                    onChanged: _onTotalPaidChanged,
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // "Filled the tank" switch
+                  // The Step 4 learner uses full-to-full pairs.
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppColors.radiusTile),
+                      boxShadow: AppColors.skeuRaisedSmall,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Filled the tank',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.darkCharcoal,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Sets fuel level to full capacity',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 11.5,
+                                  color: AppColors.mutedText,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch.adaptive(
+                          value: _isFullTank,
+                          activeTrackColor: AppColors.tacticalOrange,
+                          onChanged: (val) {
+                            setState(() => _isFullTank = val);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      _errorMessage!,
+                      style: GoogleFonts.manrope(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.alertRed,
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 20),
+
                   PrimaryButton(
-                    label:
-                        'Add ${_addedLiters.toStringAsFixed(1)} Liters to Tank',
-                    icon: Icons.add_rounded,
-                    onTap: _handlePartialRefill,
+                    label: isEditing ? 'Update Refill' : 'Save Refill',
+                    icon: Icons.check_rounded,
+                    onTap: _saveRefillExpense,
                     isFullWidth: true,
                   ),
+
+                  if (isEditing) ...[
+                    const SizedBox(height: 12),
+                    Center(
+                      child: TextButton.icon(
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.alertRed,
+                        ),
+                        icon: const Icon(Icons.delete_outline_rounded,
+                            size: 18),
+                        label: Text(
+                          'Delete Refill',
+                          style: GoogleFonts.manrope(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.alertRed,
+                          ),
+                        ),
+                        onPressed: () {
+                          final exp = widget.initialExpense!;
+                          Navigator.of(context).pop();
+                          _confirmDeleteRefill(context, exp);
+                        },
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
           ],
         ],
       ),
+    ),
+  );
+}
+
+  Widget _quickLitersChip(String label, double val) {
+    return GestureDetector(
+      onTap: () {
+        _litresController.text = _formatNum(val);
+        _onLitresChanged(_litresController.text);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppColors.radiusPill),
+          boxShadow: AppColors.skeuRaisedSmall,
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.manrope(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w700,
+            color: AppColors.darkCharcoal,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputRow({
+    required String label,
+    required TextEditingController controller,
+    required String hint,
+    required ValueChanged<String> onChanged,
+    String? prefix,
+    String? suffix,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.manrope(
+            fontSize: 10.5,
+            fontWeight: FontWeight.w800,
+            color: AppColors.mutedText,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: AppColors.skeuInset,
+          ),
+          child: Row(
+            children: [
+              if (prefix != null)
+                Text(
+                  prefix,
+                  style: GoogleFonts.manrope(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.mutedText,
+                  ),
+                ),
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  style: GoogleFonts.manrope(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.darkCharcoal,
+                  ),
+                  cursorColor: AppColors.tacticalOrange,
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                  onChanged: onChanged,
+                ),
+              ),
+              if (suffix != null)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.clay,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    suffix,
+                    style: GoogleFonts.manrope(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.darkCharcoal,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -683,3 +1134,4 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
     );
   }
 }
+

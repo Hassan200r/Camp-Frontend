@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/currency_formatter.dart';
+
 /// Categories for expedition expenses
 enum ExpenseCategory {
   fuel,
@@ -91,6 +93,9 @@ class Expense {
     required this.title,
     required this.amount,
     required this.trackingMode,
+    this.litres,
+    this.pricePerLitre,
+    this.isFullTank = false,
     this.subtitle,
     this.note,
     this.dateRecorded,
@@ -106,6 +111,13 @@ class Expense {
       return null;
     }
 
+    double? parseDouble(dynamic val) {
+      if (val == null) return null;
+      if (val is num) return val.toDouble();
+      if (val is String) return double.tryParse(val.trim());
+      return null;
+    }
+
     final rawId = json['id'] as String?;
     final effectiveId = (rawId != null && rawId.trim().isNotEmpty)
         ? rawId.trim()
@@ -117,6 +129,26 @@ class Expense {
     final createdUtc =
         parseUtc(json['createdAt']) ?? dateRec?.toUtc() ?? DateTime.now().toUtc();
     final updatedUtc = parseUtc(json['updatedAt']) ?? createdUtc;
+
+    final parsedLitres = parseDouble(json['litres'] ?? json['liters']);
+    final parsedPricePerLitre = parseDouble(
+      json['pricePerLitre'] ?? json['price_per_litre'] ?? json['pricePerLiter'],
+    );
+
+    bool parseBool(dynamic val) {
+      if (val == null) return false;
+      if (val is bool) return val;
+      if (val is String) {
+        final s = val.toLowerCase().trim();
+        return s == 'true' || s == '1';
+      }
+      if (val is num) return val == 1;
+      return false;
+    }
+
+    final parsedIsFullTank = parseBool(
+      json['isFullTank'] ?? json['is_full_tank'] ?? json['fullTank'],
+    );
 
     return Expense(
       id: effectiveId,
@@ -131,6 +163,9 @@ class Expense {
       trackingMode: json['trackingMode'] == 'autoTrack'
           ? ExpenseTrackingMode.autoTrack
           : ExpenseTrackingMode.manualEntry,
+      litres: parsedLitres,
+      pricePerLitre: parsedPricePerLitre,
+      isFullTank: parsedIsFullTank,
       subtitle: json['subtitle'] as String?,
       note: json['note'] as String?,
       dateRecorded: dateRec,
@@ -152,10 +187,31 @@ class Expense {
   final String title;
   final double amount;
   final ExpenseTrackingMode trackingMode;
+  final double? litres;
+  final double? pricePerLitre;
+  final bool isFullTank;
   final String? subtitle;
   final String? note;
   final DateTime? dateRecorded;
   final String? formattedDate;
+
+  /// Returns the formatted subtitle for display.
+  /// For fuel expenses:
+  /// - If both [litres] and [pricePerLitre] are present, returns e.g. "10 L at Rs 275/L".
+  /// - For older refills without [litres] or [pricePerLitre], returns null so only the amount is shown.
+  /// For other categories, returns [subtitle].
+  String? get displaySubtitle {
+    if (category == ExpenseCategory.fuel) {
+      if (litres != null && litres! > 0 && pricePerLitre != null && pricePerLitre! > 0) {
+        final lStr = litres!.truncateToDouble() == litres
+            ? litres!.toInt().toString()
+            : litres!.toStringAsFixed(1);
+        return '$lStr L at ${formatPkr(pricePerLitre)}/L';
+      }
+      return null;
+    }
+    return subtitle;
+  }
 
   Expense copyWith({
     String? id,
@@ -163,6 +219,9 @@ class Expense {
     String? title,
     double? amount,
     ExpenseTrackingMode? trackingMode,
+    double? litres,
+    double? pricePerLitre,
+    bool? isFullTank,
     String? subtitle,
     String? note,
     DateTime? dateRecorded,
@@ -176,6 +235,9 @@ class Expense {
       title: title ?? this.title,
       amount: amount ?? this.amount,
       trackingMode: trackingMode ?? this.trackingMode,
+      litres: litres ?? this.litres,
+      pricePerLitre: pricePerLitre ?? this.pricePerLitre,
+      isFullTank: isFullTank ?? this.isFullTank,
       subtitle: subtitle ?? this.subtitle,
       note: note ?? this.note,
       dateRecorded: dateRecorded ?? this.dateRecorded,
@@ -229,6 +291,9 @@ class Expense {
           title == other.title &&
           amount == other.amount &&
           trackingMode == other.trackingMode &&
+          litres == other.litres &&
+          pricePerLitre == other.pricePerLitre &&
+          isFullTank == other.isFullTank &&
           subtitle == other.subtitle &&
           note == other.note &&
           dateRecorded == other.dateRecorded &&
@@ -241,23 +306,32 @@ class Expense {
         title,
         amount,
         trackingMode,
+        litres,
+        pricePerLitre,
+        isFullTank,
         subtitle,
         note,
         dateRecorded,
         formattedDate,
       );
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'createdAt': effectiveCreatedAt.toIso8601String(),
-        'updatedAt': effectiveUpdatedAt.toIso8601String(),
-        'category': category.name,
-        'title': title,
-        'amount': amount,
-        'trackingMode': trackingMode.name,
-        'subtitle': subtitle,
-        'note': note,
-        'dateRecorded': dateRecorded?.toIso8601String(),
-        'formattedDate': formattedDate,
-      };
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      'id': id,
+      'createdAt': effectiveCreatedAt.toIso8601String(),
+      'updatedAt': effectiveUpdatedAt.toIso8601String(),
+      'category': category.name,
+      'title': title,
+      'amount': amount,
+      'trackingMode': trackingMode.name,
+      'isFullTank': isFullTank,
+      'subtitle': subtitle,
+      'note': note,
+      'dateRecorded': dateRecorded?.toIso8601String(),
+      'formattedDate': formattedDate,
+    };
+    if (litres != null) map['litres'] = litres;
+    if (pricePerLitre != null) map['pricePerLitre'] = pricePerLitre;
+    return map;
+  }
 }

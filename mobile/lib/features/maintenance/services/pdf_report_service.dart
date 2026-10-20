@@ -226,8 +226,8 @@ class PdfReportService {
                 data: data.expenses.map((exp) {
                   return [
                     exp.category.displayName,
-                    exp.subtitle != null && exp.subtitle!.isNotEmpty
-                        ? '${exp.title} (${exp.subtitle})'
+                    exp.displaySubtitle != null && exp.displaySubtitle!.isNotEmpty
+                        ? '${exp.title} (${exp.displaySubtitle})'
                         : exp.title,
                     exp.trackingMode.label,
                     formatPkr(exp.amount),

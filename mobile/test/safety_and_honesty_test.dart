@@ -702,7 +702,10 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: UpdateFuelSheet(bike: testBike),
+            body: UpdateFuelSheet(
+              key: ValueKey('no-price'),
+              bike: testBike,
+            ),
           ),
         ),
       );
@@ -712,7 +715,9 @@ void main() {
       await tester.tap(find.text('I Refilled'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Add fuel price to see cost'), findsWidgets);
+      final textFieldsEmpty = find.byType(TextField);
+      final priceFieldEmpty = tester.widget<TextField>(textFieldsEmpty.at(1));
+      expect(priceFieldEmpty.controller!.text, isEmpty);
       expect(find.textContaining(r'$'), findsNothing);
 
       // 2. With fuel price set
@@ -720,7 +725,10 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: UpdateFuelSheet(bike: testBike),
+            body: UpdateFuelSheet(
+              key: ValueKey('with-price'),
+              bike: testBike,
+            ),
           ),
         ),
       );
@@ -730,7 +738,10 @@ void main() {
       await tester.tap(find.text('I Refilled'));
       await tester.pumpAndSettle();
 
-      // Now shows PKR cost calculated at 280/L
+      // Now price per litre is prefilled with 280
+      final textFieldsSet = find.byType(TextField);
+      final priceFieldSet = tester.widget<TextField>(textFieldsSet.at(1));
+      expect(priceFieldSet.controller!.text, '280');
       expect(find.textContaining('Rs '), findsWidgets);
       expect(find.textContaining(r'$'), findsNothing);
     });

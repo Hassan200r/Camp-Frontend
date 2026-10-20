@@ -9,6 +9,7 @@ import '../../../../core/widgets/widgets.dart';
 import '../../../bike_scan/presentation/screens/bike_details_screen.dart';
 import '../../../garage/controllers/active_bike_controller.dart';
 import '../../../garage/domain/bike_model.dart';
+import '../../../garage/presentation/widgets/update_fuel_sheet.dart';
 import '../../../settings/controllers/settings_controller.dart';
 import '../../controllers/post_ride_report_controller.dart';
 import '../../controllers/trip_budget_controller.dart';
@@ -44,14 +45,16 @@ class TripBudgetCardWidget extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: AppColors.clay,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          boxShadow: AppColors.skeuRaised,
-        ),
-        child: Column(
+      builder: (ctx) => Material(
+        color: AppColors.clay,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            boxShadow: AppColors.skeuRaised,
+          ),
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -118,6 +121,20 @@ class TripBudgetCardWidget extends StatelessWidget {
               ),
               onTap: () async {
                 Navigator.of(ctx).pop();
+                if (expense.category == ExpenseCategory.fuel) {
+                  final activeBike = ActiveBikeController.instance.activeBike ??
+                      (ActiveBikeController.instance.bikes.isNotEmpty
+                          ? ActiveBikeController.instance.bikes.first
+                          : null);
+                  if (activeBike != null) {
+                    UpdateFuelSheet.show(
+                      context,
+                      activeBike,
+                      initialExpense: expense,
+                    );
+                    return;
+                  }
+                }
                 final updated = await Navigator.of(context).push<Expense>(
                   MaterialPageRoute(
                     builder: (context) =>
@@ -156,8 +173,9 @@ class TripBudgetCardWidget extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _confirmDeleteExpense(BuildContext context, Expense expense) {
     showDialog<bool>(
@@ -769,12 +787,21 @@ class TripBudgetCardWidget extends StatelessWidget {
                                         vertical: 2,
                                       ),
                                     ),
+                                    if (expense.isFullTank)
+                                      const StatusChip(
+                                        label: 'Full tank',
+                                        variant: StatusChipVariant.neutral,
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                      ),
                                   ],
                                 ),
-                                if (expense.subtitle != null) ...[
+                                if (expense.displaySubtitle != null) ...[
                                   const SizedBox(height: 2),
                                   Text(
-                                    expense.subtitle!,
+                                    expense.displaySubtitle!,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: AppTextStyles.caption.copyWith(

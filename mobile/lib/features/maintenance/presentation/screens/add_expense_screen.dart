@@ -7,6 +7,7 @@ import '../../../../app/theme/app_theme.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../garage/controllers/active_bike_controller.dart';
+import '../../../settings/controllers/settings_controller.dart';
 import '../../domain/expense_model.dart';
 
 /// Screen for recording or editing an expedition trip expense
@@ -22,7 +23,11 @@ class AddExpenseScreen extends StatefulWidget {
 class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _amountCtrl = TextEditingController();
   final _noteLocationCtrl = TextEditingController();
+  final _litresCtrl = TextEditingController();
+  final _priceCtrl = TextEditingController();
 
+  bool _isRecalculating = false;
+  bool _isFullTank = false;
   String _selectedCategory = '🛢 Fuel';
   int _trackingModeIndex = 1; // 0=Auto-track, 1=Manual entry (manual default)
   DateTime _expenseDate = DateTime.now();
@@ -44,7 +49,19 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     super.initState();
     if (widget.initialExpense != null) {
       final exp = widget.initialExpense!;
-      _amountCtrl.text = exp.amount.toStringAsFixed(0);
+      _isFullTank = exp.isFullTank;
+      _amountCtrl.text = exp.amount > 0 ? exp.amount.round().toString() : '';
+      if (exp.litres != null) {
+        _litresCtrl.text = _formatNum(exp.litres!);
+      }
+      if (exp.pricePerLitre != null) {
+        _priceCtrl.text = _formatPrice(exp.pricePerLitre!);
+      } else if (exp.category == ExpenseCategory.fuel) {
+        final settingsPrice = SettingsController.instance.fuelPricePerLiter;
+        if (settingsPrice != null && settingsPrice > 0) {
+          _priceCtrl.text = _formatPrice(settingsPrice);
+        }
+      }
       _noteLocationCtrl.text = exp.subtitle ?? exp.note ?? '';
       _selectedCategory = exp.category.chipLabel;
       _trackingModeIndex =
@@ -54,8 +71,28 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           exp.formattedDate ?? _formatDate(_expenseDate);
     } else {
       _dateRecorded = _formatDate(_expenseDate);
+      final settingsPrice = SettingsController.instance.fuelPricePerLiter;
+      if (settingsPrice != null && settingsPrice > 0) {
+        _priceCtrl.text = _formatPrice(settingsPrice);
+      }
     }
     _selectedBikeId = ActiveBikeController.instance.activeBikeId;
+  }
+
+  static String _formatPrice(double val) {
+    final rounded = double.parse(val.toStringAsFixed(2));
+    if (rounded.truncateToDouble() == rounded) {
+      return rounded.toInt().toString();
+    }
+    return rounded.toStringAsFixed(2);
+  }
+
+  static String _formatNum(double val) {
+    final rounded = double.parse(val.toStringAsFixed(2));
+    if (rounded.truncateToDouble() == rounded) {
+      return rounded.toInt().toString();
+    }
+    return rounded.toString();
   }
 
   static String _formatDate(DateTime dt) {
@@ -70,7 +107,80 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   void dispose() {
     _amountCtrl.dispose();
     _noteLocationCtrl.dispose();
+    _litresCtrl.dispose();
+    _priceCtrl.dispose();
     super.dispose();
+  }
+
+  void _onLitresChanged(String val) {
+    if (_isRecalculating) return;
+    final litres = double.tryParse(val.trim());
+    if (litres == null || litres <= 0) return;
+
+    final price = double.tryParse(_priceCtrl.text.trim());
+    final total = parsePkr(_amountCtrl.text.trim());
+
+    if (price != null && price > 0) {
+      _isRecalculating = true;
+      final computedTotal = (litres * price).roundToDouble();
+      _amountCtrl.text = computedTotal.round().toString();
+      _isRecalculating = false;
+      setState(() {});
+    } else if (total != null && total > 0) {
+      _isRecalculating = true;
+      final computedPrice = total / litres;
+      _priceCtrl.text = _formatPrice(computedPrice);
+      _isRecalculating = false;
+      setState(() {});
+    }
+  }
+
+  void _onPriceChanged(String val) {
+    if (_isRecalculating) return;
+    final price = double.tryParse(val.trim());
+    if (price == null || price <= 0) return;
+
+    final litres = double.tryParse(_litresCtrl.text.trim());
+    final total = parsePkr(_amountCtrl.text.trim());
+
+    if (litres != null && litres > 0) {
+      _isRecalculating = true;
+      final computedTotal = (litres * price).roundToDouble();
+      _amountCtrl.text = computedTotal.round().toString();
+      _isRecalculating = false;
+      setState(() {});
+    } else if (total != null && total > 0) {
+      _isRecalculating = true;
+      final computedLitres = total / price;
+      _litresCtrl.text = _formatNum(computedLitres);
+      _isRecalculating = false;
+      setState(() {});
+    }
+  }
+
+  void _onAmountChanged(String val) {
+    if (_isRecalculating) return;
+    if (!_selectedCategory.contains('Fuel')) return;
+
+    final total = parsePkr(val.trim());
+    if (total == null || total <= 0) return;
+
+    final litres = double.tryParse(_litresCtrl.text.trim());
+    final price = double.tryParse(_priceCtrl.text.trim());
+
+    if (litres != null && litres > 0) {
+      _isRecalculating = true;
+      final computedPrice = total / litres;
+      _priceCtrl.text = _formatPrice(computedPrice);
+      _isRecalculating = false;
+      setState(() {});
+    } else if (price != null && price > 0) {
+      _isRecalculating = true;
+      final computedLitres = total / price;
+      _litresCtrl.text = _formatNum(computedLitres);
+      _isRecalculating = false;
+      setState(() {});
+    }
   }
 
   void _saveExpense() {
@@ -102,6 +212,34 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       category = ExpenseCategory.other;
     }
 
+    double? litres;
+    double? pricePerLitre;
+    if (category == ExpenseCategory.fuel) {
+      litres = double.tryParse(_litresCtrl.text.trim());
+      pricePerLitre = double.tryParse(_priceCtrl.text.trim());
+      if (litres == null || litres <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Litres must be greater than 0'),
+            backgroundColor: AppColors.alertRed,
+          ),
+        );
+        return;
+      }
+      if (pricePerLitre == null || pricePerLitre <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Price per litre must be greater than 0'),
+            backgroundColor: AppColors.alertRed,
+          ),
+        );
+        return;
+      }
+      pricePerLitre = double.parse(pricePerLitre.toStringAsFixed(2));
+    }
+
+    final roundedTotal = amount.roundToDouble();
+
     final expense = widget.initialExpense != null
         ? widget.initialExpense!.copyWith(
             category: category,
@@ -109,7 +247,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             subtitle: _noteLocationCtrl.text.trim().isNotEmpty
                 ? _noteLocationCtrl.text.trim()
                 : null,
-            amount: amount,
+            amount: roundedTotal,
+            litres: litres,
+            pricePerLitre: pricePerLitre,
+            isFullTank: category == ExpenseCategory.fuel ? _isFullTank : false,
             trackingMode: _trackingModeIndex == 0
                 ? ExpenseTrackingMode.autoTrack
                 : ExpenseTrackingMode.manualEntry,
@@ -124,7 +265,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             subtitle: _noteLocationCtrl.text.trim().isNotEmpty
                 ? _noteLocationCtrl.text.trim()
                 : null,
-            amount: amount,
+            amount: roundedTotal,
+            litres: litres,
+            pricePerLitre: pricePerLitre,
+            isFullTank: category == ExpenseCategory.fuel ? _isFullTank : false,
             trackingMode: _trackingModeIndex == 0
                 ? ExpenseTrackingMode.autoTrack
                 : ExpenseTrackingMode.manualEntry,
@@ -187,6 +331,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
                   ),
+                  onChanged: _onAmountChanged,
                 ),
               ),
               Container(
@@ -268,6 +413,182 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   const SizedBox(height: 18),
                   const Divider(height: 1),
                   const SizedBox(height: 18),
+
+                  if (_selectedCategory.contains('Fuel')) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('LITRES', style: AppTextStyles.overline),
+                              const SizedBox(height: 5),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.clayDark,
+                                  borderRadius: BorderRadius.circular(
+                                    AppColors.radiusTile,
+                                  ),
+                                  border: Border.all(
+                                    color:
+                                        Colors.white.withValues(alpha: 0.45),
+                                    width: 1,
+                                  ),
+                                  boxShadow: AppColors.skeuRecessed,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _litresCtrl,
+                                        keyboardType: const TextInputType
+                                            .numberWithOptions(decimal: true),
+                                        style: GoogleFonts.manrope(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.darkCharcoal,
+                                        ),
+                                        cursorColor: AppColors.tacticalOrange,
+                                        decoration: const InputDecoration(
+                                          hintText: '0',
+                                          border: InputBorder.none,
+                                          isDense: true,
+                                          contentPadding:
+                                              EdgeInsets.symmetric(vertical: 8),
+                                        ),
+                                        onChanged: _onLitresChanged,
+                                      ),
+                                    ),
+                                    Text(
+                                      'L',
+                                      style: GoogleFonts.manrope(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.mutedText,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('PRICE / L', style: AppTextStyles.overline),
+                              const SizedBox(height: 5),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.clayDark,
+                                  borderRadius: BorderRadius.circular(
+                                    AppColors.radiusTile,
+                                  ),
+                                  border: Border.all(
+                                    color:
+                                        Colors.white.withValues(alpha: 0.45),
+                                    width: 1,
+                                  ),
+                                  boxShadow: AppColors.skeuRecessed,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      'Rs ',
+                                      style: GoogleFonts.manrope(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.mutedText,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _priceCtrl,
+                                        keyboardType: const TextInputType
+                                            .numberWithOptions(decimal: true),
+                                        style: GoogleFonts.manrope(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.darkCharcoal,
+                                        ),
+                                        cursorColor: AppColors.tacticalOrange,
+                                        decoration: const InputDecoration(
+                                          hintText: '0',
+                                          border: InputBorder.none,
+                                          isDense: true,
+                                          contentPadding:
+                                              EdgeInsets.symmetric(vertical: 8),
+                                        ),
+                                        onChanged: _onPriceChanged,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.clay,
+                        borderRadius:
+                            BorderRadius.circular(AppColors.radiusTile),
+                        boxShadow: AppColors.skeuRaisedSmall,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Filled the tank',
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.darkCharcoal,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Sets fuel level to full capacity',
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 11.5,
+                                    color: AppColors.mutedText,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch.adaptive(
+                            value: _isFullTank,
+                            activeTrackColor: AppColors.tacticalOrange,
+                            onChanged: (val) {
+                              setState(() => _isFullTank = val);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                  ],
 
                   // ── Amount Input (Oversized) ──────────────────────────────
                   _buildOversizedAmountField(),
