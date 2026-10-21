@@ -542,7 +542,13 @@ class _ActiveBikeCardWidgetState extends State<ActiveBikeCardWidget>
                         variant: StatusChipVariant.danger,
                       );
                     } else {
-                      statusSubtitle = '${urgentItem.name} in ${urgentItem.remainingKm} km';
+                      if (urgentItem.remainingKm != null) {
+                        statusSubtitle = '${urgentItem.name} in ${urgentItem.remainingKm} km';
+                      } else if (urgentItem.remainingDays != null) {
+                        statusSubtitle = '${urgentItem.name} in ${urgentItem.remainingDays} days';
+                      } else {
+                        statusSubtitle = '${urgentItem.name} due soon';
+                      }
                       statusTrailing = const StatusChip(
                         label: 'DUE SOON',
                         variant: StatusChipVariant.warning,

@@ -148,9 +148,16 @@ class MaintenanceAlertCardWidget extends StatelessWidget {
                 AppColors.tacticalOrangeDark,
               ];
 
-        final descriptionText = isOverdue
-            ? '${urgentItem.name} service is overdue. Service immediately.'
-            : '${urgentItem.name} service due in ${urgentItem.remainingKm} km.';
+        final String descriptionText;
+        if (isOverdue) {
+          descriptionText = '${urgentItem.name} service is overdue. Service immediately.';
+        } else if (urgentItem.remainingKm != null) {
+          descriptionText = '${urgentItem.name} service due in ${urgentItem.remainingKm} km.';
+        } else if (urgentItem.remainingDays != null) {
+          descriptionText = '${urgentItem.name} service due in ${urgentItem.remainingDays} days.';
+        } else {
+          descriptionText = '${urgentItem.name} service due soon.';
+        }
 
         return CampCard(
           padding: EdgeInsets.zero,

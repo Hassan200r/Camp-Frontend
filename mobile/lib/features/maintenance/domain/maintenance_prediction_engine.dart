@@ -2,7 +2,10 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 
 import '../../garage/domain/bike_model.dart';
+import '../controllers/maintenance_controller.dart';
 import 'post_ride_report.dart';
+import 'service_schedule_engine.dart';
+import 'service_schedule_item.dart';
 
 /// Health status classification for individual motorcycle components.
 enum ComponentStatus {
@@ -106,44 +109,32 @@ class MaintenancePredictionEngine {
   const MaintenancePredictionEngine._();
 
   /// Calculate the complete maintenance assessment for a given motorcycle and its ride logs.
+  /// Fully derived from the rider's configured service schedule, with NO modulo wear and NO fixed interval table.
   static MaintenanceAssessment analyze({
     required Bike bike,
     required List<PostRideReport> rideReports,
   }) {
-    final terrain = bike.ridingTerrain ?? const ['Highway'];
-    final isOffRoad = terrain.contains('Off-road');
-    final isMountain = terrain.contains('Mountain');
-    final isCity = terrain.contains('City');
+    final schedulePredictions = MaintenanceController.instance.itemsForBike(bike);
 
-    // ── 1. Engine Oil & Filter ───────────────────────────────────────────────
-    final oilPrediction = _analyzeEngineOil(bike, isOffRoad, isMountain);
-
-    // ── 2. Drive Chain & Sprocket ───────────────────────────────────────────
-    final chainPrediction = _analyzeChainAndSprocket(bike, isOffRoad, isMountain);
-
-    // ── 3. Air Filter Element ───────────────────────────────────────────────
-    final airFilterPrediction = _analyzeAirFilter(bike, isOffRoad, isMountain);
-
-    // ── 4. Brake Pads ───────────────────────────────────────────────────────
-    final brakePadPrediction = _analyzeBrakePads(bike, isCity, isMountain);
-
-    final components = [
-      chainPrediction,
-      brakePadPrediction,
-      airFilterPrediction,
-      oilPrediction,
-    ];
+    // Map each schedule prediction to a ComponentPrediction
+    final components = <ComponentPrediction>[];
+    for (final sp in schedulePredictions) {
+      final comp = _predictionToComponent(sp, bike);
+      components.add(comp);
+    }
 
     // Sort by highest wear first (most urgent at the top)
     components.sort((a, b) => b.wearPercent.compareTo(a.wearPercent));
 
-    // Weighted Maintenance Health Index (0-100)
-    // Oil: 35%, Chain: 25%, Brakes: 25%, Air Filter: 15%
-    final weightedHealth = (oilPrediction.healthScore * 0.35) +
-        (chainPrediction.healthScore * 0.25) +
-        (brakePadPrediction.healthScore * 0.25) +
-        (airFilterPrediction.healthScore * 0.15);
-    final healthIndex = weightedHealth.round().clamp(0, 100);
+    // Weighted Maintenance Health Index (0-100) based on configured components
+    final configured = components.where((c) => c.wearPercent > 0 || c.remainingKm > 0).toList();
+    final int healthIndex;
+    if (configured.isEmpty) {
+      healthIndex = 100;
+    } else {
+      final totalScore = configured.fold<int>(0, (sum, c) => sum + c.healthScore);
+      healthIndex = (totalScore / configured.length).round().clamp(0, 100);
+    }
 
     final String healthStatusLabel;
     if (healthIndex >= 80) {
@@ -155,16 +146,19 @@ class MaintenancePredictionEngine {
     }
 
     // Soonest service due estimation
-    var soonestKm = components.first.remainingKm;
-    var soonestDays = components.first.remainingDays ?? (soonestKm / 35).round();
-    for (final c in components) {
-      if (c.remainingKm < soonestKm) {
-        soonestKm = c.remainingKm;
-        soonestDays = c.remainingDays ?? (c.remainingKm / 35).round();
+    var soonestKm = 0;
+    var soonestDays = 0;
+    final dueOrConfigured = components.where((c) => c.remainingKm > 0).toList();
+    if (dueOrConfigured.isNotEmpty) {
+      soonestKm = dueOrConfigured.first.remainingKm;
+      soonestDays = dueOrConfigured.first.remainingDays ?? max(1, (soonestKm / 35).round());
+      for (final c in dueOrConfigured) {
+        if (c.remainingKm < soonestKm) {
+          soonestKm = c.remainingKm;
+          soonestDays = c.remainingDays ?? max(1, (c.remainingKm / 35).round());
+        }
       }
     }
-    soonestKm = max(50, soonestKm);
-    soonestDays = max(1, soonestDays);
 
     // ── Phase 3: Real Pattern Insights from Logged PostRideReports ──────────
     final patternInsights = _computePatternInsights(rideReports);
@@ -182,269 +176,155 @@ class MaintenancePredictionEngine {
     );
   }
 
-  // ── Engine Oil Analysis ───────────────────────────────────────────────────
-  static ComponentPrediction _analyzeEngineOil(
+  static ComponentPrediction _predictionToComponent(
+    ServiceSchedulePrediction sp,
     Bike bike,
-    bool isOffRoad,
-    bool isMountain,
   ) {
-    final record = bike.lastOilChange;
-    final kmSinceOil = record?.km ?? (bike.odometerKm > 0 ? (bike.odometerKm % 5000) : 0);
-
-    // Standard interval: 5,000 km or 90 days
-    const baseIntervalKm = 5000;
-    const baseIntervalDays = 90;
-
-    // Reduce interval by ~15% if terrain includes harsh dust or heat (Off-road or Mountain)
-    final intervalMultiplier = (isOffRoad || isMountain) ? 0.85 : 1.0;
-    final effectiveIntervalKm = (baseIntervalKm * intervalMultiplier).round();
-    final effectiveIntervalDays = (baseIntervalDays * intervalMultiplier).round();
-
-    final kmWear = (kmSinceOil / effectiveIntervalKm) * 100;
-
-    int daysWear = 0;
-    int? remainingDays;
-    if (record?.date != null) {
-      final daysSince = DateTime.now().difference(record!.date!).inDays;
-      daysWear = ((daysSince / effectiveIntervalDays) * 100).round();
-      remainingDays = max(0, effectiveIntervalDays - daysSince);
-    } else {
-      remainingDays = (max(0, effectiveIntervalKm - kmSinceOil) / 35).round();
-    }
-
-    final wearPercent = max(kmWear.round(), daysWear).clamp(0, 100);
-    final remainingKm = max(0, effectiveIntervalKm - kmSinceOil);
-
-    final ComponentStatus status;
-    if (wearPercent >= 80) {
-      status = ComponentStatus.overdue;
-    } else if (wearPercent >= 50) {
-      status = ComponentStatus.dueSoon;
-    } else {
-      status = ComponentStatus.ok;
-    }
+    final name = sp.name;
+    final status = sp.status;
+    final wear = sp.wearPercent;
+    final remainingKm = sp.remainingKm ?? 0;
+    final remainingDays = sp.remainingDays;
 
     final String reason;
-    if (isOffRoad || isMountain) {
-      final terrainName = isOffRoad && isMountain ? 'off-road & mountain' : (isOffRoad ? 'off-road' : 'mountain');
-      reason = 'Calculated from $kmSinceOil km since last oil change. Service interval reduced by 15% due to $terrainName terrain (~$remainingKm km remaining).';
+    if (sp.scheduleStatus == ScheduleItemStatus.notSetUp) {
+      reason = 'Service schedule not set up. Configure your interval in Service Schedule.';
+    } else if (sp.scheduleStatus == ScheduleItemStatus.addLastDone) {
+      reason = 'Interval configured. Add last done reading to start tracking wear.';
+    } else if (sp.scheduleStatus == ScheduleItemStatus.overdue) {
+      reason = 'Service threshold reached. Service is overdue.';
+    } else if (sp.scheduleStatus == ScheduleItemStatus.dueSoon) {
+      reason = 'Service threshold approaching (${sp.displaySubtitle}).';
     } else {
-      reason = 'Calculated from $kmSinceOil km logged against $effectiveIntervalKm km standard interval. Thermal degradation nominal (~$remainingKm km remaining).';
+      reason = 'Within safe schedule limits (${sp.displaySubtitle}).';
     }
 
+    final guideData = _guideForType(sp.type);
+
     return ComponentPrediction(
-      id: 'engine-oil',
-      name: 'Engine Oil & Filter',
-      subtitle: bike.displacement != null ? '${bike.displacement}cc Spec' : 'Factory Spec',
-      wearPercent: wearPercent,
+      id: sp.item.type.canonicalId,
+      name: name,
+      subtitle: bike.displacement != null ? '${bike.displacement}cc Spec' : 'Rider Spec',
+      wearPercent: wear,
       status: status,
       reason: reason,
-      remainingKm: remainingKm,
+      remainingKm: max(0, remainingKm),
       remainingDays: remainingDays,
-      diyGuideTitle: 'Engine Oil & Filter Change',
-      diySteps: const [
-        'Warm engine for 3-5 minutes to circulate suspended particles and suspend sludge.',
-        'Place an oil collection catch-pan under the crankcase drain bolt.',
-        'Remove drain bolt with a calibrated hex socket; inspect magnetic tip for metallic debris.',
-        'Remove old oil filter with a filter wrench; clean the engine mounting mating surface.',
-        'Lubricate the rubber O-ring of the new filter with clean motor oil before spinning on.',
-        'Torque drain bolt with a new crush washer to factory specification (typically 20-25 Nm).',
-        'Refill with manufacturer-recommended viscosity oil (e.g. 5W-40) and check sight glass.',
-      ],
+      diyGuideTitle: guideData.$1,
+      diySteps: guideData.$2,
     );
   }
 
-  // ── Chain & Sprocket Analysis ─────────────────────────────────────────────
-  static ComponentPrediction _analyzeChainAndSprocket(
-    Bike bike,
-    bool isOffRoad,
-    bool isMountain,
-  ) {
-    final kmSinceTuneUp = bike.lastTuneUp?.km ?? (bike.odometerKm > 0 ? (bike.odometerKm % 15000) : 0);
-
-    // Standard chain interval: 15,000 km
-    const baseIntervalKm = 15000;
-
-    // Off-road silt accelerates link wear; mountain climbing increases tensile stress
-    double terrainMultiplier = 1.0;
-    if (isOffRoad && isMountain) {
-      terrainMultiplier = 1.35;
-    } else if (isOffRoad) {
-      terrainMultiplier = 1.25;
-    } else if (isMountain) {
-      terrainMultiplier = 1.15;
+  static (String, List<String>) _guideForType(ServiceItemType type) {
+    switch (type) {
+      case ServiceItemType.oilAndSmallService:
+        return (
+          'Engine Oil & Small Service',
+          const [
+            'Warm engine for 3-5 minutes to circulate suspended particles.',
+            'Place catch-pan under crankcase drain bolt; remove bolt with calibrated hex socket.',
+            'Remove old oil filter; lubricate rubber O-ring of new filter before installation.',
+            'Torque drain bolt with new crush washer to factory specification.',
+            'Refill with manufacturer-recommended viscosity oil and verify sight glass.',
+          ],
+        );
+      case ServiceItemType.oilFilter:
+        return (
+          'Oil Filter Replacement',
+          const [
+            'Place drip tray under oil filter housing.',
+            'Unscrew old oil filter cartridge or cap.',
+            'Inspect rubber seals and replace O-rings.',
+            'Lubricate gasket with fresh oil and spin on until hand-tight plus half turn.',
+          ],
+        );
+      case ServiceItemType.airFilter:
+        return (
+          'Air Filter Element Service',
+          const [
+            'Remove seat and side covers to access airbox housing.',
+            'Clean exterior dust and loose sand before opening airbox lid.',
+            'Extract filter element and inspect clean-air intake duct for dust bypass.',
+            'Clean or replace element according to manufacturer recommendations.',
+            'Reinstall airbox lid ensuring an airtight seal.',
+          ],
+        );
+      case ServiceItemType.chain:
+        return (
+          'Drive Chain Tension & Lubrication',
+          const [
+            'Place motorcycle on center-stand or rear stand on level ground.',
+            'Measure bottom chain run vertical deflection halfway between sprockets.',
+            'Adjust swingarm tension bolts evenly if slack exceeds specification.',
+            'Inspect sprocket teeth for shark-fin wear or chipping.',
+            'Clean chain thoroughly and apply high-quality chain lubricant.',
+          ],
+        );
+      case ServiceItemType.sparkPlug:
+        return (
+          'Spark Plug Inspection & Gap Check',
+          const [
+            'Disconnect spark plug cap and blow compressed air around cylinder head recess.',
+            'Remove spark plug using magnetic thin-wall plug socket.',
+            'Inspect electrode color: light tan indicates correct stoichiometric combustion.',
+            'Verify gap with wire feeler gauge; replace if electrode is eroded.',
+            'Thread plug by hand to prevent cross-threading before final torque.',
+          ],
+        );
+      case ServiceItemType.tuning:
+        return (
+          'Engine Tuning & Valve Clearance Check',
+          const [
+            'Ensure engine is stone cold before checking valve lash clearances.',
+            'Remove valve inspection caps and align crankshaft to Top Dead Center (TDC).',
+            'Slide feeler gauge between rocker arm and valve stem.',
+            'Adjust tappet screw to factory clearance and snug locknut.',
+            'Reassemble inspection caps with fresh O-rings.',
+          ],
+        );
+      case ServiceItemType.brakes:
+        return (
+          'Brake Pad Thickness & Fluid Inspection',
+          const [
+            'Inspect pad friction material thickness through caliper inspection window.',
+            'Check brake fluid reservoir level and color through inspection glass.',
+            'If pads are near minimum thickness, unbolt caliper retaining pins and replace.',
+            'Clean caliper pistons before retracting to avoid seal damage.',
+            'Pump brake lever until firm hydraulic pressure is restored.',
+          ],
+        );
+      case ServiceItemType.tyres:
+        return (
+          'Tyre Pressure & Tread Depth Inspection',
+          const [
+            'Check cold tyre inflation pressures with an accurate gauge.',
+            'Inspect tread depth against wear indicators (TWI).',
+            'Examine sidewalls for cracks, embedded sharp debris, or bulges.',
+            'Verify valve stems are capped and undamaged.',
+          ],
+        );
+      case ServiceItemType.battery:
+        return (
+          'Battery Terminals & Voltage Check',
+          const [
+            'Inspect positive and negative terminal posts for corrosion or white sulfates.',
+            'Clean posts with a wire brush and apply dielectric grease.',
+            'Verify resting voltage: 12.6V+ indicates a healthy charge.',
+            'Start engine and verify charging system output: 13.8V - 14.5V.',
+          ],
+        );
+      case ServiceItemType.carburetor:
+        return (
+          'Carburetor Jetting & Slide Service',
+          const [
+            'Turn fuel petcock off and drain float bowl into catch container.',
+            'Inspect fuel strainer and clear any sediment or debris.',
+            'Remove throttle slide and inspect diaphragm for tears or pinholes.',
+            'Verify jet sizing and clean pilot and main jets with carb cleaner.',
+            'Check idle speed and pilot mixture screw baseline turns.',
+          ],
+        );
     }
-
-    final effectiveIntervalKm = (baseIntervalKm / terrainMultiplier).round();
-    final wearPercent = ((kmSinceTuneUp / effectiveIntervalKm) * 100).round().clamp(0, 100);
-    final remainingKm = max(0, effectiveIntervalKm - kmSinceTuneUp);
-
-    final ComponentStatus status;
-    if (wearPercent >= 80) {
-      status = ComponentStatus.overdue;
-    } else if (wearPercent >= 50) {
-      status = ComponentStatus.dueSoon;
-    } else {
-      status = ComponentStatus.ok;
-    }
-
-    final String reason;
-    if (isOffRoad) {
-      reason = 'Wear accelerated by off-road grit and silt exposure ($kmSinceTuneUp km since last tune-up).';
-    } else if (isMountain) {
-      reason = 'High torque mountain grade climbs increased chain tension load ($kmSinceTuneUp km logged).';
-    } else {
-      reason = 'Calculated from $kmSinceTuneUp km of paved highway and city riding since last service.';
-    }
-
-    return ComponentPrediction(
-      id: 'chain-sprocket',
-      name: 'Drive Chain & Sprocket',
-      subtitle: 'O-Ring / X-Ring Drive',
-      wearPercent: wearPercent,
-      status: status,
-      reason: reason,
-      remainingKm: remainingKm,
-      remainingDays: (remainingKm / 35).round(),
-      diyGuideTitle: 'Chain Tension & Sprocket Inspection',
-      diySteps: const [
-        'Place motorcycle on center-stand or rear paddock stand on level ground.',
-        'Locate the midway point on the bottom chain run between front and rear sprockets.',
-        'Use a pocket ruler to measure vertical deflection while pushing chain up and down.',
-        'If slack exceeds manufacturer specification (typically 25-35mm), loosen the rear axle nut.',
-        'Turn left and right swingarm adjuster bolts evenly to preserve rear wheel alignment.',
-        'Inspect rear sprocket teeth for "shark-fin" hooked wear patterns or chipping.',
-        'Clean links thoroughly with kerosene or chain cleaner, dry, and apply synthetic lube.',
-      ],
-    );
-  }
-
-  // ── Air Filter Analysis ───────────────────────────────────────────────────
-  static ComponentPrediction _analyzeAirFilter(
-    Bike bike,
-    bool isOffRoad,
-    bool isMountain,
-  ) {
-    final kmSinceTuneUp = bike.lastTuneUp?.km ?? (bike.odometerKm > 0 ? (bike.odometerKm % 12000) : 0);
-    const baseIntervalKm = 12000;
-
-    double dustMultiplier = 1.0;
-    if (isOffRoad && isMountain) {
-      dustMultiplier = 1.5;
-    } else if (isOffRoad) {
-      dustMultiplier = 1.35;
-    } else if (isMountain) {
-      dustMultiplier = 1.2;
-    } else {
-      dustMultiplier = 0.9; // clean paved highway
-    }
-
-    final effectiveIntervalKm = (baseIntervalKm / dustMultiplier).round();
-    final wearPercent = ((kmSinceTuneUp / effectiveIntervalKm) * 100).round().clamp(0, 100);
-    final remainingKm = max(0, effectiveIntervalKm - kmSinceTuneUp);
-
-    final ComponentStatus status;
-    if (wearPercent >= 80) {
-      status = ComponentStatus.overdue;
-    } else if (wearPercent >= 50) {
-      status = ComponentStatus.dueSoon;
-    } else {
-      status = ComponentStatus.ok;
-    }
-
-    final String reason;
-    if (isOffRoad || isMountain) {
-      reason = 'Dust accumulation accelerated by high pass gravel trails and off-road terrain ($kmSinceTuneUp km logged).';
-    } else {
-      reason = 'Standard highway cruising airflow profile ($kmSinceTuneUp km since last inspection).';
-    }
-
-    return ComponentPrediction(
-      id: 'air-filter',
-      name: 'Air Filter Element',
-      subtitle: 'High Flow Intake',
-      wearPercent: wearPercent,
-      status: status,
-      reason: reason,
-      remainingKm: remainingKm,
-      remainingDays: (remainingKm / 35).round(),
-      diyGuideTitle: 'Air Filter Cleaning & Replacement',
-      diySteps: const [
-        'Remove rider seat and side fairing trim panels covering the airbox housing.',
-        'Clean exterior dust and loose sand around the airbox perimeter before opening lid.',
-        'Remove airbox lid fasteners and carefully extract the intake filter element.',
-        'Inspect the clean-air intake duct for any bypassed dust or moisture.',
-        'For paper filters: tap gently and blow low-pressure compressed air from the inside out.',
-        'For oiled foam filters: wash in filter solvent, dry completely, and re-oil evenly.',
-        'Seat filter securely in housing rim to ensure an airtight seal against the intake tract.',
-      ],
-    );
-  }
-
-  // ── Brake Pads Analysis ───────────────────────────────────────────────────
-  static ComponentPrediction _analyzeBrakePads(
-    Bike bike,
-    bool isCity,
-    bool isMountain,
-  ) {
-    final kmSinceTuneUp = bike.lastTuneUp?.km ?? (bike.odometerKm > 0 ? (bike.odometerKm % 10000) : 0);
-    const baseIntervalKm = 10000;
-
-    double brakeMultiplier = 1.0;
-    if (isCity && isMountain) {
-      brakeMultiplier = 1.45;
-    } else if (isCity) {
-      brakeMultiplier = 1.25;
-    } else if (isMountain) {
-      brakeMultiplier = 1.25;
-    } else {
-      brakeMultiplier = 0.85;
-    }
-
-    final effectiveIntervalKm = (baseIntervalKm / brakeMultiplier).round();
-    final wearPercent = ((kmSinceTuneUp / effectiveIntervalKm) * 100).round().clamp(0, 100);
-    final remainingKm = max(0, effectiveIntervalKm - kmSinceTuneUp);
-
-    final ComponentStatus status;
-    if (wearPercent >= 80) {
-      status = ComponentStatus.overdue;
-    } else if (wearPercent >= 50) {
-      status = ComponentStatus.dueSoon;
-    } else {
-      status = ComponentStatus.ok;
-    }
-
-    final String reason;
-    if (isCity && isMountain) {
-      reason = 'Frequent urban stop-and-go braking and steep mountain descents accelerate pad wear.';
-    } else if (isCity) {
-      reason = 'Urban stop-and-go friction cycles accelerate lining wear ($kmSinceTuneUp km logged).';
-    } else if (isMountain) {
-      reason = 'High-thermal alpine descents elevate brake pad wear rate ($kmSinceTuneUp km logged).';
-    } else {
-      reason = 'Smooth highway touring braking profile across $kmSinceTuneUp km since last tune-up.';
-    }
-
-    return ComponentPrediction(
-      id: 'brake-pads',
-      name: 'Front Brake Pads',
-      subtitle: 'Sintered Metallic Compound',
-      wearPercent: wearPercent,
-      status: status,
-      reason: reason,
-      remainingKm: remainingKm,
-      remainingDays: (remainingKm / 35).round(),
-      diyGuideTitle: 'Brake Pad Thickness & Rotor Check',
-      diySteps: const [
-        'Shine a flashlight into the caliper inspection port to view remaining friction pad material.',
-        'Verify friction material is comfortably above backing plate minimums across both pads.',
-        'Inspect brake disc rotors for deep scoring, blue heat discoloration, or lip ridges.',
-        'Unbolt caliper retaining pins and slide out old brake pads.',
-        'Clean caliper pistons and sliding pins using isopropyl alcohol or dedicated brake cleaner.',
-        'Carefully push caliper pistons back into bores to allow clearance for new thick pads.',
-        'Install new pads, torque caliper mount bolts, and pump hand lever until firm pressure returns.',
-      ],
-    );
   }
 
   // ── Phase 3: Real Pattern Insights Computation ───────────────────────────

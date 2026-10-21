@@ -7,6 +7,7 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../maintenance/controllers/trip_budget_controller.dart';
 import '../../../maintenance/domain/expense_model.dart';
+import '../../../maintenance/domain/refill_calculator.dart';
 import '../../../settings/controllers/settings_controller.dart';
 import '../../controllers/active_bike_controller.dart';
 import '../../domain/bike_model.dart';
@@ -57,7 +58,8 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
   late final TextEditingController _pricePerLitreController;
   late final TextEditingController _totalPaidController;
 
-  bool _isRecalculating = false;
+  late final RefillCalculator _calculator;
+  bool _isUpdatingProgrammatically = false;
   bool _isFullTank = false;
   String? _errorMessage;
 
@@ -76,26 +78,36 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
     _showRefillSection = widget.initialExpense != null;
     _isFullTank = widget.initialExpense?.isFullTank ?? false;
 
+    final settingsPrice = SettingsController.instance.fuelPricePerLiter;
+    final hasSettingsPrice = settingsPrice != null && settingsPrice > 0;
+
     if (widget.initialExpense != null) {
       final exp = widget.initialExpense!;
       _litresController = TextEditingController(
-        text: exp.litres != null ? _formatNum(exp.litres!) : '',
+        text: exp.litres != null ? RefillCalculator.formatLitres(exp.litres!) : '',
       );
       _pricePerLitreController = TextEditingController(
-        text: exp.pricePerLitre != null ? _formatPrice(exp.pricePerLitre!) : '',
+        text: exp.pricePerLitre != null
+            ? RefillCalculator.formatPrice(exp.pricePerLitre!)
+            : (hasSettingsPrice ? RefillCalculator.formatPrice(settingsPrice) : ''),
       );
       _totalPaidController = TextEditingController(
         text: exp.amount > 0 ? exp.amount.round().toString() : '',
       );
+
+      _calculator = RefillCalculator();
+      if (exp.litres != null && exp.pricePerLitre != null) {
+        _calculator.initForExisting();
+      } else {
+        _calculator.initForExisting(hasAllThree: false);
+      }
     } else {
       _litresController = TextEditingController();
-      final settingsPrice = SettingsController.instance.fuelPricePerLiter;
       _pricePerLitreController = TextEditingController(
-        text: (settingsPrice != null && settingsPrice > 0)
-            ? _formatPrice(settingsPrice)
-            : '',
+        text: hasSettingsPrice ? RefillCalculator.formatPrice(settingsPrice) : '',
       );
       _totalPaidController = TextEditingController();
+      _calculator = RefillCalculator(prefilledPrice: hasSettingsPrice);
     }
   }
 
@@ -107,95 +119,50 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
     super.dispose();
   }
 
-  static String _formatPrice(double val) {
-    final rounded = double.parse(val.toStringAsFixed(2));
-    if (rounded.truncateToDouble() == rounded) {
-      return rounded.toInt().toString();
-    }
-    return rounded.toStringAsFixed(2);
-  }
-
-  static String _formatNum(double val) {
-    final rounded = double.parse(val.toStringAsFixed(2));
-    if (rounded.truncateToDouble() == rounded) {
-      return rounded.toInt().toString();
-    }
-    return rounded.toString();
-  }
-
   void _onLitresChanged(String val) {
-    if (_isRecalculating) return;
+    if (_isUpdatingProgrammatically) return;
     setState(() => _errorMessage = null);
-
-    final litres = double.tryParse(val.trim());
-    if (litres == null || litres <= 0) return;
-
-    final price = double.tryParse(_pricePerLitreController.text.trim());
-    final total = parsePkr(_totalPaidController.text.trim());
-
-    if (price != null && price > 0) {
-      _isRecalculating = true;
-      final computedTotal = (litres * price).roundToDouble();
-      _totalPaidController.text = computedTotal.round().toString();
-      _isRecalculating = false;
-      setState(() {});
-    } else if (total != null && total > 0) {
-      _isRecalculating = true;
-      final computedPrice = total / litres;
-      _pricePerLitreController.text = _formatPrice(computedPrice);
-      _isRecalculating = false;
-      setState(() {});
-    }
+    _calculator.registerEdit(RefillField.litres);
+    _applyCalculation();
   }
 
   void _onPriceChanged(String val) {
-    if (_isRecalculating) return;
+    if (_isUpdatingProgrammatically) return;
     setState(() => _errorMessage = null);
-
-    final price = double.tryParse(val.trim());
-    if (price == null || price <= 0) return;
-
-    final litres = double.tryParse(_litresController.text.trim());
-    final total = parsePkr(_totalPaidController.text.trim());
-
-    if (litres != null && litres > 0) {
-      _isRecalculating = true;
-      final computedTotal = (litres * price).roundToDouble();
-      _totalPaidController.text = computedTotal.round().toString();
-      _isRecalculating = false;
-      setState(() {});
-    } else if (total != null && total > 0) {
-      _isRecalculating = true;
-      final computedLitres = total / price;
-      _litresController.text = _formatNum(computedLitres);
-      _isRecalculating = false;
-      setState(() {});
-    }
+    _calculator.registerEdit(RefillField.price);
+    _applyCalculation();
   }
 
   void _onTotalPaidChanged(String val) {
-    if (_isRecalculating) return;
+    if (_isUpdatingProgrammatically) return;
     setState(() => _errorMessage = null);
+    _calculator.registerEdit(RefillField.total);
+    _applyCalculation();
+  }
 
-    final total = parsePkr(val.trim());
-    if (total == null || total <= 0) return;
+  void _applyCalculation() {
+    final result = _calculator.calculate(
+      litresText: _litresController.text,
+      priceText: _pricePerLitreController.text,
+      totalText: _totalPaidController.text,
+    );
 
-    final litres = double.tryParse(_litresController.text.trim());
-    final price = double.tryParse(_pricePerLitreController.text.trim());
-
-    if (litres != null && litres > 0) {
-      _isRecalculating = true;
-      final computedPrice = total / litres;
-      _pricePerLitreController.text = _formatPrice(computedPrice);
-      _isRecalculating = false;
-      setState(() {});
-    } else if (price != null && price > 0) {
-      _isRecalculating = true;
-      final computedLitres = total / price;
-      _litresController.text = _formatNum(computedLitres);
-      _isRecalculating = false;
-      setState(() {});
+    if (result.calculatedField != null) {
+      _isUpdatingProgrammatically = true;
+      switch (result.calculatedField!) {
+        case RefillField.litres:
+          _litresController.text = result.calculatedValue;
+          break;
+        case RefillField.price:
+          _pricePerLitreController.text = result.calculatedValue;
+          break;
+        case RefillField.total:
+          _totalPaidController.text = result.calculatedValue;
+          break;
+      }
+      _isUpdatingProgrammatically = false;
     }
+    setState(() {});
   }
 
   void _saveCurrentFuel() {
@@ -839,11 +806,11 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
                         if (litersNeeded > 0)
                           GestureDetector(
                             onTap: () {
-                              _litresController.text = _formatNum(litersNeeded);
+                              _litresController.text = RefillCalculator.formatLitres(litersNeeded);
                               _onLitresChanged(_litresController.text);
                             },
                             child: Text(
-                              'To Full (+${_formatNum(litersNeeded)} L)',
+                              'To Full (+${RefillCalculator.formatLitres(litersNeeded)} L)',
                               style: GoogleFonts.manrope(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w700,
@@ -873,6 +840,7 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
                     hint: '0',
                     suffix: 'L',
                     onChanged: _onLitresChanged,
+                    isCalculated: _calculator.calculatedField == RefillField.litres,
                   ),
 
                   const SizedBox(height: 14),
@@ -885,6 +853,7 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
                     prefix: 'Rs ',
                     suffix: '/ L',
                     onChanged: _onPriceChanged,
+                    isCalculated: _calculator.calculatedField == RefillField.price,
                   ),
 
                   const SizedBox(height: 14),
@@ -897,6 +866,7 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
                     prefix: 'Rs ',
                     suffix: 'PKR',
                     onChanged: _onTotalPaidChanged,
+                    isCalculated: _calculator.calculatedField == RefillField.total,
                   ),
 
                   const SizedBox(height: 14),
@@ -1005,7 +975,9 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
   Widget _quickLitersChip(String label, double val) {
     return GestureDetector(
       onTap: () {
-        _litresController.text = _formatNum(val);
+        final current = RefillCalculator.parsePositiveDouble(_litresController.text) ?? 0.0;
+        final newLitres = (current <= 0) ? val : current + val;
+        _litresController.text = RefillCalculator.formatLitres(newLitres);
         _onLitresChanged(_litresController.text);
       },
       child: Container(
@@ -1034,18 +1006,41 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
     required ValueChanged<String> onChanged,
     String? prefix,
     String? suffix,
+    bool isCalculated = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: GoogleFonts.manrope(
-            fontSize: 10.5,
-            fontWeight: FontWeight.w800,
-            color: AppColors.mutedText,
-            letterSpacing: 0.5,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: GoogleFonts.manrope(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+                color: isCalculated ? AppColors.tacticalOrange : AppColors.mutedText,
+                letterSpacing: 0.5,
+              ),
+            ),
+            if (isCalculated)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                decoration: BoxDecoration(
+                  color: AppColors.tacticalOrange.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'CALCULATED',
+                  style: GoogleFonts.manrope(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.tacticalOrange,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 5),
         Container(
@@ -1053,6 +1048,12 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(10),
+            border: isCalculated
+                ? Border.all(
+                    color: AppColors.tacticalOrange.withValues(alpha: 0.35),
+                    width: 1.2,
+                  )
+                : null,
             boxShadow: AppColors.skeuInset,
           ),
           child: Row(
@@ -1091,7 +1092,9 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: AppColors.clay,
+                    color: isCalculated
+                        ? AppColors.tacticalOrange.withValues(alpha: 0.12)
+                        : AppColors.clay,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -1099,7 +1102,9 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
                     style: GoogleFonts.manrope(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.darkCharcoal,
+                      color: isCalculated
+                          ? AppColors.tacticalOrange
+                          : AppColors.darkCharcoal,
                     ),
                   ),
                 ),

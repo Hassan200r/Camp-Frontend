@@ -6,8 +6,11 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/camp_card.dart';
 import '../../../../core/widgets/inset_tile.dart';
 import '../../../garage/domain/bike_model.dart';
+import '../../controllers/maintenance_controller.dart';
 import '../../controllers/post_ride_report_controller.dart';
 import '../../domain/maintenance_prediction_engine.dart';
+import '../screens/service_schedule_screen.dart';
+import 'mark_service_done_dialog.dart';
 
 /// Tab 1 — Maintenance Health Index, component wear analysis, and pattern
 /// intelligence. All values are computed deterministically from user-entered
@@ -28,45 +31,104 @@ class DiagnosticsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final reports = PostRideReportController.instance.getReportsForBike(bike.id);
-    final assessment = MaintenancePredictionEngine.analyze(
-      bike: bike,
-      rideReports: reports,
-    );
+    return ListenableBuilder(
+      listenable: MaintenanceController.instance,
+      builder: (context, _) {
+        final reports = PostRideReportController.instance.getReportsForBike(bike.id);
+        final assessment = MaintenancePredictionEngine.analyze(
+          bike: bike,
+          rideReports: reports,
+        );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── 1. Maintenance Health Index Card ──────────────────────────────
-        _buildHealthIndexCard(assessment),
-        const SizedBox(height: 18),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── 1. Maintenance Health Index Card ──────────────────────────────
+            _buildHealthIndexCard(assessment),
+            const SizedBox(height: 14),
 
-        // ── 2. Component Analysis & Wear Section ──────────────────────────
-        Text(
-          'COMPONENT ANALYSIS & WEAR',
-          style: GoogleFonts.manrope(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w800,
-            color: AppColors.mutedText,
-            letterSpacing: 0.8,
-          ),
-        ),
-        const SizedBox(height: 10),
+            // ── 1b. Service Schedule Setup Entry ──────────────────────────────
+            CampCard(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: InkWell(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => ServiceScheduleScreen(bikeId: bike.id),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(AppColors.radiusCard),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_month_rounded,
+                      color: AppColors.tacticalOrange,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Service Schedule',
+                            style: GoogleFonts.manrope(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.darkCharcoal,
+                            ),
+                          ),
+                          Text(
+                            'Set service intervals & riding conditions',
+                            style: GoogleFonts.manrope(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.mutedText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.mutedLight,
+                      size: 20,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
 
-        ...assessment.components.map((component) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _buildComponentCard(context, component),
-            )),
+            // ── 2. Component Analysis & Wear Section ──────────────────────────
+            Text(
+              'COMPONENT ANALYSIS & WEAR',
+              style: GoogleFonts.manrope(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+                color: AppColors.mutedText,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 10),
 
-        const SizedBox(height: 10),
+            ...assessment.components.map((component) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildComponentCard(context, component),
+                )),
 
-        // ── 3. CAMP Predictive Intelligence Section ────────────────────────
-        _buildPredictiveIntelligenceSection(assessment),
-        const SizedBox(height: 16),
+            const SizedBox(height: 10),
 
-        // ── 4. Finances & Rig Health Banner ───────────────────────────────
-        _buildFinancesBanner(context),
-      ],
+            // ── 3. CAMP Predictive Intelligence Section ────────────────────────
+            _buildPredictiveIntelligenceSection(assessment),
+            const SizedBox(height: 16),
+
+            // ── 4. Finances & Rig Health Banner ───────────────────────────────
+            _buildFinancesBanner(context),
+          ],
+        );
+      },
     );
   }
 
@@ -289,28 +351,62 @@ class DiagnosticsTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => _showDiyGuide(context, component),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'View DIY Guide >',
-                      style: GoogleFonts.manrope(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.tacticalOrangeDark,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  side: const BorderSide(color: AppColors.clayDark),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppColors.radiusPill),
+                  ),
+                ),
+                icon: const Icon(Icons.check_circle_outline_rounded,
+                    size: 14, color: AppColors.statusGreen),
+                label: Text(
+                  'Mark Done',
+                  style: GoogleFonts.manrope(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.darkCharcoal,
+                  ),
+                ),
+                onPressed: () {
+                  final scheduleItems =
+                      MaintenanceController.instance.getScheduleItems(bike.id);
+                  final item = scheduleItems.firstWhere(
+                    (i) =>
+                        i.id == component.id ||
+                        i.type.displayName == component.name,
+                    orElse: () => scheduleItems.first,
+                  );
+                  MarkServiceDoneDialog.show(context, bike: bike, item: item);
+                },
+              ),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _showDiyGuide(context, component),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'View DIY Guide >',
+                        style: GoogleFonts.manrope(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.tacticalOrangeDark,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ],
       ),

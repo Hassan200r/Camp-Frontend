@@ -24,6 +24,7 @@ import 'features/maintenance/controllers/service_visit_controller.dart';
 import 'features/maintenance/controllers/trip_budget_controller.dart';
 import 'features/maintenance/presentation/screens/finance_rig_health_screen.dart';
 import 'features/maintenance/presentation/screens/maintenance_screen.dart';
+import 'features/maintenance/presentation/screens/service_schedule_screen.dart';
 import 'features/mechanics/controllers/mechanic_controller.dart';
 import 'features/mechanics/domain/mechanic_model.dart';
 import 'features/mechanics/presentation/screens/add_mechanic_screen.dart';
@@ -134,6 +135,10 @@ class _CampAppState extends State<CampApp> with WidgetsBindingObserver {
         CampRoutes.rideHistory: (context) => const RideHistoryScreen(),
         CampRoutes.financeRigHealth: (context) => const FinanceRigHealthScreen(),
         CampRoutes.maintenance: (context) => const MaintenanceScreen(),
+        CampRoutes.serviceSchedule: (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          return ServiceScheduleScreen(bikeId: args is String ? args : null);
+        },
         CampRoutes.predictiveMaintenance: (context) =>
             const MaintenanceScreen(initialTab: MaintenanceTab.diagnostics),
         CampRoutes.carburetorTuning: (context) =>

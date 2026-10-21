@@ -26,6 +26,7 @@ abstract final class CampRoutes {
   static const String rideHistory = '/ride-history';
   static const String financeRigHealth = '/finance-rig-health';
   static const String maintenance = '/maintenance';
+  static const String serviceSchedule = '/service-schedule';
   static const String predictiveMaintenance = '/predictive-maintenance';
   static const String carburetorTuning = '/carburetor-tuning';
   static const String settings = '/settings';
@@ -59,6 +60,7 @@ abstract final class CampRoutes {
     rideHistory,
     financeRigHealth,
     maintenance,
+    serviceSchedule,
     predictiveMaintenance,
     carburetorTuning,
     settings,

@@ -1,4 +1,5 @@
 import '../../features/maintenance/domain/maintenance_item_model.dart';
+import '../../features/maintenance/domain/service_schedule_item.dart';
 import '../storage/local_store.dart';
 import 'maintenance_repository.dart';
 
@@ -67,6 +68,68 @@ class MaintenanceRepositoryLocal implements MaintenanceRepository {
   }
 
   @override
+  Future<List<ServiceScheduleItem>> loadServiceSchedule(String bikeId) async {
+    final json = await _store.readJson(LocalStore.keyServiceSchedule);
+    if (json is! Map) return [];
+    final list = json[bikeId];
+    if (list is! List) return [];
+    return list
+        .whereType<Map<dynamic, dynamic>>()
+        .map((m) => ServiceScheduleItem.fromJson(
+            Map<String, dynamic>.from(m)))
+        .toList();
+  }
+
+  @override
+  Future<void> saveServiceSchedule(
+      String bikeId, List<ServiceScheduleItem> items) async {
+    final raw = await _store.readJson(LocalStore.keyServiceSchedule);
+    final map = raw is Map
+        ? Map<String, dynamic>.from(raw)
+        : <String, dynamic>{};
+    final now = DateTime.now().toUtc();
+    final updated = items.map((ServiceScheduleItem item) {
+      return item.copyWith(
+        id: item.effectiveId,
+        createdAt: item.effectiveCreatedAt,
+        updatedAt: now,
+      );
+    }).toList();
+    map[bikeId] = updated.map((ServiceScheduleItem i) => i.toJson()).toList();
+    await _store.writeJson(LocalStore.keyServiceSchedule, map);
+  }
+
+  @override
+  Future<bool> loadHarshConditions(String bikeId) async {
+    final json = await _store.readJson(LocalStore.keyHarshConditions);
+    if (json is Map && json[bikeId] is bool) {
+      return json[bikeId] as bool;
+    }
+    return false;
+  }
+
+  @override
+  Future<void> saveHarshConditions(String bikeId, bool isHarsh) async {
+    final raw = await _store.readJson(LocalStore.keyHarshConditions);
+    final map = raw is Map
+        ? (raw is Map<String, dynamic> ? raw : raw.cast<String, dynamic>())
+        : <String, dynamic>{};
+    map[bikeId] = isHarsh;
+    await _store.writeJson(LocalStore.keyHarshConditions, map);
+  }
+
+  @override
+  Future<void> deleteServiceSchedule(String bikeId) async {
+    final raw = await _store.readJson(LocalStore.keyServiceSchedule);
+    if (raw is Map) {
+      final map =
+          raw is Map<String, dynamic> ? raw : raw.cast<String, dynamic>();
+      map.remove(bikeId);
+      await _store.writeJson(LocalStore.keyServiceSchedule, map);
+    }
+  }
+
+  @override
   Future<Map<String, dynamic>?> loadJettingBaseline() async {
     final json = await _store.readJson(LocalStore.keyJettingBaseline);
     if (json is Map) {
@@ -98,6 +161,8 @@ class MaintenanceRepositoryLocal implements MaintenanceRepository {
   @override
   Future<void> clear() async {
     await _store.writeJson(LocalStore.keyMaintenanceItems, null);
+    await _store.writeJson(LocalStore.keyServiceSchedule, null);
+    await _store.writeJson(LocalStore.keyHarshConditions, null);
     await _store.writeJson(LocalStore.keyJettingBaseline, null);
     await _store.writeJson(LocalStore.keyChecklist, null);
   }

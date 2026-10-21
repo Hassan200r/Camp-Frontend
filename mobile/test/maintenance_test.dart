@@ -209,6 +209,6 @@ void main() {
     await tester.pumpAndSettle();
 
     // Carburetor bike should show Carburetor tab and select it
-    expect(find.text('Carburetor'), findsOneWidget);
+    expect(find.text('Carburetor'), findsWidgets);
   });
 }

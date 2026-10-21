@@ -10,11 +10,13 @@ import 'package:camp/features/dashboard/presentation/widgets/maintenance_alert_c
 import 'package:camp/features/dashboard/presentation/widgets/recent_updates_feed_widget.dart';
 import 'package:camp/features/garage/controllers/active_bike_controller.dart';
 import 'package:camp/features/garage/domain/bike_model.dart';
+import 'package:camp/features/maintenance/controllers/maintenance_controller.dart';
 import 'package:camp/features/maintenance/controllers/post_ride_report_controller.dart';
 import 'package:camp/features/maintenance/controllers/service_visit_controller.dart';
 import 'package:camp/features/maintenance/controllers/trip_budget_controller.dart';
 import 'package:camp/features/maintenance/domain/expense_model.dart';
 import 'package:camp/features/maintenance/domain/post_ride_report.dart';
+import 'package:camp/features/maintenance/domain/service_schedule_item.dart';
 import 'package:camp/features/mechanics/controllers/mechanic_controller.dart';
 import 'package:camp/features/mechanics/domain/mechanic_model.dart';
 import 'package:camp/features/settings/controllers/settings_controller.dart';
@@ -27,13 +29,15 @@ void main() {
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
-    LocalStore.instance.resetForTesting();
+    final prefs = await SharedPreferences.getInstance();
+    LocalStore.instance.resetForTesting(prefs);
     ActiveBikeController.instance.resetForTesting();
     PostRideReportController.instance.resetForTesting();
     TripBudgetController.instance.resetForTesting();
     ServiceVisitController.instance.resetForTesting();
     MechanicController.instance.resetForTesting();
     SettingsController.instance.resetForTesting();
+    MaintenanceController.instance.resetForTesting();
     WeatherProvider.mockService = null;
   });
 
@@ -95,6 +99,19 @@ void main() {
         ),
       );
       ActiveBikeController.instance.addBike(okBike, setActive: true);
+      MaintenanceController.instance.setSchedule(
+        okBike.id,
+        [
+          const ServiceScheduleItem(
+            id: 'oil-ok',
+            bikeId: 'bike-ok',
+            type: ServiceItemType.oilAndSmallService,
+            intervalKm: 5000,
+            lastDoneKm: 450,
+            enabled: true,
+          ),
+        ],
+      );
 
       await tester.pumpWidget(
         const MaterialApp(
@@ -112,7 +129,7 @@ void main() {
     });
 
     testWidgets('Displays DUE SOON alert when an item is near service interval', (tester) async {
-      // Bike at 3200 km since oil change (50% - 80% wear on 5000 km interval)
+      // Bike at 3200 km on a 3500 km interval (91.4% wear -> DUE SOON, due in 300 km)
       const dueSoonBike = Bike(
         id: 'bike-due-soon',
         make: 'KTM',
@@ -125,6 +142,19 @@ void main() {
         ),
       );
       ActiveBikeController.instance.addBike(dueSoonBike, setActive: true);
+      MaintenanceController.instance.setSchedule(
+        dueSoonBike.id,
+        [
+          const ServiceScheduleItem(
+            id: 'oil-due-soon',
+            bikeId: 'bike-due-soon',
+            type: ServiceItemType.oilAndSmallService,
+            intervalKm: 3500,
+            lastDoneKm: 0,
+            enabled: true,
+          ),
+        ],
+      );
 
       await tester.pumpWidget(
         const MaterialApp(
@@ -154,6 +184,19 @@ void main() {
         ),
       );
       ActiveBikeController.instance.addBike(overdueBike, setActive: true);
+      MaintenanceController.instance.setSchedule(
+        overdueBike.id,
+        [
+          const ServiceScheduleItem(
+            id: 'oil-overdue',
+            bikeId: 'bike-overdue',
+            type: ServiceItemType.oilAndSmallService,
+            intervalKm: 5000,
+            lastDoneKm: 0,
+            enabled: true,
+          ),
+        ],
+      );
 
       await tester.pumpWidget(
         const MaterialApp(
@@ -180,6 +223,19 @@ void main() {
         lastOilChange: ServiceRecord(mode: TrackingMode.byDistance, km: 5500),
       );
       ActiveBikeController.instance.addBike(overdueBike, setActive: true);
+      MaintenanceController.instance.setSchedule(
+        overdueBike.id,
+        [
+          const ServiceScheduleItem(
+            id: 'oil-overdue',
+            bikeId: 'bike-overdue',
+            type: ServiceItemType.oilAndSmallService,
+            intervalKm: 5000,
+            lastDoneKm: 0,
+            enabled: true,
+          ),
+        ],
+      );
 
       await tester.pumpWidget(
         MaterialApp(
@@ -237,6 +293,19 @@ void main() {
         ),
       );
       ActiveBikeController.instance.addBike(dueSoonBike, setActive: true);
+      MaintenanceController.instance.setSchedule(
+        dueSoonBike.id,
+        [
+          const ServiceScheduleItem(
+            id: 'oil-due-soon',
+            bikeId: 'bike-due-soon',
+            type: ServiceItemType.oilAndSmallService,
+            intervalKm: 3500,
+            lastDoneKm: 0,
+            enabled: true,
+          ),
+        ],
+      );
 
       await tester.pumpWidget(
         const MaterialApp(
@@ -250,7 +319,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('DUE SOON'), findsOneWidget);
-      expect(find.textContaining('in 1800 km'), findsOneWidget);
+      expect(find.textContaining('in 300 km'), findsOneWidget);
     });
   });
 
