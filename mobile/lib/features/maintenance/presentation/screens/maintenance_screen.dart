@@ -13,6 +13,7 @@ import '../widgets/carburetor_tab.dart';
 import '../widgets/diagnostics_tab.dart';
 import '../widgets/post_ride_tab.dart';
 import '../widgets/pre_ride_tab.dart';
+import 'post_ride_debrief_screen.dart';
 
 enum MaintenanceTab {
   diagnostics,
@@ -290,10 +291,11 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
           DiagnosticsTab(
             bike: bike,
             onSwitchToPostRide: () {
-              setState(() {
-                // Post-Ride tab index: 3 when carburetor present, else 2.
-                _selectedTabIndex = isCarburetor ? 3 : 2;
-              });
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => PostRideDebriefScreen(bikeId: bike.id),
+                ),
+              );
             },
           ),
           if (isCarburetor) CarburetorTab(bike: bike),

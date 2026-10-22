@@ -1,3 +1,4 @@
+import 'package:camp/features/dashboard/domain/profile_stats.dart';
 import 'package:camp/features/garage/controllers/active_bike_controller.dart';
 import 'package:camp/features/garage/domain/bike_model.dart';
 import 'package:camp/features/maintenance/controllers/maintenance_controller.dart';
@@ -5,8 +6,10 @@ import 'package:camp/features/maintenance/controllers/post_ride_report_controlle
 import 'package:camp/features/maintenance/domain/carburetor_guidance_table.dart';
 import 'package:camp/features/maintenance/domain/maintenance_prediction_engine.dart';
 import 'package:camp/features/maintenance/domain/post_ride_report.dart';
+import 'package:camp/features/maintenance/domain/service_schedule_engine.dart';
 import 'package:camp/features/maintenance/domain/service_schedule_item.dart';
 import 'package:camp/features/maintenance/presentation/screens/maintenance_screen.dart';
+import 'package:camp/features/maintenance/presentation/screens/post_ride_debrief_screen.dart';
 import 'package:camp/features/maintenance/presentation/widgets/carburetor_tab.dart';
 import 'package:camp/features/maintenance/presentation/widgets/post_ride_tab.dart';
 import 'package:flutter/material.dart';
@@ -319,7 +322,7 @@ void main() {
 
       // 7. Finances & Rig Health Banner
       expect(
-        find.textContaining('Estimated replacement parts costs and lifecycle budgets are managed separately in Finances & Rig Health.'),
+        find.textContaining('Parts costs and budgets are tracked in Finances & Rig Health.'),
         findsOneWidget,
       );
       expect(find.text('View →'), findsOneWidget);
@@ -381,7 +384,7 @@ void main() {
       expect(find.textContaining('items checked'), findsOneWidget);
     });
 
-    testWidgets('Post-Ride tab allows entering debrief and saving report',
+    testWidgets('Post-Ride tab shows history and "Log a ride" button with no inline form',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 4000);
       tester.view.devicePixelRatio = 1.0;
@@ -398,17 +401,26 @@ void main() {
       await tester.tap(find.text('Post-Ride'));
       await tester.pumpAndSettle();
 
-      expect(find.text('LOG POST-RIDE REPORT'), findsOneWidget);
+      // Verify no inline form exists on PostRideTab
+      expect(find.descendant(of: find.byType(PostRideTab), matching: find.byType(TextField)), findsNothing);
       expect(find.text('EXPEDITION LOG HISTORY (5)'), findsOneWidget);
+      expect(find.text('Log a ride'), findsOneWidget);
 
-      // Enter distance
+      // Tap "Log a ride" button to open the PostRideDebriefScreen
+      await tester.tap(find.text('Log a ride'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PostRideDebriefScreen), findsOneWidget);
+
+      // Enter distance and save
       await tester.enterText(find.byType(TextField).first, '120');
       await tester.pumpAndSettle();
 
-      // Tap Save Post-Ride Report
       await tester.tap(find.text('Save Post-Ride Report'));
       await tester.pumpAndSettle();
 
+      // Returned to MaintenanceScreen with updated history
+      expect(find.byType(PostRideDebriefScreen), findsNothing);
       expect(find.text('EXPEDITION LOG HISTORY (6)'), findsOneWidget);
       expect(find.text('120 km'), findsOneWidget);
     });
@@ -836,17 +848,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('1 of 7 Done'), findsOneWidget);
 
-      // 3. Switch to Post-Ride tab (index 3) and enter distance
+      // 3. Switch to Post-Ride tab (index 3) and verify "Log a ride" is present
       await tester.tap(find.text('Post-Ride'));
       await tester.pumpAndSettle();
-
-      final distanceFinder = find.descendant(
-        of: find.byType(PostRideTab),
-        matching: find.byType(TextField),
-      ).first;
-      await tester.enterText(distanceFinder, '145.5');
-      await tester.pumpAndSettle();
-      expect(find.text('145.5'), findsOneWidget);
+      expect(find.text('Log a ride'), findsOneWidget);
+      expect(find.text('EXPEDITION LOG HISTORY (0)'), findsOneWidget);
 
       // 4. Switch back to Diagnostics tab (index 0)
       await tester.tap(find.text('Diagnostics'));
@@ -863,10 +869,362 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('1 of 7 Done'), findsOneWidget);
 
-      // 7. Switch back to Post-Ride tab — '145.5' distance must STILL be there!
+      // 7. Switch back to Post-Ride tab — "Log a ride" must STILL be there!
       await tester.tap(find.text('Post-Ride'));
       await tester.pumpAndSettle();
-      expect(find.text('145.5'), findsOneWidget);
+      expect(find.text('Log a ride'), findsOneWidget);
+      expect(find.text('EXPEDITION LOG HISTORY (0)'), findsOneWidget);
+    });
+  });
+
+  group('Post-Ride Debrief Button & Screen Tests', () {
+    testWidgets('Tapping "Log Post-Ride Debrief" opens form screen, saving adds report and updates predictive card, history, and Profile stats',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 4000);
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      // Ensure active bike has 0 reports
+      final activeBike = ActiveBikeController.instance.activeBike!;
+      PostRideReportController.instance.clearReportsForBike(activeBike.id);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: MaintenanceScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify the predictive card shows empty state with honest computation text
+      expect(find.text('Log a few rides to unlock pattern insights.'), findsOneWidget);
+      expect(
+        find.text(
+          'After logging at least 3 post-ride reports, CAMP summarizes your ride distance, terrain mix, and average km per day.',
+        ),
+        findsOneWidget,
+      );
+      final debriefBtn = find.text('Log Post-Ride Debrief');
+      expect(debriefBtn, findsOneWidget);
+
+      // Initial profile stats before saving
+      final initialStats = ProfileStats(PostRideReportController.instance.reports);
+      expect(initialStats.ridesCount, equals(0));
+      expect(initialStats.lifetimeDistanceKm, equals(0.0));
+
+      // Tap the button
+      await tester.tap(debriefBtn);
+      await tester.pumpAndSettle();
+
+      // Verify PostRideDebriefScreen is pushed
+      expect(find.byType(PostRideDebriefScreen), findsOneWidget);
+      expect(find.text('POST-RIDE DEBRIEF'), findsWidgets);
+      expect(find.text('DISTANCE COVERED (KM) *'), findsOneWidget);
+
+      // Verify inputs are initially empty (no pre-filled defaults)
+      final textFields = find.byType(TextField);
+      expect(textFields, findsNWidgets(3)); // distance, duration, notes
+
+      // Enter distance in km (required, > 0)
+      await tester.enterText(textFields.at(0), '175.5');
+      // Enter duration (optional)
+      await tester.enterText(textFields.at(1), '3.5');
+      // Enter notes (optional)
+      await tester.enterText(textFields.at(2), 'Alpine gravel expedition with rocky passes');
+
+      // Tap Save
+      final saveBtn = find.text('Save Post-Ride Report');
+      expect(saveBtn, findsOneWidget);
+      await tester.tap(saveBtn);
+      await tester.pumpAndSettle();
+
+      // Screen popped back to MaintenanceScreen without leaving
+      expect(find.byType(PostRideDebriefScreen), findsNothing);
+      expect(find.byType(MaintenanceScreen), findsOneWidget);
+
+      // Verify the report was added to PostRideReportController
+      final reports = PostRideReportController.instance.getReportsForBike(activeBike.id);
+      expect(reports.length, equals(1));
+      expect(reports.first.distanceKm, equals(175.5));
+      expect(reports.first.durationHours, equals(3.5));
+      expect(reports.first.notes, equals('Alpine gravel expedition with rocky passes'));
+
+      // Verify Profile stats updated immediately
+      final updatedStats = ProfileStats(PostRideReportController.instance.reports);
+      expect(updatedStats.ridesCount, equals(1));
+      expect(updatedStats.lifetimeDistanceKm, equals(175.5));
+
+      // With only 1 report, predictive card still prompts for more
+      expect(find.text('Log a few rides to unlock pattern insights.'), findsOneWidget);
+
+      // Add 2 more reports to reach 3 total
+      PostRideReportController.instance.addReport(
+        PostRideReport(
+          id: 'rep-extra-1',
+          bikeId: activeBike.id,
+          date: DateTime.now().subtract(const Duration(days: 2)),
+          distanceKm: 120.0,
+          terrainTags: const ['Off-road'],
+        ),
+      );
+      PostRideReportController.instance.addReport(
+        PostRideReport(
+          id: 'rep-extra-2',
+          bikeId: activeBike.id,
+          date: DateTime.now().subtract(const Duration(days: 1)),
+          distanceKm: 95.0,
+          terrainTags: const ['Off-road', 'Mountain'],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Now with 3 reports, the "Log a few rides" placeholder is gone and insights are unlocked
+      expect(find.text('Log a few rides to unlock pattern insights.'), findsNothing);
+      expect(find.text('CAMP PREDICTIVE INTELLIGENCE'), findsOneWidget);
+    });
+
+    testWidgets('Post-Ride Debrief screen stores selected terrain chips and verifies wording',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 4000);
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final activeBike = ActiveBikeController.instance.activeBike!;
+      PostRideReportController.instance.clearReportsForBike(activeBike.id);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PostRideDebriefScreen(bikeId: activeBike.id),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Check debrief screen subtitle
+      expect(
+        find.text(
+          'Record your real ride. Logged rides feed your riding history, Profile stats and predicted service dates.',
+        ),
+        findsOneWidget,
+      );
+
+      // Check renamed notes field label
+      expect(
+        find.text('Trail observations / flagged symptoms (optional)'),
+        findsOneWidget,
+      );
+
+      // Verify terrain chips are present
+      expect(find.text('City'), findsOneWidget);
+      expect(find.text('Highway'), findsOneWidget);
+      expect(find.text('Off-road'), findsOneWidget);
+      expect(find.text('Mountain'), findsOneWidget);
+
+      // Toggle 'Off-road' and 'Mountain'
+      await tester.tap(find.text('Off-road'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Mountain'));
+      await tester.pumpAndSettle();
+
+      // Enter distance and notes
+      final textFields = find.byType(TextField);
+      await tester.enterText(textFields.at(0), '210.0'); // distance
+      await tester.enterText(textFields.at(1), '4.5'); // duration
+      await tester.enterText(textFields.at(2), 'Pass ascent with rocky switchbacks'); // notes
+
+      // Save report
+      await tester.tap(find.text('Save Post-Ride Report'));
+      await tester.pumpAndSettle();
+
+      final reports = PostRideReportController.instance.getReportsForBike(activeBike.id);
+      expect(reports.length, equals(1));
+      expect(reports.first.distanceKm, equals(210.0));
+      expect(reports.first.terrainTags, containsAll(['Off-road', 'Mountain']));
+      expect(reports.first.notes, equals('Pass ascent with rocky switchbacks'));
+    });
+
+    testWidgets('Post-Ride tab "Clear Logs" shows confirmation dialog before deleting logs',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 4000);
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: MaintenanceScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Switch to Post-Ride tab (active bike starts with seeded reports)
+      await tester.tap(find.text('Post-Ride'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Clear Logs'), findsOneWidget);
+
+      // Tap "Clear Logs"
+      await tester.tap(find.text('Clear Logs'));
+      await tester.pumpAndSettle();
+
+      // Verify dialog is shown with exact warning text
+      expect(find.text('Clear Expedition Logs?'), findsOneWidget);
+      expect(
+        find.textContaining(
+          'deletes the saved ride reports and will change Profile stats and the predicted service dates',
+        ),
+        findsOneWidget,
+      );
+
+      // Tap Cancel -> Reports must not be deleted
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Clear Expedition Logs?'), findsNothing);
+      expect(find.text('EXPEDITION LOG HISTORY (5)'), findsOneWidget);
+
+      // Tap "Clear Logs" again and Confirm
+      await tester.tap(find.text('Clear Logs'));
+      await tester.pumpAndSettle();
+
+      // Tap dialog Clear Logs button
+      await tester.tap(find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Clear Logs'),
+      ));
+      await tester.pumpAndSettle();
+
+      // History cleared!
+      expect(find.text('EXPEDITION LOG HISTORY (0)'), findsOneWidget);
+      expect(find.textContaining('No post-ride reports logged yet'), findsOneWidget);
+    });
+  });
+
+  group('Service Schedule: "Interval configured" and "Not set up" tests', () {
+    test('On a fresh bike with nothing entered, all items evaluate to "Not set up"', () {
+      const freshBike = Bike(
+        id: 'bike-fresh-test',
+        make: 'Yamaha',
+        modelName: 'Tenere 700',
+        modelYear: 2024,
+        odometerKm: 2500,
+      );
+
+      final items = MaintenanceController.instance.getScheduleItems(freshBike.id);
+      expect(items, isNotEmpty);
+
+      // Verify nothing is pre-filled
+      for (final item in items) {
+        expect(item.intervalKm, isNull, reason: 'Interval km should be null for unconfigured item');
+        expect(item.intervalMonths, isNull, reason: 'Interval months should be null for unconfigured item');
+        expect(item.hasInterval, isFalse);
+
+        final prediction = ServiceScheduleEngine.evaluateItem(
+          item: item,
+          currentOdometerKm: freshBike.odometerKm.toDouble(),
+          isHarshConditions: false,
+          recentReports: const [],
+        );
+
+        expect(prediction.scheduleStatus, equals(ScheduleItemStatus.notSetUp));
+        expect(prediction.displaySubtitle, equals('Not set up'));
+      }
+
+      // In MaintenancePredictionEngine, all components show "Not set up"
+      final assessment = MaintenancePredictionEngine.analyze(
+        bike: freshBike,
+        rideReports: const [],
+      );
+
+      for (final comp in assessment.components) {
+        expect(comp.scheduleStatus, equals(ScheduleItemStatus.notSetUp));
+        expect(comp.statusBadgeText, equals('Not set up'));
+        expect(comp.reason, contains('Service schedule not set up'));
+      }
+    });
+
+    test('Item shows "Interval configured" ONLY when rider entered an interval without last done', () {
+      const bike = Bike(
+        id: 'bike-interval-test',
+        make: 'KTM',
+        modelName: '390 Adventure',
+        modelYear: 2023,
+        odometerKm: 4200,
+      );
+
+      // Unconfigured item
+      const unconfigured = ServiceScheduleItem(
+        id: 'item-oil',
+        bikeId: 'bike-interval-test',
+        type: ServiceItemType.oilAndSmallService,
+      );
+      final unconfiguredPred = ServiceScheduleEngine.evaluateItem(
+        item: unconfigured,
+        currentOdometerKm: bike.odometerKm.toDouble(),
+        isHarshConditions: false,
+        recentReports: const [],
+      );
+      expect(unconfiguredPred.scheduleStatus, equals(ScheduleItemStatus.notSetUp));
+      expect(unconfiguredPred.displaySubtitle, equals('Not set up'));
+
+      // Configured interval without last-done
+      final configured = unconfigured.copyWith(intervalKm: 3000);
+      final configuredPred = ServiceScheduleEngine.evaluateItem(
+        item: configured,
+        currentOdometerKm: bike.odometerKm.toDouble(),
+        isHarshConditions: false,
+        recentReports: const [],
+      );
+      expect(configuredPred.scheduleStatus, equals(ScheduleItemStatus.addLastDone));
+      expect(configuredPred.displaySubtitle, equals('Interval configured'));
+
+      // Set schedule in controller and analyze
+      MaintenanceController.instance.setSchedule(bike.id, [configured]);
+      final assessment = MaintenancePredictionEngine.analyze(
+        bike: bike,
+        rideReports: const [],
+      );
+      expect(assessment.components.first.scheduleStatus, equals(ScheduleItemStatus.addLastDone));
+      expect(assessment.components.first.statusBadgeText, equals('Interval configured'));
+      expect(assessment.components.first.reason, contains('Interval configured'));
+    });
+
+    testWidgets('MaintenanceScreen displays "Not set up" for all components on unconfigured bike, and "Interval configured" only after interval entered',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 4000);
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      const unconfiguredBike = Bike(
+        id: 'bike-widget-interval-check',
+        make: 'Suzuki',
+        modelName: 'DR650',
+        modelYear: 2022,
+        odometerKm: 8500,
+      );
+      ActiveBikeController.instance.addBike(unconfiguredBike);
+      ActiveBikeController.instance.setActiveBike(unconfiguredBike.id);
+      addTearDown(() {
+        ActiveBikeController.instance.removeBike(unconfiguredBike.id);
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: MaintenanceScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // On a fresh bike where nothing was entered, every component card shows 'Not set up'
+      // and NONE show 'Interval configured'
+      expect(find.text('Not set up'), findsWidgets);
+      expect(find.text('Interval configured'), findsNothing);
+
+      // Now configure an interval for Engine Oil & Small Service ONLY without last-done
+      final items = MaintenanceController.instance.getScheduleItems(unconfiguredBike.id);
+      final oilItem = items.firstWhere((i) => i.type == ServiceItemType.oilAndSmallService);
+      final updatedOilItem = oilItem.copyWith(intervalKm: 2500);
+
+      MaintenanceController.instance.setSchedule(unconfiguredBike.id, [updatedOilItem]);
+      await tester.pumpAndSettle();
+
+      // Exactly ONE item shows 'Interval configured', and remaining components still show 'Not set up'
+      expect(find.text('Interval configured'), findsOneWidget);
+      expect(find.text('Not set up'), findsWidgets);
+      expect(find.textContaining('Interval configured. Add last done reading'), findsOneWidget);
     });
   });
 }

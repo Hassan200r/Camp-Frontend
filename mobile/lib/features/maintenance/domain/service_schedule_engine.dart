@@ -65,7 +65,7 @@ class ServiceSchedulePrediction {
       case ScheduleItemStatus.notSetUp:
         return 'Not set up';
       case ScheduleItemStatus.addLastDone:
-        return 'Add last done';
+        return 'Interval configured';
       case ScheduleItemStatus.overdue:
         if (remainingKm != null && remainingKm! <= 0) {
           final over = remainingKm!.abs();

@@ -9,6 +9,8 @@ import '../../../garage/domain/bike_model.dart';
 import '../../controllers/maintenance_controller.dart';
 import '../../controllers/post_ride_report_controller.dart';
 import '../../domain/maintenance_prediction_engine.dart';
+import '../../domain/service_schedule_item.dart';
+import '../screens/post_ride_debrief_screen.dart';
 import '../screens/service_schedule_screen.dart';
 import 'mark_service_done_dialog.dart';
 
@@ -19,20 +21,23 @@ import 'mark_service_done_dialog.dart';
 class DiagnosticsTab extends StatelessWidget {
   const DiagnosticsTab({
     required this.bike,
-    required this.onSwitchToPostRide,
+    this.onSwitchToPostRide,
     super.key,
   });
 
   final Bike bike;
 
-  /// Callback invoked when the user taps "Log Post-Ride Debrief" in the
-  /// empty-state banner (switches the parent's tab index to Post-Ride).
-  final VoidCallback onSwitchToPostRide;
+  /// Optional callback invoked when the user taps "Log Post-Ride Debrief".
+  /// If null, pushes [PostRideDebriefScreen].
+  final VoidCallback? onSwitchToPostRide;
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: MaintenanceController.instance,
+      listenable: Listenable.merge([
+        MaintenanceController.instance,
+        PostRideReportController.instance,
+      ]),
       builder: (context, _) {
         final reports = PostRideReportController.instance.getReportsForBike(bike.id);
         final assessment = MaintenancePredictionEngine.analyze(
@@ -121,7 +126,7 @@ class DiagnosticsTab extends StatelessWidget {
             const SizedBox(height: 10),
 
             // ── 3. CAMP Predictive Intelligence Section ────────────────────────
-            _buildPredictiveIntelligenceSection(assessment),
+            _buildPredictiveIntelligenceSection(context, assessment),
             const SizedBox(height: 16),
 
             // ── 4. Finances & Rig Health Banner ───────────────────────────────
@@ -275,9 +280,19 @@ class DiagnosticsTab extends StatelessWidget {
         badgeTextColor = AppColors.tacticalOrangeDark;
         break;
       case ComponentStatus.ok:
-        dotColor = AppColors.statusGreen;
-        badgeBg = const Color(0xFFD1FAE5);
-        badgeTextColor = const Color(0xFF047857);
+        if (component.scheduleStatus == ScheduleItemStatus.notSetUp) {
+          dotColor = AppColors.mutedLight;
+          badgeBg = AppColors.clayDark;
+          badgeTextColor = AppColors.mutedText;
+        } else if (component.scheduleStatus == ScheduleItemStatus.addLastDone) {
+          dotColor = AppColors.tacticalOrange;
+          badgeBg = AppColors.tacticalOrange.withValues(alpha: 0.15);
+          badgeTextColor = AppColors.tacticalOrangeDark;
+        } else {
+          dotColor = AppColors.statusGreen;
+          badgeBg = const Color(0xFFD1FAE5);
+          badgeTextColor = const Color(0xFF047857);
+        }
         break;
     }
 
@@ -320,7 +335,7 @@ class DiagnosticsTab extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppColors.radiusPill),
                 ),
                 child: Text(
-                  '${component.wearPercent}% Wear',
+                  component.statusBadgeText,
                   style: GoogleFonts.manrope(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w800,
@@ -414,7 +429,7 @@ class DiagnosticsTab extends StatelessWidget {
   }
 
   // ── Predictive Intelligence Section ───────────────────────────────────────
-  Widget _buildPredictiveIntelligenceSection(MaintenanceAssessment assessment) {
+  Widget _buildPredictiveIntelligenceSection(BuildContext context, MaintenanceAssessment assessment) {
     return CampCard(
       padding: const EdgeInsets.all(16),
       borderRadius: AppColors.radiusCard,
@@ -523,7 +538,7 @@ class DiagnosticsTab extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'After logging at least 3 post-ride reports, CAMP analyzes your terrain history to highlight component wear factors.',
+                    'After logging at least 3 post-ride reports, CAMP summarizes your ride distance, terrain mix, and average km per day.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.manrope(
                       fontSize: 12,
@@ -535,7 +550,17 @@ class DiagnosticsTab extends StatelessWidget {
                   const SizedBox(height: 12),
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: onSwitchToPostRide,
+                    onTap: () {
+                      if (onSwitchToPostRide != null) {
+                        onSwitchToPostRide!();
+                      } else {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => PostRideDebriefScreen(bikeId: bike.id),
+                          ),
+                        );
+                      }
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
@@ -583,7 +608,7 @@ class DiagnosticsTab extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Estimated replacement parts costs and lifecycle budgets are managed separately in Finances & Rig Health.',
+                'Parts costs and budgets are tracked in Finances & Rig Health.',
                 style: GoogleFonts.manrope(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,

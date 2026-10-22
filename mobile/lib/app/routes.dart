@@ -29,6 +29,7 @@ abstract final class CampRoutes {
   static const String serviceSchedule = '/service-schedule';
   static const String predictiveMaintenance = '/predictive-maintenance';
   static const String carburetorTuning = '/carburetor-tuning';
+  static const String postRideDebrief = '/post-ride-debrief';
   static const String settings = '/settings';
   static const String emergencySos = '/emergency-sos';
   static const String emergencyQr = '/emergency-qr';
@@ -63,6 +64,7 @@ abstract final class CampRoutes {
     serviceSchedule,
     predictiveMaintenance,
     carburetorTuning,
+    postRideDebrief,
     settings,
     emergencySos,
     emergencyQr,

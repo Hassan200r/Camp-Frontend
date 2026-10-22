@@ -29,6 +29,7 @@ class ComponentPrediction {
     required this.diyGuideTitle,
     required this.diySteps,
     this.remainingDays,
+    this.scheduleStatus = ScheduleItemStatus.ok,
   });
 
   final String id;
@@ -41,9 +42,21 @@ class ComponentPrediction {
   final int? remainingDays;
   final String diyGuideTitle;
   final List<String> diySteps;
+  final ScheduleItemStatus scheduleStatus;
 
   /// Component health score (0-100, where 100 is brand new).
   int get healthScore => (100 - wearPercent).clamp(0, 100);
+
+  /// Status badge label for the component.
+  String get statusBadgeText {
+    if (scheduleStatus == ScheduleItemStatus.notSetUp) {
+      return 'Not set up';
+    }
+    if (scheduleStatus == ScheduleItemStatus.addLastDone) {
+      return 'Interval configured';
+    }
+    return '$wearPercent% Wear';
+  }
 }
 
 /// Explainable pattern insight derived from user-logged post-ride debriefs.
@@ -212,6 +225,7 @@ class MaintenancePredictionEngine {
       remainingDays: remainingDays,
       diyGuideTitle: guideData.$1,
       diySteps: guideData.$2,
+      scheduleStatus: sp.scheduleStatus,
     );
   }
 
