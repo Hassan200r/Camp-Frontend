@@ -130,7 +130,7 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
     });
   }
 
-  void _save() {
+  Future<void> _save() async {
     final shop = _shopNameCtrl.text.trim();
     if (shop.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -176,11 +176,12 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
           );
 
     if (widget.initialVisit != null) {
-      ServiceVisitController.instance.updateVisit(visit);
+      await ServiceVisitController.instance.updateVisit(visit);
     } else {
-      ServiceVisitController.instance.addVisit(visit);
+      await ServiceVisitController.instance.addVisit(visit);
     }
 
+    if (!mounted) return;
     Navigator.of(context).pop();
 
     ScaffoldMessenger.of(context).showSnackBar(

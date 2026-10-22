@@ -67,15 +67,28 @@ class ServiceSchedulePrediction {
       case ScheduleItemStatus.addLastDone:
         return 'Interval configured';
       case ScheduleItemStatus.overdue:
-        if (remainingKm != null && remainingKm! <= 0) {
-          final over = remainingKm!.abs();
-          return over == 0 ? 'Due now' : 'Overdue by $over km';
+        {
+          final kmOverdue = remainingKm != null && remainingKm! <= 0;
+          final daysOverdue = remainingDays != null && remainingDays! <= 0;
+          if (kmOverdue && daysOverdue) {
+            final overKm = remainingKm!.abs();
+            final overDays = remainingDays!.abs();
+            final parts = [
+              if (overKm > 0) '$overKm km',
+              if (overDays > 0) '$overDays ${overDays == 1 ? 'day' : 'days'}',
+            ];
+            return parts.isEmpty ? 'Overdue' : 'Overdue by ${parts.join(', ')}';
+          }
+          if (kmOverdue) {
+            final over = remainingKm!.abs();
+            return over == 0 ? 'Due now' : 'Overdue by $over km';
+          }
+          if (daysOverdue) {
+            final daysOver = remainingDays!.abs();
+            return daysOver == 0 ? 'Due today' : 'Overdue by $daysOver ${daysOver == 1 ? 'day' : 'days'}';
+          }
+          return 'Service overdue';
         }
-        if (remainingDays != null && remainingDays! <= 0) {
-          final daysOver = remainingDays!.abs();
-          return daysOver == 0 ? 'Due today' : 'Overdue by $daysOver days';
-        }
-        return 'Service overdue';
       case ScheduleItemStatus.dueSoon:
         if (remainingKm != null && remainingDays != null) {
           return 'Due in $remainingKm km or $remainingDays days';

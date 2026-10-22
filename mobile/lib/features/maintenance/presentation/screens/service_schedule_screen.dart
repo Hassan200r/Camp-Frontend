@@ -11,9 +11,10 @@ import '../../domain/service_schedule_item.dart';
 
 /// Screen allowing the rider to configure their own service schedule per bike.
 class ServiceScheduleScreen extends StatefulWidget {
-  const ServiceScheduleScreen({super.key, this.bikeId});
+  const ServiceScheduleScreen({super.key, this.bikeId, this.focusItemType});
 
   final String? bikeId;
+  final ServiceItemType? focusItemType;
 
   @override
   State<ServiceScheduleScreen> createState() => _ServiceScheduleScreenState();
@@ -24,6 +25,7 @@ class _ServiceScheduleScreenState extends State<ServiceScheduleScreen> {
   bool _isHarsh = false;
   bool _hasCarburetorOverride = false;
 
+  final Map<ServiceItemType, GlobalKey> _itemKeys = {};
   final Map<ServiceItemType, bool> _enabled = {};
   final Map<ServiceItemType, TextEditingController> _kmControllers = {};
   final Map<ServiceItemType, TextEditingController> _monthControllers = {};
@@ -35,6 +37,18 @@ class _ServiceScheduleScreenState extends State<ServiceScheduleScreen> {
     super.initState();
     _resolveBike();
     _loadState();
+    if (widget.focusItemType != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final key = _itemKeys[widget.focusItemType];
+        if (key?.currentContext != null) {
+          Scrollable.ensureVisible(
+            key!.currentContext!,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      });
+    }
   }
 
   void _resolveBike() {
@@ -394,6 +408,85 @@ class _ServiceScheduleScreenState extends State<ServiceScheduleScreen> {
     );
   }
 
+  String _formatKm(int km) {
+    final str = km.toString();
+    final reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+    return str.replaceAllMapped(reg, (Match m) => '${m[1]},');
+  }
+
+  String _getKmLabel(ServiceItemType type) {
+    switch (type) {
+      case ServiceItemType.oilAndSmallService:
+        return 'Change oil every (km)';
+      case ServiceItemType.oilFilter:
+        return 'Change oil filter every (km)';
+      case ServiceItemType.airFilter:
+        return 'Clean or replace every (km)';
+      case ServiceItemType.chain:
+        return 'Clean and lube every (km)';
+      case ServiceItemType.sparkPlug:
+        return 'Check or replace every (km)';
+      case ServiceItemType.tuning:
+        return 'Full tuning every (km)';
+      case ServiceItemType.brakes:
+        return 'Check brake pads every (km)';
+      case ServiceItemType.tyres:
+        return 'Check tyres every (km)';
+      case ServiceItemType.carburetor:
+        return 'Clean or adjust every (km)';
+      case ServiceItemType.battery:
+        return 'Check battery every (months)';
+    }
+  }
+
+  String _getKmHelperText(ServiceItemType type) {
+    switch (type) {
+      case ServiceItemType.oilAndSmallService:
+        return 'Distance between oil changes, e.g. 1,500 km';
+      case ServiceItemType.oilFilter:
+        return 'Distance between oil filter changes';
+      case ServiceItemType.airFilter:
+        return 'Distance between air filter services';
+      case ServiceItemType.chain:
+        return 'Distance between chain cleaning and lubing';
+      case ServiceItemType.sparkPlug:
+        return 'Distance between spark plug checks';
+      case ServiceItemType.tuning:
+        return 'Distance between full tune-ups, e.g. 10,000 km';
+      case ServiceItemType.brakes:
+        return 'Distance between brake checks';
+      case ServiceItemType.tyres:
+        return 'Distance between tyre checks';
+      case ServiceItemType.carburetor:
+        return 'Distance between carburetor services';
+      case ServiceItemType.battery:
+        return 'Time between battery checks';
+    }
+  }
+
+  String _getMonthsLabel(ServiceItemType type) {
+    switch (type) {
+      case ServiceItemType.oilAndSmallService:
+      case ServiceItemType.oilFilter:
+        return 'Or change every (months)';
+      case ServiceItemType.airFilter:
+        return 'Or clean or replace every (months)';
+      case ServiceItemType.chain:
+        return 'Or clean and lube every (months)';
+      case ServiceItemType.sparkPlug:
+        return 'Or check or replace every (months)';
+      case ServiceItemType.tuning:
+        return 'Or tune every (months)';
+      case ServiceItemType.brakes:
+      case ServiceItemType.tyres:
+        return 'Or check every (months)';
+      case ServiceItemType.carburetor:
+        return 'Or clean or adjust every (months)';
+      case ServiceItemType.battery:
+        return 'Check battery every (months)';
+    }
+  }
+
   Widget _buildItemCard(ServiceItemType type) {
     final enabled = _enabled[type] ?? true;
     final kmController = _kmControllers[type]!;
@@ -401,25 +494,25 @@ class _ServiceScheduleScreenState extends State<ServiceScheduleScreen> {
     final lastKmController = _lastDoneKmControllers[type]!;
     final lastDate = _lastDoneDates[type];
 
-    // Compute effective interval text transparently
+    // Compute effective interval text transparently for km field
     final rawKm = int.tryParse(kmController.text.trim());
-    final String? intervalInfoText;
-    if (rawKm != null && rawKm > 0) {
-      if (_isHarsh) {
-        final effectiveKm = (rawKm * 0.80).round();
-        intervalInfoText = '$rawKm km → $effectiveKm km (harsh conditions)';
-      } else {
-        intervalInfoText = '$rawKm km standard interval';
-      }
+    final bool isHarshActive = _isHarsh && rawKm != null && rawKm > 0;
+    final String kmHelperText;
+    if (isHarshActive) {
+      final effectiveKm = (rawKm * 0.80).round();
+      kmHelperText = '${_formatKm(rawKm)} km -> ${_formatKm(effectiveKm)} km (harsh conditions)';
     } else {
-      intervalInfoText = null;
+      kmHelperText = _getKmHelperText(type);
     }
 
     final match = _bike != null
         ? MaintenanceController.instance.findLastLoggedService(_bike!.id, type)
         : null;
 
+    final isBattery = type == ServiceItemType.battery;
+
     return CampCard(
+      key: _itemKeys.putIfAbsent(type, () => GlobalKey()),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -454,122 +547,192 @@ class _ServiceScheduleScreenState extends State<ServiceScheduleScreen> {
           if (enabled) ...[
             const Divider(height: 20, color: AppColors.clayDark),
 
-            // Distance Interval Section
-            Text(
-              'Interval (km)',
-              style: GoogleFonts.manrope(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppColors.darkCharcoal,
-              ),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: kmController,
-              keyboardType: TextInputType.number,
-              style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600),
-              decoration: InputDecoration(
-                hintText: 'e.g. 1500 (optional)',
-                hintStyle: GoogleFonts.manrope(fontSize: 13, color: AppColors.mutedLight),
-                suffixText: 'km',
-                isDense: true,
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppColors.radiusTile - 4),
-                  borderSide: const BorderSide(color: AppColors.clayDark),
+            if (isBattery) ...[
+              // Battery: single time-based interval
+              Text(
+                _getMonthsLabel(type),
+                style: GoogleFonts.manrope(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.darkCharcoal,
                 ),
               ),
-              onChanged: (_) => setState(() {}),
-            ),
-            if (intervalInfoText != null) ...[
+              const SizedBox(height: 6),
+              TextField(
+                controller: monthController,
+                keyboardType: TextInputType.number,
+                style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600),
+                decoration: InputDecoration(
+                  hintText: 'e.g. 6 (optional)',
+                  hintStyle: GoogleFonts.manrope(fontSize: 13, color: AppColors.mutedLight),
+                  suffixText: 'months',
+                  isDense: true,
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppColors.radiusTile - 4),
+                    borderSide: const BorderSide(color: AppColors.clayDark),
+                  ),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
               const SizedBox(height: 4),
               Text(
-                intervalInfoText,
+                'Time between battery checks',
                 style: GoogleFonts.manrope(
                   fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: _isHarsh ? AppColors.tacticalOrangeDark : AppColors.mutedText,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.mutedText,
                 ),
+              ),
+              const SizedBox(height: 8),
+
+              // Quick Pick Month Chips
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: type.quickMonthSuggestions.map((months) {
+                  return ActionChip(
+                    label: Text('$months mo'),
+                    labelStyle: GoogleFonts.manrope(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.darkCharcoal,
+                    ),
+                    backgroundColor: AppColors.clayDark,
+                    onPressed: () {
+                      monthController.text = months.toString();
+                      setState(() {});
+                    },
+                  );
+                }).toList(),
+              ),
+            ] else ...[
+              // Distance Interval Section
+              Text(
+                _getKmLabel(type),
+                style: GoogleFonts.manrope(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.darkCharcoal,
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: kmController,
+                keyboardType: TextInputType.number,
+                style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600),
+                decoration: InputDecoration(
+                  hintText: 'e.g. 1500 (optional)',
+                  hintStyle: GoogleFonts.manrope(fontSize: 13, color: AppColors.mutedLight),
+                  suffixText: 'km',
+                  isDense: true,
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppColors.radiusTile - 4),
+                    borderSide: const BorderSide(color: AppColors.clayDark),
+                  ),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                kmHelperText,
+                style: GoogleFonts.manrope(
+                  fontSize: 11.5,
+                  fontWeight: isHarshActive ? FontWeight.w700 : FontWeight.w600,
+                  color: isHarshActive ? AppColors.tacticalOrangeDark : AppColors.mutedText,
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Quick Pick KM Chips
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: type.quickKmSuggestions.map((suggestedKm) {
+                  return ActionChip(
+                    label: Text('$suggestedKm km'),
+                    labelStyle: GoogleFonts.manrope(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.darkCharcoal,
+                    ),
+                    backgroundColor: AppColors.clayDark,
+                    onPressed: () {
+                      kmController.text = suggestedKm.toString();
+                      setState(() {});
+                    },
+                  );
+                }).toList(),
+              ),
+
+              const SizedBox(height: 14),
+
+              // Time Interval Section
+              Text(
+                _getMonthsLabel(type),
+                style: GoogleFonts.manrope(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.darkCharcoal,
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: monthController,
+                keyboardType: TextInputType.number,
+                style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600),
+                decoration: InputDecoration(
+                  hintText: 'e.g. 6 (optional)',
+                  hintStyle: GoogleFonts.manrope(fontSize: 13, color: AppColors.mutedLight),
+                  suffixText: 'months',
+                  isDense: true,
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppColors.radiusTile - 4),
+                    borderSide: const BorderSide(color: AppColors.clayDark),
+                  ),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Optional. Reminds you by time too. Whichever comes first counts. Leave empty to track by km only.',
+                style: GoogleFonts.manrope(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.mutedText,
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Quick Pick Month Chips
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: type.quickMonthSuggestions.map((months) {
+                  return ActionChip(
+                    label: Text('$months mo'),
+                    labelStyle: GoogleFonts.manrope(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.darkCharcoal,
+                    ),
+                    backgroundColor: AppColors.clayDark,
+                    onPressed: () {
+                      monthController.text = months.toString();
+                      setState(() {});
+                    },
+                  );
+                }).toList(),
               ),
             ],
-            const SizedBox(height: 8),
-
-            // Quick Pick KM Chips (never preselected, rider can type any value)
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: type.quickKmSuggestions.map((suggestedKm) {
-                return ActionChip(
-                  label: Text('$suggestedKm km'),
-                  labelStyle: GoogleFonts.manrope(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.darkCharcoal,
-                  ),
-                  backgroundColor: AppColors.clayDark,
-                  onPressed: () {
-                    kmController.text = suggestedKm.toString();
-                    setState(() {});
-                  },
-                );
-              }).toList(),
-            ),
-
-            const SizedBox(height: 14),
-
-            // Time Interval Section
-            Text(
-              'Interval (months)',
-              style: GoogleFonts.manrope(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppColors.darkCharcoal,
-              ),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: monthController,
-              keyboardType: TextInputType.number,
-              style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600),
-              decoration: InputDecoration(
-                hintText: 'e.g. 6 (optional)',
-                hintStyle: GoogleFonts.manrope(fontSize: 13, color: AppColors.mutedLight),
-                suffixText: 'months',
-                isDense: true,
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppColors.radiusTile - 4),
-                  borderSide: const BorderSide(color: AppColors.clayDark),
-                ),
-              ),
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: 8),
-
-            // Quick Pick Month Chips (never preselected)
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: type.quickMonthSuggestions.map((months) {
-                return ActionChip(
-                  label: Text('$months mo'),
-                  labelStyle: GoogleFonts.manrope(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.darkCharcoal,
-                  ),
-                  backgroundColor: AppColors.clayDark,
-                  onPressed: () {
-                    monthController.text = months.toString();
-                    setState(() {});
-                  },
-                );
-              }).toList(),
-            ),
 
             const SizedBox(height: 16),
 
@@ -587,12 +750,11 @@ class _ServiceScheduleScreenState extends State<ServiceScheduleScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'LAST DONE',
+                        'When did you last do this?',
                         style: GoogleFonts.manrope(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.mutedText,
-                          letterSpacing: 0.6,
+                          color: AppColors.darkCharcoal,
                         ),
                       ),
                       if (match != null)
@@ -678,7 +840,7 @@ class _ServiceScheduleScreenState extends State<ServiceScheduleScreen> {
                                   child: Text(
                                     lastDate != null
                                         ? '${lastDate.day}/${lastDate.month}/${lastDate.year}'
-                                        : 'Set date',
+                                        : 'Date',
                                     style: GoogleFonts.manrope(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,

@@ -8,6 +8,7 @@ import '../../../../core/widgets/camp_card.dart';
 import '../../../../core/widgets/inset_tile.dart';
 import '../../../garage/controllers/active_bike_controller.dart';
 import '../../../garage/domain/bike_model.dart';
+import '../../controllers/maintenance_controller.dart';
 import '../../controllers/post_ride_report_controller.dart';
 import '../widgets/carburetor_tab.dart';
 import '../widgets/diagnostics_tab.dart';
@@ -76,6 +77,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
     return AnimatedBuilder(
       animation: Listenable.merge([
         ActiveBikeController.instance,
+        MaintenanceController.instance,
         PostRideReportController.instance,
       ]),
       builder: (context, _) {

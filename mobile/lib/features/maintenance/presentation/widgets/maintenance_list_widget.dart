@@ -1,38 +1,119 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/maintenance_item_model.dart';
+import '../../domain/service_schedule_engine.dart';
+import '../../domain/service_schedule_item.dart';
 import 'maintenance_item_card_widget.dart';
 
-/// List widget for upcoming & required maintenance items
+/// List widget for upcoming & required maintenance items in the Finances hub.
+///
+/// Shows:
+///  1. Section header with wrench icon (opens Add Maintenance Item)
+///  2. Schedule-driven due items (Overdue / Due soon) from [ServiceScheduleEngine]
+///  3. Configure Service Schedule row
+///  4. Rider-added [MaintenanceItem] cards (with swipe-to-delete and undo)
+///  5. "+ Add Maintenance Item" expandable button
 class MaintenanceListWidget extends StatelessWidget {
   const MaintenanceListWidget({
+    // ── Schedule-driven section (new) ─────────────────────────────────────
+    required this.dueItems,
+    required this.hasSchedule,
+    required this.onSetUpSchedule,
+    // ── Rider-added items section (restored) ──────────────────────────────
     required this.items,
     required this.onAddMaintenanceItem,
     super.key,
     this.onItemGuidePressed,
     this.onItemTapped,
     this.onItemDismissed,
+    // ── Schedule item tap (new) ────────────────────────────────────────────
+    this.onScheduleItemTapped,
   });
 
+  // Schedule-driven
+  final List<ServiceSchedulePrediction> dueItems;
+  final bool hasSchedule;
+  final VoidCallback onSetUpSchedule;
+
+  // Rider-added (restored)
   final List<MaintenanceItem> items;
   final VoidCallback onAddMaintenanceItem;
   final ValueChanged<MaintenanceItem>? onItemGuidePressed;
   final ValueChanged<MaintenanceItem>? onItemTapped;
   final ValueChanged<MaintenanceItem>? onItemDismissed;
 
+  // Schedule item tap (new)
+  final ValueChanged<ServiceSchedulePrediction>? onScheduleItemTapped;
+
+  // ── Formatters ─────────────────────────────────────────────────────────
+
+  static String _formatNumber(int n) {
+    final str = n.toString();
+    final buffer = StringBuffer();
+    int count = 0;
+    for (int i = str.length - 1; i >= 0; i--) {
+      buffer.write(str[i]);
+      count++;
+      if (count % 3 == 0 && i > 0) buffer.write(',');
+    }
+    return buffer.toString().split('').reversed.join('');
+  }
+
+  /// Formats the remaining/overdue description.
+  /// When an item is overdue by BOTH km and days both are shown, e.g.
+  /// "Overdue by 38,855 km, 236 days".
+  static String _formatRemaining(ServiceSchedulePrediction item) {
+    final isOverdue = item.scheduleStatus == ScheduleItemStatus.overdue;
+
+    if (isOverdue) {
+      final kmOverdue = item.remainingKm != null && item.remainingKm! <= 0;
+      final daysOverdue = item.remainingDays != null && item.remainingDays! <= 0;
+
+      if (kmOverdue && daysOverdue) {
+        final overKm = item.remainingKm!.abs();
+        final overDays = item.remainingDays!.abs();
+        final kmPart = overKm == 0 ? null : '${_formatNumber(overKm)} km';
+        final daysPart = overDays == 0 ? null : '$overDays ${overDays == 1 ? 'day' : 'days'}';
+        final parts = [kmPart, daysPart].whereType<String>().toList();
+        if (parts.isEmpty) return 'Overdue';
+        return 'Overdue by ${parts.join(', ')}';
+      }
+
+      if (kmOverdue) {
+        final overKm = item.remainingKm!.abs();
+        return overKm == 0 ? 'Overdue' : 'Overdue by ${_formatNumber(overKm)} km';
+      }
+
+      if (daysOverdue) {
+        final overDays = item.remainingDays!.abs();
+        return overDays == 0 ? 'Overdue today' : 'Overdue by $overDays ${overDays == 1 ? 'day' : 'days'}';
+      }
+
+      return 'Overdue';
+    } else {
+      if (item.remainingKm != null) {
+        return 'Due in ${_formatNumber(item.remainingKm!)} km';
+      } else if (item.remainingDays != null) {
+        return 'Due in ${item.remainingDays} ${item.remainingDays == 1 ? 'day' : 'days'}';
+      }
+      return 'Due soon';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Eyebrow Overline ───────────────────────────────────────────────
+        // ── Eyebrow Overline ─────────────────────────────────────────────
         Text('RIG CONDITION', style: AppTextStyles.overline),
         const SizedBox(height: 4),
 
-        // ── Section Header with Wrench IconTile ────────────────────────────
+        // ── Section Header with Wrench IconTile (opens Add Item) ─────────
         Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: Row(
@@ -56,7 +137,218 @@ class MaintenanceListWidget extends StatelessWidget {
           ),
         ),
 
-        // ── Maintenance Item Cards ─────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────
+        // 1. SCHEDULE-DRIVEN DUE ITEMS (Overdue / Due soon)
+        // ──────────────────────────────────────────────────────────────────
+        if (!hasSchedule) ...[
+          // Empty state: no schedule configured
+          CampCard(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            borderRadius: AppColors.radiusTile,
+            child: Center(
+              child: Column(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: const BoxDecoration(
+                      color: AppColors.clayDark,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.calendar_month_rounded,
+                      color: AppColors.tacticalOrange,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Set up your service schedule',
+                    style: GoogleFonts.manrope(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.darkCharcoal,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Configure service intervals to track due components and get timely reminders.',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.caption.copyWith(
+                      fontSize: 12,
+                      color: AppColors.mutedText,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  PrimaryButton(
+                    label: 'Set up your service schedule',
+                    onTap: onSetUpSchedule,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ] else if (dueItems.isEmpty) ...[
+          // Configured but nothing due
+          CampCard(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            borderRadius: AppColors.radiusTile,
+            child: Center(
+              child: Column(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: const BoxDecoration(
+                      color: AppColors.clayDark,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check_circle_outline_rounded,
+                      color: AppColors.statusGreen,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Nothing due right now',
+                    style: GoogleFonts.manrope(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.darkCharcoal,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'All scheduled maintenance items are up to date.',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.caption.copyWith(
+                      fontSize: 12,
+                      color: AppColors.mutedText,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ] else ...[
+          // Due items — most urgent first
+          ...dueItems.map((item) {
+            final isOverdue = item.scheduleStatus == ScheduleItemStatus.overdue;
+            final remainingText = _formatRemaining(item);
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: CampCard(
+                padding: const EdgeInsets.all(14),
+                borderRadius: AppColors.radiusTile,
+                onTap: () => onScheduleItemTapped?.call(item),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    IconTile(
+                      icon: item.type.icon,
+                      iconColor: isOverdue ? AppColors.alertRed : AppColors.terracotta,
+                      size: 40,
+                      iconSize: 20,
+                      isInset: true,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.name,
+                            style: GoogleFonts.manrope(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.darkCharcoal,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            remainingText,
+                            style: GoogleFonts.manrope(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isOverdue ? AppColors.alertRed : AppColors.mutedText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    StatusChip(
+                      label: isOverdue ? 'OVERDUE' : 'DUE SOON',
+                      variant: isOverdue ? StatusChipVariant.danger : StatusChipVariant.warning,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+
+        const SizedBox(height: 12),
+
+        // ──────────────────────────────────────────────────────────────────
+        // 2. CONFIGURE SERVICE SCHEDULE ROW (new, kept)
+        // ──────────────────────────────────────────────────────────────────
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onSetUpSchedule,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.clay,
+              borderRadius: BorderRadius.circular(AppColors.radiusTile),
+              boxShadow: AppColors.skeuRaisedSmall,
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.tune_rounded,
+                        size: 18,
+                        color: AppColors.tacticalOrangeDark,
+                      ),
+                      SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'Configure Service Schedule',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppColors.tacticalOrangeDark,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: AppColors.mutedText,
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // ──────────────────────────────────────────────────────────────────
+        // 3. RIDER-ADDED MAINTENANCE ITEM CARDS (restored)
+        // ──────────────────────────────────────────────────────────────────
         ...items.map((item) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 16),
@@ -86,9 +378,9 @@ class MaintenanceListWidget extends StatelessWidget {
           );
         }),
 
-        const SizedBox(height: 0),
-
-        // ── "+ Add Maintenance Item" with Trailing Chevron ──────────────────
+        // ──────────────────────────────────────────────────────────────────
+        // 4. "+ ADD MAINTENANCE ITEM" BUTTON (restored)
+        // ──────────────────────────────────────────────────────────────────
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onAddMaintenanceItem,

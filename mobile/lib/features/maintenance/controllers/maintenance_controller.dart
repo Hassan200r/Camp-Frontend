@@ -11,6 +11,7 @@ import '../domain/service_schedule_engine.dart';
 import '../domain/service_schedule_item.dart';
 import '../domain/service_visit_model.dart';
 import 'post_ride_report_controller.dart';
+import 'service_visit_controller.dart';
 import 'trip_budget_controller.dart';
 
 /// Helper value object representing a found historical service record.
@@ -39,13 +40,17 @@ class MaintenanceController extends ChangeNotifier {
   static final MaintenanceController instance = MaintenanceController._();
 
   MaintenanceRepository _repository = AppRepositories.instance.maintenanceRepository;
+  // ignore: unused_field — written via setter to keep test injection consistent with ServiceVisitController
   ServiceVisitRepository _serviceVisitRepository = AppRepositories.instance.serviceVisitRepository;
 
   @visibleForTesting
   set repository(MaintenanceRepository repo) => _repository = repo;
 
   @visibleForTesting
-  set serviceVisitRepository(ServiceVisitRepository repo) => _serviceVisitRepository = repo;
+  set serviceVisitRepository(ServiceVisitRepository repo) {
+    _serviceVisitRepository = repo;
+    ServiceVisitController.instance.load(repo);
+  }
 
   @visibleForTesting
   void reset() {
@@ -209,61 +214,43 @@ class MaintenanceController extends ChangeNotifier {
     }).toList();
   }
 
-  /// Returns the most urgent maintenance item (Overdue > Due soon).
-  ///
-  /// Returns `null` if nothing is overdue or due soon, or if no schedule is configured.
-  ServiceSchedulePrediction? mostUrgentItem(String? bikeId) {
+  /// Returns all configured items for the bike that are Overdue or Due soon,
+  /// sorted by urgency (Overdue highest wear first, then Due soon lowest remaining km/days first).
+  List<ServiceSchedulePrediction> dueItems(String? bikeId) {
     final bike = _resolveBike(bikeId);
     if (bike == null || !hasMaintenanceData(bike)) {
-      return null;
+      return const [];
     }
 
     final all = items(bike.id);
-
-    // Filter to items that are actually configured (have interval and last done)
     final configured = all.where((i) =>
         i.item.enabled &&
         i.item.hasInterval &&
         i.item.hasLastDone).toList();
 
-    // 1. Overdue items take absolute priority
     final overdue = configured
         .where((i) => i.scheduleStatus == ScheduleItemStatus.overdue)
         .toList();
-    if (overdue.isNotEmpty) {
-      // Sort by greatest overdue (smallest remainingKm or highest wear)
-      overdue.sort((a, b) => b.wearPercent.compareTo(a.wearPercent));
-      return overdue.first;
-    }
+    overdue.sort((a, b) => b.wearPercent.compareTo(a.wearPercent));
 
-    // 2. Due soon items are second priority
     final dueSoon = configured
         .where((i) => i.scheduleStatus == ScheduleItemStatus.dueSoon)
         .toList();
-    if (dueSoon.isNotEmpty) {
-      dueSoon.sort((a, b) => (a.remainingKm ?? 999999).compareTo(b.remainingKm ?? 999999));
-      return dueSoon.first;
-    }
+    dueSoon.sort((a, b) => (a.remainingKm ?? 999999).compareTo(b.remainingKm ?? 999999));
 
-    // All items OK
-    return null;
+    return [...overdue, ...dueSoon];
+  }
+
+  /// Returns the most urgent maintenance item (Overdue > Due soon).
+  ///
+  /// Returns `null` if nothing is overdue or due soon, or if no schedule is configured.
+  ServiceSchedulePrediction? mostUrgentItem(String? bikeId) {
+    final list = dueItems(bikeId);
+    return list.isEmpty ? null : list.first;
   }
 
   /// Returns the total count of components that are overdue or due soon.
-  int countDueItems(String? bikeId) {
-    final bike = _resolveBike(bikeId);
-    if (bike == null || !hasMaintenanceData(bike)) {
-      return 0;
-    }
-
-    final all = items(bike.id);
-    return all.where((i) =>
-        i.item.enabled &&
-        i.item.hasInterval &&
-        i.item.hasLastDone &&
-        (i.scheduleStatus == ScheduleItemStatus.overdue ||
-            i.scheduleStatus == ScheduleItemStatus.dueSoon)).length;
-  }
+  int countDueItems(String? bikeId) => dueItems(bikeId).length;
 
   /// Marks a specific service item as done at the given odometer reading and date.
   ///
@@ -289,7 +276,10 @@ class MaintenanceController extends ChangeNotifier {
     );
 
     final updatedList = currentList.map((i) => i.id == updatedItem.id ? updatedItem : i).toList();
-    await saveSchedule(bikeId, updatedList);
+    _schedules[bikeId] = List.from(updatedList);
+    _loadedBikes.add(bikeId);
+    notifyListeners();
+    _repository.saveServiceSchedule(bikeId, updatedList);
 
     // Update bike's milestone if applicable
     final bike = _resolveBike(bikeId);
@@ -313,16 +303,15 @@ class MaintenanceController extends ChangeNotifier {
       ActiveBikeController.instance.updateBike(updatedBike);
     }
 
-    // Write a service visit record
+    // Write a service visit record through ServiceVisitController
     try {
-      final visits = await _serviceVisitRepository.loadServiceVisits();
       final newVisit = ServiceVisit(
         id: 'visit-${DateTime.now().millisecondsSinceEpoch}',
         dateTime: date,
         shopName: '${updatedItem.type.displayName} Service',
         note: 'Completed at ${odometerKm.round()} km',
       );
-      await _serviceVisitRepository.saveServiceVisits([...visits, newVisit]);
+      ServiceVisitController.instance.addVisit(newVisit);
     } catch (_) {}
 
     // Record optional rider-entered cost in Finances

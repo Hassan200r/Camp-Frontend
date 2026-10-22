@@ -167,7 +167,7 @@ void main() {
 
       expect(find.text('DUE SOON'), findsOneWidget);
       expect(find.text('OVERDUE'), findsNothing);
-      expect(find.textContaining('due in'), findsOneWidget);
+      expect(find.textContaining(RegExp(r'due in', caseSensitive: false)), findsOneWidget);
     });
 
     testWidgets('Displays OVERDUE alert when an item exceeds service interval', (tester) async {
@@ -208,7 +208,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('OVERDUE'), findsOneWidget);
-      expect(find.textContaining('overdue'), findsOneWidget);
+      expect(find.textContaining('Overdue by'), findsOneWidget);
       expect(find.text('Schedule Service'), findsOneWidget);
     });
 

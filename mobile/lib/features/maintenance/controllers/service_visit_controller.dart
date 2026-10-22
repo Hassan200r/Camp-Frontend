@@ -47,29 +47,29 @@ class ServiceVisitController extends ChangeNotifier {
   }
 
   /// Add a newly scheduled service visit.
-  void addVisit(ServiceVisit visit) {
+  Future<void> addVisit(ServiceVisit visit) async {
     _visits.add(visit);
     notifyListeners();
-    save();
+    await save();
   }
 
   /// Update an existing scheduled service visit.
-  void updateVisit(ServiceVisit visit) {
+  Future<void> updateVisit(ServiceVisit visit) async {
     final index = _visits.indexWhere((v) => v.id == visit.id);
     if (index != -1) {
       _visits[index] = visit;
       notifyListeners();
-      save();
+      await save();
     }
   }
 
   /// Remove a service visit by its ID.
-  void deleteVisit(String id) {
+  Future<void> deleteVisit(String id) async {
     final index = _visits.indexWhere((v) => v.id == id);
     if (index != -1) {
       _visits.removeAt(index);
       notifyListeners();
-      save();
+      await save();
     }
   }
 

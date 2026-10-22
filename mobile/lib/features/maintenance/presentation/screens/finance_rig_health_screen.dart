@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -10,6 +10,7 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
 import '../../../garage/controllers/active_bike_controller.dart';
+import '../../controllers/maintenance_controller.dart';
 import '../../controllers/service_visit_controller.dart';
 import '../../controllers/trip_budget_controller.dart';
 import '../../domain/expense_model.dart';
@@ -24,6 +25,7 @@ import '../widgets/trip_budget_card_widget.dart';
 import 'add_expense_screen.dart';
 import 'add_maintenance_item_screen.dart';
 import 'edit_trip_budget_screen.dart';
+import 'service_schedule_screen.dart';
 
 /// CAMP Finances & Rig Health Screen (Main Expedition Cockpit Feature Slice)
 /// Displays expedition telemetry, trip budget & fuel economics, maintenance schedule,
@@ -38,27 +40,29 @@ class FinanceRigHealthScreen extends StatefulWidget {
 class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // ── Rider-added maintenance items (restored) ──────────────────────────────
   late List<MaintenanceItem> _maintenanceItems;
 
   @override
   void initState() {
     super.initState();
-    _maintenanceItems = kDebugMode
-        ? List.from(MaintenanceItem.defaultSampleItems)
-        : <MaintenanceItem>[];
+    _maintenanceItems = const [];
     _loadPersistedItems();
   }
 
+  /// Load rider-added maintenance items from repository on first mount.
+  /// Fires-and-forgets; does not block the UI.
   Future<void> _loadPersistedItems() async {
     try {
-      final loaded = await AppRepositories.instance.maintenanceRepository.loadMaintenanceItems();
+      final loaded =
+          await AppRepositories.instance.maintenanceRepository.loadMaintenanceItems();
       if (loaded.isNotEmpty && mounted) {
-        setState(() {
-          _maintenanceItems = loaded;
-        });
+        setState(() => _maintenanceItems = loaded);
       }
     } catch (_) {}
   }
+
+  // ── Notifications ─────────────────────────────────────────────────────────
 
   void _showNotification(String message) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -78,6 +82,8 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
       ),
     );
   }
+
+  // ── Navigation helpers ────────────────────────────────────────────────────
 
   Future<void> _pushEditTripBudget() async {
     final result = await Navigator.of(context).push<TripBudget>(
@@ -99,21 +105,20 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
     );
     if (result != null && mounted) {
       TripBudgetController.instance.addExpense(result);
-      _showNotification(
-        'Added ${result.title} (${formatPkr(result.amount)})',
-      );
+      _showNotification('Added ${result.title} (${formatPkr(result.amount)})');
     }
   }
+
+  // ── Rider-added maintenance item handlers (restored) ─────────────────────
 
   Future<void> _pushAddMaintenanceItem() async {
     final result = await Navigator.of(context).push<MaintenanceItem>(
       MaterialPageRoute(builder: (context) => const AddMaintenanceItemScreen()),
     );
     if (result != null && mounted) {
-      setState(() {
-        _maintenanceItems.add(result);
-      });
-      AppRepositories.instance.maintenanceRepository.saveMaintenanceItems(_maintenanceItems);
+      setState(() => _maintenanceItems = [..._maintenanceItems, result]);
+      AppRepositories.instance.maintenanceRepository
+          .saveMaintenanceItems(_maintenanceItems);
       _showNotification('Added ${result.name} to maintenance list');
     }
   }
@@ -173,8 +178,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                         ),
                       ),
                       Text(
-                        item.statusValueDisplay ??
-                            item.status.name.toUpperCase(),
+                        item.statusValueDisplay ?? item.status.name.toUpperCase(),
                         style: GoogleFonts.manrope(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w600,
@@ -190,8 +194,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
             const Divider(height: 1),
             const SizedBox(height: 8),
             ListTile(
-              leading: const Icon(Icons.edit_outlined,
-                  color: AppColors.darkCharcoal),
+              leading: const Icon(Icons.edit_outlined, color: AppColors.darkCharcoal),
               title: Text(
                 'Edit Maintenance Item',
                 style: GoogleFonts.manrope(
@@ -202,19 +205,16 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
               ),
               onTap: () async {
                 Navigator.of(ctx).pop();
-                final updated =
-                    await Navigator.of(context).push<MaintenanceItem>(
+                final updated = await Navigator.of(context).push<MaintenanceItem>(
                   MaterialPageRoute(
-                    builder: (context) =>
-                        AddMaintenanceItemScreen(initialItem: item),
+                    builder: (context) => AddMaintenanceItemScreen(initialItem: item),
                   ),
                 );
                 if (updated != null && mounted) {
-                  final index =
-                      _maintenanceItems.indexWhere((i) => i.id == item.id);
+                  final index = _maintenanceItems.indexWhere((i) => i.id == item.id);
                   if (index != -1) {
                     setState(() {
-                      _maintenanceItems[index] = updated;
+                      _maintenanceItems = List.from(_maintenanceItems)..[index] = updated;
                     });
                     AppRepositories.instance.maintenanceRepository
                         .saveMaintenanceItems(_maintenanceItems);
@@ -224,8 +224,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
               },
             ),
             ListTile(
-              leading:
-                  const Icon(Icons.delete_outline, color: AppColors.alertRed),
+              leading: const Icon(Icons.delete_outline, color: AppColors.alertRed),
               title: Text(
                 'Delete Item',
                 style: GoogleFonts.manrope(
@@ -277,9 +276,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.alertRed,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () {
               Navigator.of(ctx).pop(true);
@@ -301,7 +298,8 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
   void _handleDismissMaintenanceItem(MaintenanceItem item) {
     final removedIndex = _maintenanceItems.indexOf(item);
     setState(() {
-      _maintenanceItems.removeWhere((i) => i.id == item.id);
+      _maintenanceItems =
+          _maintenanceItems.where((i) => i.id != item.id).toList();
     });
     AppRepositories.instance.maintenanceRepository
         .saveMaintenanceItems(_maintenanceItems);
@@ -316,9 +314,12 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
           label: 'Undo',
           textColor: AppColors.tacticalOrange,
           onPressed: () {
+            if (!mounted) return;
             setState(() {
               final safeIndex = removedIndex.clamp(0, _maintenanceItems.length);
-              _maintenanceItems.insert(safeIndex, item);
+              final updated = List<MaintenanceItem>.from(_maintenanceItems);
+              updated.insert(safeIndex, item);
+              _maintenanceItems = updated;
             });
             AppRepositories.instance.maintenanceRepository
                 .saveMaintenanceItems(_maintenanceItems);
@@ -327,6 +328,8 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
       ),
     );
   }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -343,7 +346,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
         backgroundColor: AppColors.clay,
         body: Stack(
           children: [
-            // ── Scrollable Body ─────────────────────────────────────────────
+            // ── Scrollable Body ────────────────────────────────────────────
             SafeArea(
               bottom: false,
               child: SingleChildScrollView(
@@ -363,21 +366,17 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                       onLeadingPressed: () =>
                           _scaffoldKey.currentState?.openDrawer(),
                       actionText: 'FINANCES & RIG HEALTH',
-                      onActionPressed: () => _showNotification(
-                        'Finances & Rig Health active',
-                      ),
+                      onActionPressed: () =>
+                          _showNotification('Finances & Rig Health active'),
                     ),
 
                     const SizedBox(height: 14),
 
-                    // 2. Section Header Block: EXPEDITION TELEMETRY + Title + SYNCED pill
+                    // 2. Section Header Block: EXPEDITION STATS + Title + LOCAL pill
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'EXPEDITION STATS',
-                          style: AppTextStyles.overline,
-                        ),
+                        Text('EXPEDITION STATS', style: AppTextStyles.overline),
                         const SizedBox(height: 4),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -390,7 +389,6 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            // Trailing "SYNCD 2m ago" pill
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 9,
@@ -468,22 +466,55 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                     ),
 
                     const SizedBox(height: AppColors.cardGap),
-                    // 6. Maintenance List Widget (Condition Telemetry + items + Add button)
-                    MaintenanceListWidget(
-                      items: _maintenanceItems,
-                      onAddMaintenanceItem: _pushAddMaintenanceItem,
-                      onItemGuidePressed: (item) {
-                        _showNotification(
-                          'Opening service guide for ${item.name}...',
+
+                    // 5. Upcoming & Required Maintenance (schedule-driven due items +
+                    //    Configure Schedule row + rider-added items + Add button)
+                    ListenableBuilder(
+                      listenable: Listenable.merge([
+                        MaintenanceController.instance,
+                        ActiveBikeController.instance,
+                      ]),
+                      builder: (context, _) {
+                        final bike = ActiveBikeController.instance.activeBike;
+                        final hasSchedule = MaintenanceController.instance
+                            .hasMaintenanceData(bike);
+                        final due = MaintenanceController.instance
+                            .dueItems(bike?.id);
+
+                        return MaintenanceListWidget(
+                          // Schedule-driven
+                          dueItems: due,
+                          hasSchedule: hasSchedule,
+                          onSetUpSchedule: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) =>
+                                  ServiceScheduleScreen(bikeId: bike?.id),
+                            ),
+                          ),
+                          onScheduleItemTapped: (item) =>
+                              Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => ServiceScheduleScreen(
+                                bikeId: bike?.id,
+                                focusItemType: item.type,
+                              ),
+                            ),
+                          ),
+                          // Rider-added (restored)
+                          items: _maintenanceItems,
+                          onAddMaintenanceItem: _pushAddMaintenanceItem,
+                          onItemGuidePressed: (item) => _showNotification(
+                            'Opening service guide for ${item.name}...',
+                          ),
+                          onItemTapped: _showMaintenanceItemActions,
+                          onItemDismissed: _handleDismissMaintenanceItem,
                         );
                       },
-                      onItemTapped: _showMaintenanceItemActions,
-                      onItemDismissed: _handleDismissMaintenanceItem,
                     ),
 
                     const SizedBox(height: AppColors.cardGap),
 
-                    // 7. Download Maintenance Report Card
+                    // 6. Download Maintenance Report Card
                     DownloadReportCardWidget(
                       label: 'Download Maintenance Report (PDF)',
                       subtitle: 'Receipts, service logs & schedule',
@@ -508,7 +539,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
 
                     const SizedBox(height: AppColors.cardGap),
 
-                    // 8. Next Service Visit Card (replaces fake Pitstop)
+                    // 7. Next Service Visit Card
                     ListenableBuilder(
                       listenable: ServiceVisitController.instance,
                       builder: (context, _) => const ServiceVisitCardWidget(),
@@ -518,7 +549,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
               ),
             ),
 
-            // 9. Floating Tactical Bottom Dock (selected index: 4)
+            // 8. Floating Tactical Bottom Dock
             const Positioned(
               left: 0,
               right: 0,

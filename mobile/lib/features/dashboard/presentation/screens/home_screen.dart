@@ -101,7 +101,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     // 4. Maintenance Alert Card (dismissible)
                     if (!_maintenanceAlertDismissed) ...[
                       MaintenanceAlertCardWidget(
-                        onScheduleService: () => CampBottomNav.navigateToTab(context, CampTab.finances),
                         onDismiss: () {
                           setState(() => _maintenanceAlertDismissed = true);
                           _showNotification('Maintenance alert dismissed');

@@ -86,11 +86,7 @@ void main() {
     // Verify maintenance list items
     expect(find.text('RIG CONDITION'), findsOneWidget);
     expect(find.textContaining('Upcoming & Required'), findsOneWidget);
-    expect(find.text('Rear Brake Pad Replacement'), findsOneWidget);
-    expect(find.text('Engine Oil & Filter'), findsOneWidget);
-    expect(find.text('Chain / Final Drive Shaft'), findsOneWidget);
-    expect(find.text('Tire Tread Depth'), findsOneWidget);
-    expect(find.text('Fork Seals & Dust Boots'), findsOneWidget);
+    expect(find.text('Configure Service Schedule'), findsOneWidget);
     expect(find.text('+ Add Maintenance Item'), findsOneWidget);
 
     // Verify reports & service visit
