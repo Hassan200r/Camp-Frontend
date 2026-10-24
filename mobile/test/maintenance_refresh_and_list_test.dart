@@ -17,6 +17,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'helpers/maintenance_test_helpers.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -28,12 +30,16 @@ void main() {
     ActiveBikeController.instance.resetForTesting();
     PostRideReportController.instance.resetForTesting();
     TripBudgetController.instance.resetForTesting();
-    ServiceVisitController.instance.resetForTesting();
-    MaintenanceController.instance.resetForTesting();
+    ServiceVisitController.instance = ServiceVisitController(
+      repository: FakeServiceVisitRepository(),
+    );
+    MaintenanceController.instance = MaintenanceController(
+      repository: FakeMaintenanceRepository(),
+    );
   });
 
   group('Item 1: Home Maintenance Alert and Header Agreement', () {
-    test('Header count and alert card due count come from the same controller method and agree', () {
+    test('Header count and alert card due count come from the same controller method and agree', () async {
       const bike = Bike(
         id: 'bike-test',
         make: 'Honda',
@@ -44,7 +50,7 @@ void main() {
       ActiveBikeController.instance.addBike(bike, setActive: true);
 
       // 3 items: 2 overdue, 1 due soon, 1 ok
-      MaintenanceController.instance.setSchedule(
+      await setScheduleForTest(
         bike.id,
         [
           const ServiceScheduleItem(
@@ -109,7 +115,7 @@ void main() {
       ActiveBikeController.instance.addBike(bike, setActive: true);
 
       // 3 due items: oil overdue by 1,400 km, air overdue by 400 km, chain due soon
-      MaintenanceController.instance.setSchedule(
+      await setScheduleForTest(
         bike.id,
         [
           const ServiceScheduleItem(
@@ -174,7 +180,7 @@ void main() {
       );
       ActiveBikeController.instance.addBike(bike, setActive: true);
 
-      MaintenanceController.instance.setSchedule(
+      await setScheduleForTest(
         bike.id,
         [
           const ServiceScheduleItem(
@@ -239,7 +245,7 @@ void main() {
       expect(find.text('Set up your service schedule'), findsOneWidget);
 
       // Save a schedule with overdue oil change
-      MaintenanceController.instance.setSchedule(
+      await setScheduleForTest(
         bike.id,
         [
           const ServiceScheduleItem(
@@ -270,7 +276,7 @@ void main() {
       );
       ActiveBikeController.instance.addBike(bike, setActive: true);
 
-      MaintenanceController.instance.setSchedule(
+      await setScheduleForTest(
         bike.id,
         [
           const ServiceScheduleItem(
@@ -360,7 +366,7 @@ void main() {
       );
       ActiveBikeController.instance.addBike(bike, setActive: true);
 
-      MaintenanceController.instance.setSchedule(
+      await setScheduleForTest(
         bike.id,
         [
           const ServiceScheduleItem(
@@ -438,7 +444,7 @@ void main() {
       );
       ActiveBikeController.instance.addBike(bike, setActive: true);
 
-      MaintenanceController.instance.setSchedule(
+      await setScheduleForTest(
         bike.id,
         [
           const ServiceScheduleItem(

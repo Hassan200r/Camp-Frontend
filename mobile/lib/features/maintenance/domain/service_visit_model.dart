@@ -9,6 +9,7 @@ class ServiceVisit {
     required this.id,
     required this.dateTime,
     required this.shopName,
+    this.bikeId,
     this.phone,
     this.latitude,
     this.longitude,
@@ -43,6 +44,7 @@ class ServiceVisit {
       id: effectiveId,
       dateTime: parsedDt,
       shopName: json['shopName'] as String? ?? 'Motorcycle Workshop',
+      bikeId: json['bikeId'] as String?,
       phone: (phoneStr != null && phoneStr.trim().isNotEmpty)
           ? phoneStr.trim()
           : null,
@@ -56,6 +58,7 @@ class ServiceVisit {
   }
 
   final String id;
+  final String? bikeId;
   final DateTime dateTime;
   final String shopName;
   final String? phone;
@@ -91,10 +94,13 @@ class ServiceVisit {
     return '$dateStr • $standardHour:$minute $period';
   }
 
+  static const _sentinel = Object();
+
   ServiceVisit copyWith({
     String? id,
     DateTime? dateTime,
     String? shopName,
+    Object? bikeId = _sentinel,
     String? phone,
     double? latitude,
     double? longitude,
@@ -107,6 +113,7 @@ class ServiceVisit {
       id: id ?? this.id,
       dateTime: dateTime ?? this.dateTime,
       shopName: shopName ?? this.shopName,
+      bikeId: identical(bikeId, _sentinel) ? this.bikeId : (bikeId as String?),
       phone: phone ?? this.phone,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
@@ -121,6 +128,7 @@ class ServiceVisit {
         'id': id,
         'dateTime': dateTime.toIso8601String(),
         'shopName': shopName,
+        'bikeId': bikeId,
         'phone': phone,
         'latitude': latitude,
         'longitude': longitude,
@@ -138,9 +146,10 @@ class ServiceVisit {
           id == other.id &&
           dateTime == other.dateTime &&
           shopName == other.shopName &&
+          bikeId == other.bikeId &&
           phone == other.phone &&
           note == other.note;
 
   @override
-  int get hashCode => Object.hash(id, dateTime, shopName, phone, note);
+  int get hashCode => Object.hash(id, dateTime, shopName, bikeId, phone, note);
 }

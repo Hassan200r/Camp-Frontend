@@ -24,6 +24,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'helpers/maintenance_test_helpers.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -34,10 +36,14 @@ void main() {
     ActiveBikeController.instance.resetForTesting();
     PostRideReportController.instance.resetForTesting();
     TripBudgetController.instance.resetForTesting();
-    ServiceVisitController.instance.resetForTesting();
+    ServiceVisitController.instance = ServiceVisitController(
+      repository: FakeServiceVisitRepository(),
+    );
     MechanicController.instance.resetForTesting();
     SettingsController.instance.resetForTesting();
-    MaintenanceController.instance.resetForTesting();
+    MaintenanceController.instance = MaintenanceController(
+      repository: FakeMaintenanceRepository(),
+    );
     WeatherProvider.mockService = null;
   });
 
@@ -99,7 +105,7 @@ void main() {
         ),
       );
       ActiveBikeController.instance.addBike(okBike, setActive: true);
-      MaintenanceController.instance.setSchedule(
+      await setScheduleForTest(
         okBike.id,
         [
           const ServiceScheduleItem(
@@ -142,7 +148,7 @@ void main() {
         ),
       );
       ActiveBikeController.instance.addBike(dueSoonBike, setActive: true);
-      MaintenanceController.instance.setSchedule(
+      await setScheduleForTest(
         dueSoonBike.id,
         [
           const ServiceScheduleItem(
@@ -184,7 +190,7 @@ void main() {
         ),
       );
       ActiveBikeController.instance.addBike(overdueBike, setActive: true);
-      MaintenanceController.instance.setSchedule(
+      await setScheduleForTest(
         overdueBike.id,
         [
           const ServiceScheduleItem(
@@ -223,7 +229,7 @@ void main() {
         lastOilChange: ServiceRecord(mode: TrackingMode.byDistance, km: 5500),
       );
       ActiveBikeController.instance.addBike(overdueBike, setActive: true);
-      MaintenanceController.instance.setSchedule(
+      await setScheduleForTest(
         overdueBike.id,
         [
           const ServiceScheduleItem(
@@ -293,7 +299,7 @@ void main() {
         ),
       );
       ActiveBikeController.instance.addBike(dueSoonBike, setActive: true);
-      MaintenanceController.instance.setSchedule(
+      await setScheduleForTest(
         dueSoonBike.id,
         [
           const ServiceScheduleItem(

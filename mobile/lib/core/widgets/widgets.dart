@@ -1,3 +1,4 @@
+export 'bike_label_chip.dart';
 export 'camp_app_bar.dart';
 export 'camp_bike_image.dart';
 export 'camp_bottom_nav.dart';

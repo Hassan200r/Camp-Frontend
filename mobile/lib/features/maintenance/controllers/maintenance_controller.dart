@@ -1,8 +1,9 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import '../../../core/data/app_repositories.dart';
 import '../../../core/data/maintenance_repository.dart';
 import '../../../core/data/service_visit_repository.dart';
+import '../../../core/widgets/app_messenger.dart';
 import '../../garage/controllers/active_bike_controller.dart';
 import '../../garage/domain/bike_model.dart';
 import '../domain/expense_model.dart';
@@ -23,7 +24,7 @@ class ServiceRecordMatch {
   final String? description;
 }
 
-/// Singleton ChangeNotifier controller exposing rider-configured service schedules,
+/// Central controller exposing rider-configured service schedules,
 /// urgency predictions, and maintenance workflows across the entire app.
 ///
 /// Serves as the single source of truth for:
@@ -33,32 +34,27 @@ class ServiceRecordMatch {
 /// - Drawer due count
 /// - Maintenance hub & diagnostics
 class MaintenanceController extends ChangeNotifier {
-  MaintenanceController._() {
+  MaintenanceController({
+    MaintenanceRepository? repository,
+    ServiceVisitRepository? serviceVisitRepository,
+  })  : _repository =
+            repository ?? AppRepositories.instance.maintenanceRepository,
+        _serviceVisitRepository = serviceVisitRepository ??
+            AppRepositories.instance.serviceVisitRepository {
     _init();
   }
 
-  static final MaintenanceController instance = MaintenanceController._();
+  static MaintenanceController instance = MaintenanceController();
 
-  MaintenanceRepository _repository = AppRepositories.instance.maintenanceRepository;
-  // ignore: unused_field — written via setter to keep test injection consistent with ServiceVisitController
-  ServiceVisitRepository _serviceVisitRepository = AppRepositories.instance.serviceVisitRepository;
+  final MaintenanceRepository _repository;
+  MaintenanceRepository get repository => _repository;
+  // ignore: unused_field — injected to keep test injection consistent with ServiceVisitController
+  final ServiceVisitRepository _serviceVisitRepository;
 
-  @visibleForTesting
-  set repository(MaintenanceRepository repo) => _repository = repo;
-
-  @visibleForTesting
-  set serviceVisitRepository(ServiceVisitRepository repo) {
-    _serviceVisitRepository = repo;
-    ServiceVisitController.instance.load(repo);
-  }
-
-  @visibleForTesting
-  void reset() {
-    _schedules.clear();
-    _harshConditions.clear();
-    _carburetorOverrides.clear();
-    _loadedBikes.clear();
-    notifyListeners();
+  @override
+  void dispose() {
+    ActiveBikeController.instance.removeListener(_onActiveBikeChanged);
+    super.dispose();
   }
 
   final Map<String, List<ServiceScheduleItem>> _schedules = {};
@@ -171,20 +167,34 @@ class MaintenanceController extends ChangeNotifier {
     return result;
   }
 
-  /// Immediately sets in-memory schedule and notifies listeners (persisting in background).
-  void setSchedule(String bikeId, List<ServiceScheduleItem> items) {
-    _schedules[bikeId] = List.from(items);
-    _loadedBikes.add(bikeId);
-    notifyListeners();
-    _repository.saveServiceSchedule(bikeId, items);
-  }
-
   /// Saves the full service schedule for the bike.
-  Future<void> saveSchedule(String bikeId, List<ServiceScheduleItem> items) async {
+  Future<void> saveSchedule(
+    String bikeId,
+    List<ServiceScheduleItem> items, [
+    BuildContext? context,
+  ]) async {
+    final previousSchedule = _schedules[bikeId] != null
+        ? List<ServiceScheduleItem>.from(_schedules[bikeId]!)
+        : null;
     _schedules[bikeId] = List.from(items);
     _loadedBikes.add(bikeId);
     notifyListeners();
-    await _repository.saveServiceSchedule(bikeId, items);
+    try {
+      await _repository.saveServiceSchedule(bikeId, items);
+    } catch (e) {
+      if (previousSchedule != null) {
+        _schedules[bikeId] = previousSchedule;
+      } else {
+        _schedules.remove(bikeId);
+      }
+      notifyListeners();
+      if (context != null && context.mounted) {
+        showSaveErrorSnackBar(context);
+      } else {
+        showSaveErrorSnackBar();
+      }
+      rethrow;
+    }
   }
 
   /// Returns computed health and due predictions for all relevant service items of the bike.
@@ -261,8 +271,12 @@ class MaintenanceController extends ChangeNotifier {
     required double odometerKm,
     required DateTime date,
     double? cost,
+    BuildContext? context,
   }) async {
     final currentList = getScheduleItems(bikeId);
+    final previousSchedule = _schedules[bikeId] != null
+        ? List<ServiceScheduleItem>.from(_schedules[bikeId]!)
+        : null;
     final index = currentList.indexWhere((i) => i.id == itemId);
 
     final itemToUpdate = index != -1
@@ -279,7 +293,23 @@ class MaintenanceController extends ChangeNotifier {
     _schedules[bikeId] = List.from(updatedList);
     _loadedBikes.add(bikeId);
     notifyListeners();
-    _repository.saveServiceSchedule(bikeId, updatedList);
+
+    try {
+      await _repository.saveServiceSchedule(bikeId, updatedList);
+    } catch (e) {
+      if (previousSchedule != null) {
+        _schedules[bikeId] = previousSchedule;
+      } else {
+        _schedules.remove(bikeId);
+      }
+      notifyListeners();
+      if (context != null && context.mounted) {
+        showSaveErrorSnackBar(context);
+      } else {
+        showSaveErrorSnackBar();
+      }
+      rethrow;
+    }
 
     // Update bike's milestone if applicable
     final bike = _resolveBike(bikeId);
@@ -309,9 +339,10 @@ class MaintenanceController extends ChangeNotifier {
         id: 'visit-${DateTime.now().millisecondsSinceEpoch}',
         dateTime: date,
         shopName: '${updatedItem.type.displayName} Service',
+        bikeId: bikeId,
         note: 'Completed at ${odometerKm.round()} km',
       );
-      ServiceVisitController.instance.addVisit(newVisit);
+      await ServiceVisitController.instance.addVisit(newVisit);
     } catch (_) {}
 
     // Record optional rider-entered cost in Finances
@@ -384,17 +415,6 @@ class MaintenanceController extends ChangeNotifier {
 
   /// Refreshes state and notifies listeners.
   void refresh() {
-    notifyListeners();
-  }
-
-  @visibleForTesting
-  void resetForTesting() {
-    _schedules.clear();
-    _harshConditions.clear();
-    _carburetorOverrides.clear();
-    _loadedBikes.clear();
-    _repository = AppRepositories.instance.maintenanceRepository;
-    _serviceVisitRepository = AppRepositories.instance.serviceVisitRepository;
     notifyListeners();
   }
 }

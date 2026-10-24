@@ -23,6 +23,7 @@ class MaintenanceItem {
     required this.category,
     required this.status,
     required this.trackingMode,
+    this.bikeId,
     this.dueMileage,
     this.dueDate,
     this.notes,
@@ -75,6 +76,7 @@ class MaintenanceItem {
         (m) => m.name == json['trackingMode'],
         orElse: () => MaintenanceTrackingMode.auto,
       ),
+      bikeId: json['bikeId'] as String?,
       dueMileage: json['dueMileage'] as String?,
       dueDate: json['dueDate'] as String?,
       notes: json['notes'] as String?,
@@ -90,6 +92,7 @@ class MaintenanceItem {
   }
 
   final String id;
+  final String? bikeId;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -179,12 +182,15 @@ class MaintenanceItem {
         ),
       ];
 
+  static const _sentinel = Object();
+
   MaintenanceItem copyWith({
     String? id,
     String? name,
     String? category,
     MaintenanceStatus? status,
     MaintenanceTrackingMode? trackingMode,
+    Object? bikeId = _sentinel,
     String? dueMileage,
     String? dueDate,
     String? notes,
@@ -205,6 +211,7 @@ class MaintenanceItem {
       category: category ?? this.category,
       status: status ?? this.status,
       trackingMode: trackingMode ?? this.trackingMode,
+      bikeId: identical(bikeId, _sentinel) ? this.bikeId : (bikeId as String?),
       dueMileage: dueMileage ?? this.dueMileage,
       dueDate: dueDate ?? this.dueDate,
       notes: notes ?? this.notes,
@@ -229,6 +236,7 @@ class MaintenanceItem {
         'category': category,
         'status': status.name,
         'trackingMode': trackingMode.name,
+        'bikeId': bikeId,
         'dueMileage': dueMileage,
         'dueDate': dueDate,
         'notes': notes,
@@ -252,6 +260,7 @@ class MaintenanceItem {
           category == other.category &&
           status == other.status &&
           trackingMode == other.trackingMode &&
+          bikeId == other.bikeId &&
           dueMileage == other.dueMileage &&
           dueDate == other.dueDate &&
           notes == other.notes &&
@@ -270,6 +279,7 @@ class MaintenanceItem {
         category,
         status,
         trackingMode,
+        bikeId,
         dueMileage,
         dueDate,
         notes,

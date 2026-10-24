@@ -70,13 +70,18 @@ class _MarkServiceDoneDialogState extends State<MarkServiceDoneDialog> {
     final costText = _costController.text.trim();
     final double? cost = costText.isNotEmpty ? parsePkr(costText) ?? double.tryParse(costText) : null;
 
-    await MaintenanceController.instance.markItemDone(
-      widget.bike.id,
-      widget.item.id,
-      odometerKm: odo,
-      date: _selectedDate,
-      cost: cost,
-    );
+    try {
+      await MaintenanceController.instance.markItemDone(
+        widget.bike.id,
+        widget.item.id,
+        odometerKm: odo,
+        date: _selectedDate,
+        cost: cost,
+        context: context,
+      );
+    } catch (_) {
+      return;
+    }
 
     if (mounted) {
       Navigator.of(context).pop();

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../garage/controllers/active_bike_controller.dart';
 import '../../domain/maintenance_item_model.dart';
 import '../../domain/service_schedule_engine.dart';
 import '../../domain/service_schedule_item.dart';
@@ -106,6 +107,16 @@ class MaintenanceListWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final activeBikeId = ActiveBikeController.instance.activeBike?.id;
+    final sortedItems = List<MaintenanceItem>.from(items)
+      ..sort((a, b) {
+        final aActive = a.bikeId != null && a.bikeId == activeBikeId;
+        final bActive = b.bikeId != null && b.bikeId == activeBikeId;
+        if (aActive && !bActive) return -1;
+        if (!aActive && bActive) return 1;
+        return 0;
+      });
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -349,7 +360,7 @@ class MaintenanceListWidget extends StatelessWidget {
         // ──────────────────────────────────────────────────────────────────
         // 3. RIDER-ADDED MAINTENANCE ITEM CARDS (restored)
         // ──────────────────────────────────────────────────────────────────
-        ...items.map((item) {
+        ...sortedItems.map((item) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: Dismissible(

@@ -133,17 +133,25 @@ class MaintenanceItemCardWidget extends StatelessWidget {
                         ),
                       ],
                     ),
-                    if (item.subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        item.subtitle!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.caption.copyWith(
-                          fontSize: 11.5,
-                        ),
-                      ),
-                    ],
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        BikeLabelChip(bikeId: item.bikeId),
+                        if (item.subtitle != null) ...[
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              item.subtitle!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.caption.copyWith(
+                                fontSize: 11.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
               ),

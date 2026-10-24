@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'helpers/maintenance_test_helpers.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -18,7 +20,9 @@ void main() {
     LocalStore.instance.resetForTesting(prefs);
     AppRepositories.resetToDefault();
     ActiveBikeController.instance.resetForTesting();
-    MaintenanceController.instance.resetForTesting();
+    MaintenanceController.instance = MaintenanceController(
+      repository: FakeMaintenanceRepository(),
+    );
   });
 
   group('Service Schedule screen wording tests', () {
@@ -107,7 +111,7 @@ void main() {
       ActiveBikeController.instance.addBike(bike, setActive: true);
 
       // Seed an item with 1500 km
-      MaintenanceController.instance.setSchedule(
+      await setScheduleForTest(
         bike.id,
         [
           const ServiceScheduleItem(

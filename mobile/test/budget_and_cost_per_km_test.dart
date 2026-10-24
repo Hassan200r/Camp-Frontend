@@ -350,7 +350,6 @@ void main() {
 
     test('Controller filters past visits and returns next planned future visit', () {
       final controller = ServiceVisitController();
-      controller.resetForTesting();
 
       final now = DateTime.now();
 

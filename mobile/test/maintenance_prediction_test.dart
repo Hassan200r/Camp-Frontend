@@ -16,13 +16,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'helpers/maintenance_test_helpers.dart';
+
 void main() {
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
     ActiveBikeController.instance.reset();
     PostRideReportController.instance.reset();
-    MaintenanceController.instance.reset();
+    MaintenanceController.instance = MaintenanceController(
+      repository: FakeMaintenanceRepository(),
+    );
   });
 
   group('Phase 1 & 2: PostRideReport and MaintenancePredictionEngine Unit Tests', () {
@@ -65,11 +69,11 @@ void main() {
       expect(controller.getReportsForBike('bike-rebel-500').isEmpty, isTrue);
     });
 
-    test('MaintenancePredictionEngine computes deterministic component wear and health index', () {
+    test('MaintenancePredictionEngine computes deterministic component wear and health index', () async {
       final bike = ActiveBikeController.instance.activeBike!;
       final reports = PostRideReportController.instance.getReportsForBike(bike.id);
 
-      MaintenanceController.instance.setSchedule(bike.id, [
+      await setScheduleForTest(bike.id, [
         const ServiceScheduleItem(
           id: 'oil-bmw',
           bikeId: 'bike-bmw-1250',
@@ -132,7 +136,7 @@ void main() {
       expect(assessment.nextServiceDays, greaterThan(0));
     });
 
-    test('Engine Oil interval is reduced by 15% when terrain contains Off-road or Mountain', () {
+    test('Engine Oil interval is reduced by 15% when terrain contains Off-road or Mountain', () async {
       const offRoadBike = Bike(
         id: 'bike-offroad',
         make: 'KTM',
@@ -153,7 +157,7 @@ void main() {
         lastOilChange: ServiceRecord(km: 2000),
       );
 
-      MaintenanceController.instance.setSchedule(offRoadBike.id, [
+      await setScheduleForTest(offRoadBike.id, [
         const ServiceScheduleItem(
           id: 'oil-offroad',
           bikeId: 'bike-offroad',
@@ -163,7 +167,7 @@ void main() {
           enabled: true,
         ),
       ]);
-      MaintenanceController.instance.setSchedule(highwayBike.id, [
+      await setScheduleForTest(highwayBike.id, [
         const ServiceScheduleItem(
           id: 'oil-highway',
           bikeId: 'bike-highway',
@@ -237,7 +241,7 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      MaintenanceController.instance.setSchedule('bike-bmw-1250', [
+      await setScheduleForTest('bike-bmw-1250', [
         const ServiceScheduleItem(
           id: 'oil-bmw',
           bikeId: 'bike-bmw-1250',
@@ -460,7 +464,7 @@ void main() {
 
   // ── Part 1: Oil formula edge-case unit tests ───────────────────────────────
   group('Oil formula: km-limited, days-limited, terrain-shortened', () {
-    test('km-limited: wear is driven by km when days is zero (no date recorded)', () {
+    test('km-limited: wear is driven by km when days is zero (no date recorded)', () async {
       // 4,000 km since last change / 5,000 km interval = 80%
       const bike = Bike(
         id: 'test-km',
@@ -472,7 +476,7 @@ void main() {
         lastOilChange: ServiceRecord(km: 4000), // 4,000 km since change, no date
       );
 
-      MaintenanceController.instance.setSchedule(bike.id, [
+      await setScheduleForTest(bike.id, [
         const ServiceScheduleItem(
           id: 'oil-km',
           bikeId: 'test-km',
@@ -494,7 +498,7 @@ void main() {
       expect(oil.status, equals(ComponentStatus.dueSoon));
     });
 
-    test('days-limited: wear is driven by days when days > km wear', () {
+    test('days-limited: wear is driven by days when days > km wear', () async {
       final lastChangeDate = DateTime.now().subtract(const Duration(days: 89));
       final bike = Bike(
         id: 'test-days',
@@ -510,7 +514,7 @@ void main() {
         ),
       );
 
-      MaintenanceController.instance.setSchedule(bike.id, [
+      await setScheduleForTest(bike.id, [
         ServiceScheduleItem(
           id: 'oil-days',
           bikeId: 'test-days',
@@ -533,7 +537,7 @@ void main() {
       expect(oil.status, equals(ComponentStatus.dueSoon));
     });
 
-    test('terrain-shortened: Off-road bike has higher wear % than highway bike at same km', () {
+    test('terrain-shortened: Off-road bike has higher wear % than highway bike at same km', () async {
       const offRoadBike = Bike(
         id: 'terrain-off',
         make: 'KTM',
@@ -553,7 +557,7 @@ void main() {
         lastOilChange: ServiceRecord(km: 3000),
       );
 
-      MaintenanceController.instance.setSchedule(offRoadBike.id, [
+      await setScheduleForTest(offRoadBike.id, [
         const ServiceScheduleItem(
           id: 'oil-off',
           bikeId: 'terrain-off',
@@ -563,7 +567,7 @@ void main() {
           enabled: true,
         ),
       ]);
-      MaintenanceController.instance.setSchedule(highwayBike.id, [
+      await setScheduleForTest(highwayBike.id, [
         const ServiceScheduleItem(
           id: 'oil-hi',
           bikeId: 'terrain-hi',
@@ -587,7 +591,7 @@ void main() {
       expect(offRoadOil.wearPercent, greaterThan(highwayOil.wearPercent));
     });
 
-    test('Mountain terrain also triggers 15% interval reduction', () {
+    test('Mountain terrain also triggers 15% interval reduction', () async {
       const mountainBike = Bike(
         id: 'terrain-mount',
         make: 'Triumph',
@@ -598,7 +602,7 @@ void main() {
         lastOilChange: ServiceRecord(km: 3000),
       );
 
-      MaintenanceController.instance.setSchedule(mountainBike.id, [
+      await setScheduleForTest(mountainBike.id, [
         const ServiceScheduleItem(
           id: 'oil-mount',
           bikeId: 'terrain-mount',
@@ -1137,7 +1141,7 @@ void main() {
       }
     });
 
-    test('Item shows "Interval configured" ONLY when rider entered an interval without last done', () {
+    test('Item shows "Interval configured" ONLY when rider entered an interval without last done', () async {
       const bike = Bike(
         id: 'bike-interval-test',
         make: 'KTM',
@@ -1173,7 +1177,7 @@ void main() {
       expect(configuredPred.displaySubtitle, equals('Interval configured'));
 
       // Set schedule in controller and analyze
-      MaintenanceController.instance.setSchedule(bike.id, [configured]);
+      await setScheduleForTest(bike.id, [configured]);
       final assessment = MaintenancePredictionEngine.analyze(
         bike: bike,
         rideReports: const [],
@@ -1206,7 +1210,8 @@ void main() {
           home: MaintenanceScreen(),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // On a fresh bike where nothing was entered, every component card shows 'Not set up'
       // and NONE show 'Interval configured'
@@ -1218,8 +1223,9 @@ void main() {
       final oilItem = items.firstWhere((i) => i.type == ServiceItemType.oilAndSmallService);
       final updatedOilItem = oilItem.copyWith(intervalKm: 2500);
 
-      MaintenanceController.instance.setSchedule(unconfiguredBike.id, [updatedOilItem]);
-      await tester.pumpAndSettle();
+      await setScheduleForTest(unconfiguredBike.id, [updatedOilItem]);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // Exactly ONE item shows 'Interval configured', and remaining components still show 'Not set up'
       expect(find.text('Interval configured'), findsOneWidget);

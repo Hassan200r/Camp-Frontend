@@ -146,7 +146,11 @@ class _ServiceScheduleScreenState extends State<ServiceScheduleScreen> {
       ));
     }
 
-    await MaintenanceController.instance.saveSchedule(bikeId, updatedItems);
+    try {
+      await MaintenanceController.instance.saveSchedule(bikeId, updatedItems);
+    } catch (_) {
+      return;
+    }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

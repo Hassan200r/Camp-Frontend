@@ -65,13 +65,18 @@ class ServiceVisitCardWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(ctx).pop(true);
               if (onDeleteVisit != null) {
                 onDeleteVisit!(v);
               } else {
-                ServiceVisitController.instance.deleteVisit(v.id);
+                try {
+                  await ServiceVisitController.instance.deleteVisit(v.id, context);
+                } catch (_) {
+                  return;
+                }
               }
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).hideCurrentSnackBar();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -189,6 +194,8 @@ class ServiceVisitCardWidget extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      BikeLabelChip(bikeId: effectiveVisit.bikeId),
+                      const SizedBox(width: 6),
                       const StatusChip(
                         label: 'Planned',
                         variant: StatusChipVariant.gold,

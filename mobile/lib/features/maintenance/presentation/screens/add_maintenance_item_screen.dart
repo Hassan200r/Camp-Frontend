@@ -6,6 +6,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../garage/controllers/active_bike_controller.dart';
 import '../../domain/maintenance_item_model.dart';
 
 /// Screen to log or edit a motorcycle maintenance inspection item
@@ -40,12 +41,14 @@ class _AddMaintenanceItemScreenState extends State<AddMaintenanceItemScreen> {
   MaintenanceStatus _selectedStatus = MaintenanceStatus.dueSoon;
   int _dueTypeIndex = 0; // 0=By Mileage, 1=By Date
   int _trackingModeIndex = 1; // 0=Auto Telemetry, 1=Manual Entry (default: Manual)
+  String? _selectedBikeId;
 
   @override
   void initState() {
     super.initState();
     if (widget.initialItem != null) {
       final item = widget.initialItem!;
+      _selectedBikeId = item.bikeId;
       _nameCtrl.text = item.name;
       _selectedCategory = item.category;
       _selectedStatus = item.status;
@@ -63,6 +66,8 @@ class _AddMaintenanceItemScreenState extends State<AddMaintenanceItemScreen> {
         _costCtrl.text = item.cost!.toStringAsFixed(0);
       }
       _mechanicCtrl.text = item.mechanicName ?? '';
+    } else {
+      _selectedBikeId = ActiveBikeController.instance.activeBike?.id;
     }
   }
 
@@ -101,6 +106,7 @@ class _AddMaintenanceItemScreenState extends State<AddMaintenanceItemScreen> {
             name: name,
             category: _selectedCategory,
             status: _selectedStatus,
+            bikeId: _selectedBikeId,
             trackingMode: _trackingModeIndex == 0
                 ? MaintenanceTrackingMode.auto
                 : MaintenanceTrackingMode.manual,
@@ -128,6 +134,7 @@ class _AddMaintenanceItemScreenState extends State<AddMaintenanceItemScreen> {
             name: name,
             category: _selectedCategory,
             status: _selectedStatus,
+            bikeId: _selectedBikeId,
             trackingMode: _trackingModeIndex == 0
                 ? MaintenanceTrackingMode.auto
                 : MaintenanceTrackingMode.manual,
@@ -270,6 +277,29 @@ class _AddMaintenanceItemScreenState extends State<AddMaintenanceItemScreen> {
                   LabeledTextField(
                     label: 'ITEM NAME',
                     controller: _nameCtrl,
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // ── Bike Picker Dropdown ──────────────────────────────────
+                  LabeledDropdown<String?>(
+                    label: 'BIKE',
+                    value: _selectedBikeId,
+                    items: [
+                      null,
+                      ...ActiveBikeController.instance.bikes.map((b) => b.id),
+                      if (_selectedBikeId != null &&
+                          !ActiveBikeController.instance.bikes
+                              .any((b) => b.id == _selectedBikeId))
+                        _selectedBikeId,
+                    ],
+                    itemLabelBuilder: (id) {
+                      if (id == null) return 'No bike';
+                      final bike =
+                          ActiveBikeController.instance.getBikeById(id);
+                      return bike != null ? bike.name : 'Deleted bike';
+                    },
+                    onChanged: (val) => setState(() => _selectedBikeId = val),
                   ),
 
                   const SizedBox(height: 18),

@@ -1,7 +1,8 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import '../../../core/data/app_repositories.dart';
 import '../../../core/data/service_visit_repository.dart';
+import '../../../core/widgets/app_messenger.dart';
 import '../domain/service_visit_model.dart';
 
 /// Central state controller managing scheduled and historical workshop service visits.
@@ -47,37 +48,67 @@ class ServiceVisitController extends ChangeNotifier {
   }
 
   /// Add a newly scheduled service visit.
-  Future<void> addVisit(ServiceVisit visit) async {
+  Future<void> addVisit(ServiceVisit visit, [BuildContext? context]) async {
+    final previous = List<ServiceVisit>.from(_visits);
     _visits.add(visit);
     notifyListeners();
-    await save();
+    try {
+      await _repository.saveServiceVisits(_visits);
+    } catch (e) {
+      _visits.clear();
+      _visits.addAll(previous);
+      notifyListeners();
+      if (context != null && context.mounted) {
+        showSaveErrorSnackBar(context);
+      } else {
+        showSaveErrorSnackBar();
+      }
+      rethrow;
+    }
   }
 
   /// Update an existing scheduled service visit.
-  Future<void> updateVisit(ServiceVisit visit) async {
+  Future<void> updateVisit(ServiceVisit visit, [BuildContext? context]) async {
     final index = _visits.indexWhere((v) => v.id == visit.id);
-    if (index != -1) {
-      _visits[index] = visit;
+    if (index == -1) return;
+    final previous = List<ServiceVisit>.from(_visits);
+    _visits[index] = visit;
+    notifyListeners();
+    try {
+      await _repository.saveServiceVisits(_visits);
+    } catch (e) {
+      _visits.clear();
+      _visits.addAll(previous);
       notifyListeners();
-      await save();
+      if (context != null && context.mounted) {
+        showSaveErrorSnackBar(context);
+      } else {
+        showSaveErrorSnackBar();
+      }
+      rethrow;
     }
   }
 
   /// Remove a service visit by its ID.
-  Future<void> deleteVisit(String id) async {
+  Future<void> deleteVisit(String id, [BuildContext? context]) async {
     final index = _visits.indexWhere((v) => v.id == id);
-    if (index != -1) {
-      _visits.removeAt(index);
-      notifyListeners();
-      await save();
-    }
-  }
-
-  /// Reset in-memory state for testing.
-  void resetForTesting() {
-    _visits.clear();
-    _repository = AppRepositories.instance.serviceVisitRepository;
+    if (index == -1) return;
+    final previous = List<ServiceVisit>.from(_visits);
+    _visits.removeAt(index);
     notifyListeners();
+    try {
+      await _repository.saveServiceVisits(_visits);
+    } catch (e) {
+      _visits.clear();
+      _visits.addAll(previous);
+      notifyListeners();
+      if (context != null && context.mounted) {
+        showSaveErrorSnackBar(context);
+      } else {
+        showSaveErrorSnackBar();
+      }
+      rethrow;
+    }
   }
 
   /// Load persisted service visits from storage.
@@ -95,8 +126,6 @@ class ServiceVisitController extends ChangeNotifier {
   /// Persist current visits list to storage.
   Future<void> save([ServiceVisitRepository? customRepo]) async {
     final repo = customRepo ?? _repository;
-    try {
-      await repo.saveServiceVisits(_visits);
-    } catch (_) {}
+    await repo.saveServiceVisits(_visits);
   }
 }

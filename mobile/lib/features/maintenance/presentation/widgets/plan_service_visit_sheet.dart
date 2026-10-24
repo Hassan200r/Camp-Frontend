@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../garage/controllers/active_bike_controller.dart';
 import '../../../mechanics/controllers/mechanic_controller.dart';
 import '../../../mechanics/domain/mechanic_model.dart';
 import '../../controllers/service_visit_controller.dart';
@@ -39,12 +40,14 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
   double? _latitude;
   double? _longitude;
   String? _selectedMechanicId;
+  String? _selectedBikeId;
 
   @override
   void initState() {
     super.initState();
     if (widget.initialVisit != null) {
       final v = widget.initialVisit!;
+      _selectedBikeId = v.bikeId;
       _shopNameCtrl.text = v.shopName;
       _phoneCtrl.text = v.phone ?? '';
       _noteCtrl.text = v.note ?? '';
@@ -57,6 +60,7 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
     } else {
       _selectedDate = DateTime.now().add(const Duration(days: 3));
       _selectedTime = const TimeOfDay(hour: 10, minute: 0);
+      _selectedBikeId = ActiveBikeController.instance.activeBike?.id;
     }
   }
 
@@ -157,6 +161,7 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
         ? widget.initialVisit!.copyWith(
             dateTime: combinedDt,
             shopName: shop,
+            bikeId: _selectedBikeId,
             phone: phone,
             latitude: _latitude,
             longitude: _longitude,
@@ -168,6 +173,7 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
             id: 'visit-${DateTime.now().millisecondsSinceEpoch}',
             dateTime: combinedDt,
             shopName: shop,
+            bikeId: _selectedBikeId,
             phone: phone,
             latitude: _latitude,
             longitude: _longitude,
@@ -175,10 +181,14 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
             mechanicId: _selectedMechanicId,
           );
 
-    if (widget.initialVisit != null) {
-      await ServiceVisitController.instance.updateVisit(visit);
-    } else {
-      await ServiceVisitController.instance.addVisit(visit);
+    try {
+      if (widget.initialVisit != null) {
+        await ServiceVisitController.instance.updateVisit(visit, context);
+      } else {
+        await ServiceVisitController.instance.addVisit(visit, context);
+      }
+    } catch (_) {
+      return;
     }
 
     if (!mounted) return;
@@ -303,6 +313,28 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
               ),
               const SizedBox(height: 14),
             ],
+
+            // Bike picker dropdown
+            LabeledDropdown<String?>(
+              label: 'BIKE',
+              value: _selectedBikeId,
+              items: [
+                null,
+                ...ActiveBikeController.instance.bikes.map((b) => b.id),
+                if (_selectedBikeId != null &&
+                    !ActiveBikeController.instance.bikes
+                        .any((b) => b.id == _selectedBikeId))
+                  _selectedBikeId,
+              ],
+              itemLabelBuilder: (id) {
+                if (id == null) return 'No bike';
+                final bike =
+                    ActiveBikeController.instance.getBikeById(id);
+                return bike != null ? bike.name : 'Deleted bike';
+              },
+              onChanged: (val) => setState(() => _selectedBikeId = val),
+            ),
+            const SizedBox(height: 14),
 
             // Workshop name input
             LabeledTextField(

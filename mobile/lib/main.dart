@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'app/routes.dart';
 import 'app/theme/app_theme.dart';
 import 'core/data/app_repositories.dart';
+import 'core/widgets/app_messenger.dart';
 import 'features/auth/presentation/screens/forgot_password_screen.dart';
 import 'features/auth/presentation/screens/sign_in_screen.dart';
 import 'features/auth/presentation/screens/sign_up_screen.dart';
@@ -107,6 +108,7 @@ class _CampAppState extends State<CampApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'CAMP',
+      scaffoldMessengerKey: rootScaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       initialRoute: CampRoutes.signIn,
