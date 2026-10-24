@@ -8,6 +8,7 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../controllers/service_visit_controller.dart';
 import '../../domain/service_visit_model.dart';
+import 'mark_service_visit_done_sheet.dart';
 import 'plan_service_visit_sheet.dart';
 
 /// Next Service Visit card showing either empty state ("Plan a visit")
@@ -19,6 +20,7 @@ class ServiceVisitCardWidget extends StatelessWidget {
     this.onPlanVisit,
     this.onEditVisit,
     this.onDeleteVisit,
+    this.onMarkDone,
     this.onCallShop,
     this.onDirections,
   });
@@ -27,17 +29,19 @@ class ServiceVisitCardWidget extends StatelessWidget {
   final VoidCallback? onPlanVisit;
   final ValueChanged<ServiceVisit>? onEditVisit;
   final ValueChanged<ServiceVisit>? onDeleteVisit;
+  final ValueChanged<ServiceVisit>? onMarkDone;
   final ValueChanged<ServiceVisit>? onCallShop;
   final ValueChanged<ServiceVisit>? onDirections;
 
-  void _confirmDelete(BuildContext context, ServiceVisit v) {
+  void _confirmDelete(BuildContext context, ServiceVisit v,
+      {bool isPast = false}) {
     showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.clay,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          'Cancel Service Visit?',
+          isPast ? 'Delete Service Visit?' : 'Cancel Service Visit?',
           style: GoogleFonts.manrope(
             fontSize: 17,
             fontWeight: FontWeight.w800,
@@ -45,7 +49,9 @@ class ServiceVisitCardWidget extends StatelessWidget {
           ),
         ),
         content: Text(
-          'Are you sure you want to cancel the scheduled visit to ${v.shopName}?',
+          isPast
+              ? 'Are you sure you want to delete the service visit to ${v.shopName}?'
+              : 'Are you sure you want to cancel the scheduled visit to ${v.shopName}?',
           style: AppTextStyles.bodySecondary.copyWith(fontSize: 13),
         ),
         actions: [
@@ -68,11 +74,14 @@ class ServiceVisitCardWidget extends StatelessWidget {
             ),
             onPressed: () async {
               Navigator.of(ctx).pop(true);
+              final removedIndex =
+                  ServiceVisitController.instance.visits.indexOf(v);
               if (onDeleteVisit != null) {
                 onDeleteVisit!(v);
               } else {
                 try {
-                  await ServiceVisitController.instance.deleteVisit(v.id, context);
+                  await ServiceVisitController.instance
+                      .deleteVisit(v.id, context);
                 } catch (_) {
                   return;
                 }
@@ -81,14 +90,26 @@ class ServiceVisitCardWidget extends StatelessWidget {
               ScaffoldMessenger.of(context).hideCurrentSnackBar();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Cancelled service visit to ${v.shopName}'),
+                  content: Text(isPast
+                      ? 'Deleted service visit to ${v.shopName}'
+                      : 'Cancelled service visit to ${v.shopName}'),
                   backgroundColor: AppColors.darkCharcoal,
                   behavior: SnackBarBehavior.floating,
+                  action: SnackBarAction(
+                    label: 'Undo',
+                    textColor: AppColors.tacticalOrange,
+                    onPressed: () {
+                      ServiceVisitController.instance.insertVisit(
+                        removedIndex >= 0 ? removedIndex : 0,
+                        v,
+                      );
+                    },
+                  ),
                 ),
               );
             },
             child: Text(
-              'Cancel Visit',
+              isPast ? 'Delete Visit' : 'Cancel Visit',
               style: GoogleFonts.manrope(
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
@@ -217,7 +238,16 @@ class ServiceVisitCardWidget extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         onSelected: (val) {
-                          if (val == 'edit') {
+                          if (val == 'mark_done') {
+                            if (onMarkDone != null) {
+                              onMarkDone!(effectiveVisit);
+                            } else {
+                              MarkServiceVisitDoneSheet.show(
+                                context,
+                                visit: effectiveVisit,
+                              );
+                            }
+                          } else if (val == 'edit') {
                             if (onEditVisit != null) {
                               onEditVisit!(effectiveVisit);
                             } else {
@@ -231,6 +261,25 @@ class ServiceVisitCardWidget extends StatelessWidget {
                           }
                         },
                         itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'mark_done',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.check_circle_outline,
+                                    size: 16,
+                                    color: AppColors.tacticalOrange),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Mark done',
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.darkCharcoal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                           PopupMenuItem(
                             value: 'edit',
                             child: Row(
@@ -480,17 +529,34 @@ class ServiceVisitCardWidget extends StatelessWidget {
                       pv.formattedDateTime,
                       style: AppTextStyles.caption.copyWith(fontSize: 11),
                     ),
-                    if (pv.cost != null && pv.cost! > 0) ...[
+                    if (pv.isDone) ...[
+                      if (pv.cost != null && pv.cost! > 0) ...[
+                        const SizedBox(width: 6),
+                        Text('•',
+                            style:
+                                AppTextStyles.caption.copyWith(fontSize: 11)),
+                        const SizedBox(width: 6),
+                        Text(
+                          formatPkr(pv.cost!),
+                          style: GoogleFonts.manrope(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.tacticalOrangeDark,
+                          ),
+                        ),
+                      ],
+                    ] else ...[
                       const SizedBox(width: 6),
                       Text('•',
-                          style: AppTextStyles.caption.copyWith(fontSize: 11)),
+                          style:
+                              AppTextStyles.caption.copyWith(fontSize: 11)),
                       const SizedBox(width: 6),
                       Text(
-                        formatPkr(pv.cost!),
+                        'Not marked done',
                         style: GoogleFonts.manrope(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.tacticalOrangeDark,
+                          color: AppColors.mutedText,
                         ),
                       ),
                     ],
@@ -498,6 +564,94 @@ class ServiceVisitCardWidget extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(
+              Icons.more_vert_rounded,
+              size: 16,
+              color: AppColors.mutedText,
+            ),
+            color: AppColors.clay,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            onSelected: (val) {
+              if (val == 'mark_done') {
+                if (onMarkDone != null) {
+                  onMarkDone!(pv);
+                } else {
+                  MarkServiceVisitDoneSheet.show(context, visit: pv);
+                }
+              } else if (val == 'edit') {
+                if (onEditVisit != null) {
+                  onEditVisit!(pv);
+                } else {
+                  PlanServiceVisitSheet.show(
+                    context,
+                    initialVisit: pv,
+                  );
+                }
+              } else if (val == 'delete') {
+                _confirmDelete(context, pv, isPast: true);
+              }
+            },
+            itemBuilder: (context) => [
+              if (!pv.isDone)
+                PopupMenuItem(
+                  value: 'mark_done',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle_outline,
+                          size: 16, color: AppColors.tacticalOrange),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Mark done',
+                        style: GoogleFonts.manrope(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.darkCharcoal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    const Icon(Icons.edit_outlined,
+                        size: 16, color: AppColors.darkCharcoal),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Edit Visit',
+                      style: GoogleFonts.manrope(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.darkCharcoal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    const Icon(Icons.delete_outline,
+                        size: 16, color: AppColors.alertRed),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Delete Visit',
+                      style: GoogleFonts.manrope(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.alertRed,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

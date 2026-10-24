@@ -17,6 +17,7 @@ class ServiceVisit {
     this.longitude,
     this.note,
     this.mechanicId,
+    this.isDone = false,
     this.createdAt,
     this.updatedAt,
   });
@@ -43,6 +44,7 @@ class ServiceVisit {
     final lng = (json['longitude'] as num?)?.toDouble();
     final costVal = (json['cost'] as num?)?.toDouble();
     final rawExpId = (json['expenseId'] ?? json['expense_id']) as String?;
+    final isDoneVal = json['isDone'] as bool? ?? json['completed'] as bool? ?? false;
 
     return ServiceVisit(
       id: effectiveId,
@@ -60,6 +62,7 @@ class ServiceVisit {
       longitude: lng,
       note: json['note'] as String?,
       mechanicId: json['mechanicId'] as String?,
+      isDone: isDoneVal,
       createdAt: createdUtc,
       updatedAt: updatedUtc,
     );
@@ -76,6 +79,7 @@ class ServiceVisit {
   final double? longitude;
   final String? note;
   final String? mechanicId;
+  final bool isDone;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -85,8 +89,8 @@ class ServiceVisit {
   DateTime get effectiveUpdatedAt =>
       updatedAt?.toUtc() ?? effectiveCreatedAt;
 
-  /// True if the visit's scheduled date/time has already passed.
-  bool get isPast => dateTime.isBefore(DateTime.now());
+  /// True if the visit has been marked done or its scheduled date/time has passed.
+  bool get isPast => isDone || dateTime.isBefore(DateTime.now());
 
   /// True if phone number is available for direct calling.
   bool get hasPhone => phone != null && phone!.trim().isNotEmpty;
@@ -118,6 +122,7 @@ class ServiceVisit {
     double? longitude,
     String? note,
     String? mechanicId,
+    bool? isDone,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -135,6 +140,7 @@ class ServiceVisit {
       longitude: longitude ?? this.longitude,
       note: note ?? this.note,
       mechanicId: mechanicId ?? this.mechanicId,
+      isDone: isDone ?? this.isDone,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? DateTime.now().toUtc(),
     );
@@ -151,6 +157,7 @@ class ServiceVisit {
       'longitude': longitude,
       'note': note,
       'mechanicId': mechanicId,
+      'isDone': isDone,
       'createdAt': effectiveCreatedAt.toIso8601String(),
       'updatedAt': effectiveUpdatedAt.toIso8601String(),
     };
@@ -171,7 +178,8 @@ class ServiceVisit {
           cost == other.cost &&
           expenseId == other.expenseId &&
           phone == other.phone &&
-          note == other.note;
+          note == other.note &&
+          isDone == other.isDone;
 
   @override
   int get hashCode => Object.hash(
@@ -183,5 +191,6 @@ class ServiceVisit {
         expenseId,
         phone,
         note,
+        isDone,
       );
 }

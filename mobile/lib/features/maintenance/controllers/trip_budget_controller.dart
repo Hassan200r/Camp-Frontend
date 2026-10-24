@@ -185,6 +185,7 @@ class TripBudgetController extends ChangeNotifier {
   Future<void> _syncLinkedMaintenanceOnDelete(Expense expense) async {
     final linkId = expense.maintenanceItemId;
     if (linkId == null || linkId.isEmpty) return;
+    if (ServiceVisitController.instance.isSyncingWithFinances) return;
 
     try {
       final items = MaintenanceController.instance.maintenanceItems;
@@ -234,6 +235,7 @@ class TripBudgetController extends ChangeNotifier {
   Future<void> _syncLinkedMaintenanceOnRestore(Expense expense) async {
     final linkId = expense.maintenanceItemId;
     if (linkId == null || linkId.isEmpty) return;
+    if (ServiceVisitController.instance.isSyncingWithFinances) return;
 
     final cachedItem = _cachedDeletedItems.remove(expense.id);
     if (cachedItem != null) {

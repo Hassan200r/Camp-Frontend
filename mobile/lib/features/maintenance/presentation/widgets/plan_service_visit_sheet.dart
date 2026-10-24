@@ -167,28 +167,47 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
     final visitId = widget.initialVisit?.id ??
         'visit-${DateTime.now().millisecondsSinceEpoch}';
     String? expenseId = widget.initialVisit?.expenseId;
+    final isDone = widget.initialVisit?.isDone ?? false;
 
-    // Existing linked expenses created by the old behaviour stay as they are.
-    if (expenseId != null && expenseId.isNotEmpty) {
-      final existingExp = TripBudgetController.instance.expenses
-          .cast<Expense?>()
-          .firstWhere((e) => e?.id == expenseId, orElse: () => null);
-      if (existingExp != null) {
-        if (cost != null && cost > 0) {
-          TripBudgetController.instance.updateExpense(
-            existingExp.copyWith(
-              amount: cost,
-              bikeId: _selectedBikeId,
-              title: '$shop Service',
-              category: ExpenseCategory.service,
-              dateRecorded: combinedDt,
-              updatedAt: DateTime.now().toUtc(),
-            ),
-          );
-        } else {
-          TripBudgetController.instance.deleteExpense(expenseId);
-          expenseId = null;
+    // Existing linked expenses or visits that are done: keep linked expense in sync.
+    if (isDone || (expenseId != null && expenseId.isNotEmpty)) {
+      if (expenseId != null && expenseId.isNotEmpty) {
+        final existingExp = TripBudgetController.instance.expenses
+            .cast<Expense?>()
+            .firstWhere((e) => e?.id == expenseId, orElse: () => null);
+        if (existingExp != null) {
+          if (cost != null && cost > 0) {
+            TripBudgetController.instance.updateExpense(
+              existingExp.copyWith(
+                amount: cost,
+                bikeId: _selectedBikeId,
+                title: '$shop Service',
+                category: ExpenseCategory.service,
+                dateRecorded: combinedDt,
+                updatedAt: DateTime.now().toUtc(),
+              ),
+            );
+          } else {
+            TripBudgetController.instance.deleteExpense(expenseId);
+            expenseId = null;
+          }
         }
+      } else if (isDone && cost != null && cost > 0) {
+        final newExpId = 'exp-visit-${DateTime.now().millisecondsSinceEpoch}';
+        final newExp = Expense(
+          id: newExpId,
+          title: '$shop Service',
+          amount: cost,
+          category: ExpenseCategory.service,
+          trackingMode: ExpenseTrackingMode.manualEntry,
+          dateRecorded: combinedDt,
+          bikeId: _selectedBikeId,
+          maintenanceItemId: visitId,
+          createdAt: DateTime.now().toUtc(),
+          updatedAt: DateTime.now().toUtc(),
+        );
+        TripBudgetController.instance.addExpense(newExp);
+        expenseId = newExpId;
       }
     }
     // New planned visits do not create an expense yet: cost is stored on the visit only.
@@ -205,6 +224,7 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
             cost: cost != null && cost > 0 ? cost : null,
             expenseId: expenseId,
             mechanicId: _selectedMechanicId,
+            isDone: isDone,
             updatedAt: DateTime.now().toUtc(),
           )
         : ServiceVisit(
@@ -219,6 +239,7 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
             cost: cost != null && cost > 0 ? cost : null,
             expenseId: expenseId,
             mechanicId: _selectedMechanicId,
+            isDone: false,
           );
 
     try {
@@ -496,9 +517,11 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
             ),
             const SizedBox(height: 14),
 
-            // Expected cost (optional)
+            // Expected cost (optional) or Actual cost (optional) if already done
             LabeledTextField(
-              label: 'Expected cost (optional)',
+              label: widget.initialVisit?.isDone == true
+                  ? 'Actual cost (optional)'
+                  : 'Expected cost (optional)',
               controller: _costCtrl,
               prefixText: 'Rs ',
               placeholder: '0',

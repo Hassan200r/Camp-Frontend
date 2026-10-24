@@ -59,6 +59,12 @@ class ServiceVisitController extends ChangeNotifier {
     return List.unmodifiable(list);
   }
 
+  final Map<String, Expense> _cachedDeletedExpenses = {};
+
+  @visibleForTesting
+  Map<String, Expense> get cachedDeletedExpenses =>
+      Map.unmodifiable(_cachedDeletedExpenses);
+
   /// Add a newly scheduled service visit.
   Future<void> addVisit(ServiceVisit visit, [BuildContext? context]) async {
     final previous = List<ServiceVisit>.from(_visits);
@@ -79,12 +85,80 @@ class ServiceVisitController extends ChangeNotifier {
     }
   }
 
-  /// Update an existing scheduled service visit.
+  /// Update an existing service visit.
+  /// If the visit is marked done and has a cost, ensures the linked expense stays in sync.
   Future<void> updateVisit(ServiceVisit visit, [BuildContext? context]) async {
     final index = _visits.indexWhere((v) => v.id == visit.id);
     if (index == -1) return;
+
+    ServiceVisit visitToSave = visit;
+
+    if (visit.isDone) {
+      if (visit.cost != null && visit.cost! > 0) {
+        if (visit.expenseId != null && visit.expenseId!.isNotEmpty) {
+          final expIdx = TripBudgetController.instance.expenses.indexWhere(
+              (e) => e.id == visit.expenseId || e.maintenanceItemId == visit.id);
+          if (expIdx != -1) {
+            final existingExp = TripBudgetController.instance.expenses[expIdx];
+            if (existingExp.amount != visit.cost! ||
+                existingExp.bikeId != visit.bikeId ||
+                existingExp.title != '${visit.shopName} Service') {
+              TripBudgetController.instance.updateExpense(
+                existingExp.copyWith(
+                  amount: visit.cost!,
+                  bikeId: visit.bikeId,
+                  title: '${visit.shopName} Service',
+                  category: ExpenseCategory.service,
+                  updatedAt: DateTime.now().toUtc(),
+                ),
+              );
+            }
+          } else {
+            final newExp = Expense(
+              id: visit.expenseId!,
+              title: '${visit.shopName} Service',
+              amount: visit.cost!,
+              category: ExpenseCategory.service,
+              trackingMode: ExpenseTrackingMode.manualEntry,
+              dateRecorded: visit.dateTime,
+              bikeId: visit.bikeId,
+              maintenanceItemId: visit.id,
+              createdAt: DateTime.now().toUtc(),
+              updatedAt: DateTime.now().toUtc(),
+            );
+            TripBudgetController.instance.addExpense(newExp);
+          }
+        } else {
+          final newExpId = 'exp-visit-${DateTime.now().millisecondsSinceEpoch}';
+          final newExp = Expense(
+            id: newExpId,
+            title: '${visit.shopName} Service',
+            amount: visit.cost!,
+            category: ExpenseCategory.service,
+            trackingMode: ExpenseTrackingMode.manualEntry,
+            dateRecorded: visit.dateTime,
+            bikeId: visit.bikeId,
+            maintenanceItemId: visit.id,
+            createdAt: DateTime.now().toUtc(),
+            updatedAt: DateTime.now().toUtc(),
+          );
+          TripBudgetController.instance.addExpense(newExp);
+          visitToSave = visit.copyWith(expenseId: newExpId);
+        }
+      } else {
+        if (visit.expenseId != null && visit.expenseId!.isNotEmpty) {
+          final expExists = TripBudgetController.instance.expenses
+              .any((e) => e.id == visit.expenseId);
+          if (expExists) {
+            TripBudgetController.instance.deleteExpense(visit.expenseId!);
+          }
+          visitToSave = visit.copyWith(expenseId: null, cost: null);
+        }
+      }
+    }
+
     final previous = List<ServiceVisit>.from(_visits);
-    _visits[index] = visit;
+    _visits[index] = visitToSave;
     notifyListeners();
     try {
       await _repository.saveServiceVisits(_visits);
@@ -101,23 +175,35 @@ class ServiceVisitController extends ChangeNotifier {
     }
   }
 
+  bool isSyncingWithFinances = false;
+
   /// Remove a service visit by its ID.
   Future<void> deleteVisit(String id, [BuildContext? context]) async {
     final index = _visits.indexWhere((v) => v.id == id);
     if (index == -1) return;
     final visit = _visits[index];
+
+    if (visit.expenseId != null && visit.expenseId!.isNotEmpty) {
+      final expIdx = TripBudgetController.instance.expenses.indexWhere(
+          (Expense e) =>
+              e.id == visit.expenseId || e.maintenanceItemId == visit.id);
+      if (expIdx != -1) {
+        final exp = TripBudgetController.instance.expenses[expIdx];
+        _cachedDeletedExpenses[visit.id] = exp;
+        isSyncingWithFinances = true;
+        try {
+          TripBudgetController.instance.deleteExpense(visit.expenseId!);
+        } finally {
+          isSyncingWithFinances = false;
+        }
+      }
+    }
+
     final previous = List<ServiceVisit>.from(_visits);
     _visits.removeAt(index);
     notifyListeners();
     try {
       await _repository.saveServiceVisits(_visits);
-      if (visit.expenseId != null && visit.expenseId!.isNotEmpty) {
-        final expExists = TripBudgetController.instance.expenses
-            .any((Expense e) => e.id == visit.expenseId);
-        if (expExists) {
-          TripBudgetController.instance.deleteExpense(visit.expenseId!);
-        }
-      }
     } catch (e) {
       _visits.clear();
       _visits.addAll(previous);
@@ -129,6 +215,154 @@ class ServiceVisitController extends ChangeNotifier {
       }
       rethrow;
     }
+  }
+
+  /// Insert a service visit at a specific index (e.g. for Undo operations).
+  Future<void> insertVisit(int index, ServiceVisit visit,
+      [BuildContext? context]) async {
+    final cachedExp = _cachedDeletedExpenses.remove(visit.id);
+    if (cachedExp != null) {
+      if (!TripBudgetController.instance.expenses
+          .any((e) => e.id == cachedExp.id)) {
+        isSyncingWithFinances = true;
+        try {
+          TripBudgetController.instance.insertExpense(
+            TripBudgetController.instance.expenses.length,
+            cachedExp,
+          );
+        } finally {
+          isSyncingWithFinances = false;
+        }
+      }
+    } else if (visit.isDone &&
+        visit.expenseId != null &&
+        visit.cost != null &&
+        visit.cost! > 0) {
+      if (!TripBudgetController.instance.expenses
+          .any((e) => e.id == visit.expenseId)) {
+        final restoredExp = Expense(
+          id: visit.expenseId!,
+          title: '${visit.shopName} Service',
+          amount: visit.cost!,
+          category: ExpenseCategory.service,
+          trackingMode: ExpenseTrackingMode.manualEntry,
+          dateRecorded: visit.dateTime,
+          bikeId: visit.bikeId,
+          maintenanceItemId: visit.id,
+          createdAt: DateTime.now().toUtc(),
+          updatedAt: DateTime.now().toUtc(),
+        );
+        isSyncingWithFinances = true;
+        try {
+          TripBudgetController.instance.insertExpense(
+            TripBudgetController.instance.expenses.length,
+            restoredExp,
+          );
+        } finally {
+          isSyncingWithFinances = false;
+        }
+      }
+    }
+
+    final safeIndex = index.clamp(0, _visits.length);
+    final previous = List<ServiceVisit>.from(_visits);
+    _visits.insert(safeIndex, visit);
+    notifyListeners();
+    try {
+      await _repository.saveServiceVisits(_visits);
+    } catch (e) {
+      _visits.clear();
+      _visits.addAll(previous);
+      notifyListeners();
+      if (context != null && context.mounted) {
+        showSaveErrorSnackBar(context);
+      } else {
+        showSaveErrorSnackBar();
+      }
+      rethrow;
+    }
+  }
+
+  /// Marks a service visit as done.
+  ///
+  /// If [actualCost] is provided and > 0, creates exactly one linked expense
+  /// in Finances (category Service, bikeId of the visit) and stores the expenseId
+  /// on the visit. If no cost is provided, no expense is created.
+  Future<void> markVisitDone({
+    required ServiceVisit visit,
+    double? actualCost,
+    String? bikeId,
+    BuildContext? context,
+  }) async {
+    final effectiveBikeId = bikeId ?? visit.bikeId;
+    final hasCost = actualCost != null && actualCost > 0;
+    String? effectiveExpenseId = visit.expenseId;
+
+    if (hasCost) {
+      final existingExp =
+          (effectiveExpenseId != null && effectiveExpenseId.isNotEmpty)
+              ? TripBudgetController.instance.expenses
+                  .cast<Expense?>()
+                  .firstWhere((e) => e?.id == effectiveExpenseId,
+                      orElse: () => null)
+              : null;
+
+      final expenseDate = visit.dateTime.isAfter(DateTime.now())
+          ? DateTime.now()
+          : visit.dateTime;
+
+      if (existingExp != null) {
+        TripBudgetController.instance.updateExpense(
+          existingExp.copyWith(
+            amount: actualCost,
+            bikeId: effectiveBikeId,
+            title: '${visit.shopName} Service',
+            category: ExpenseCategory.service,
+            dateRecorded: expenseDate,
+            updatedAt: DateTime.now().toUtc(),
+          ),
+        );
+      } else {
+        final newExpId =
+            (effectiveExpenseId != null && effectiveExpenseId.isNotEmpty)
+                ? effectiveExpenseId
+                : 'exp-visit-${DateTime.now().millisecondsSinceEpoch}';
+        final newExp = Expense(
+          id: newExpId,
+          title: '${visit.shopName} Service',
+          amount: actualCost,
+          category: ExpenseCategory.service,
+          trackingMode: ExpenseTrackingMode.manualEntry,
+          dateRecorded: expenseDate,
+          bikeId: effectiveBikeId,
+          maintenanceItemId: visit.id,
+          createdAt: DateTime.now().toUtc(),
+          updatedAt: DateTime.now().toUtc(),
+        );
+        TripBudgetController.instance.addExpense(newExp);
+        effectiveExpenseId = newExpId;
+      }
+    } else {
+      if (effectiveExpenseId != null && effectiveExpenseId.isNotEmpty) {
+        final existingExp = TripBudgetController.instance.expenses
+            .cast<Expense?>()
+            .firstWhere((e) => e?.id == effectiveExpenseId, orElse: () => null);
+        if (existingExp != null) {
+          TripBudgetController.instance.deleteExpense(effectiveExpenseId);
+        }
+        effectiveExpenseId = null;
+      }
+    }
+
+    final updatedVisit = visit.copyWith(
+      isDone: true,
+      cost: hasCost ? actualCost : null,
+      bikeId: effectiveBikeId,
+      expenseId: effectiveExpenseId,
+      updatedAt: DateTime.now().toUtc(),
+    );
+
+    await updateVisit(updatedVisit, context);
   }
 
   /// Load persisted service visits from storage.
