@@ -2,7 +2,7 @@
 
 [![Flutter](https://img.shields.io/badge/Flutter-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart_%5E3.13.4-0175C2?logo=dart&logoColor=white)](https://dart.dev)
-[![Tests](https://img.shields.io/badge/Tests-114%20passing-22C55E)](mobile/test/)
+[![Tests](https://img.shields.io/badge/Tests-372%20passing-22C55E)](mobile/test/)
 [![Analyze](https://img.shields.io/badge/flutter%20analyze-0%20issues-22C55E)](mobile/analysis_options.yaml)
 
 CAMP Mobile is a Flutter rider cockpit for managing a motorcycle fleet, logging post-ride reports, tracking predictive maintenance and trip finances, navigating with offline maps, finding mechanics, and managing rider settings. The implementation uses a tactical **skeuomorphic clay** design system, reactive singleton `ChangeNotifier` state management, and fully offline-first `SharedPreferences` persistence.
@@ -22,7 +22,7 @@ flutter run
 ### Static Analysis & Tests
 ```bash
 flutter analyze    # 0 issues expected
-flutter test       # 114 / 114 passing
+flutter test       # 372 / 372 passing
 ```
 
 ---
@@ -41,18 +41,18 @@ lib/
 ├── core/
 │   ├── storage/
 │   │   └── local_store.dart      ← SharedPreferences wrapper with ordered write queue & flush()
-│   └── widgets/                  ← 16 shared UI components (CampCard, CampAppBar, CampBottomNav …)
+│   └── widgets/                  ← 18+ shared UI components (CampCard, BikeLabelChip, CampBottomNav …)
 └── features/
     ├── auth/                     ← SignIn · SignUp · ForgotPassword (mock auth)
     ├── bike_scan/                ← AddMotorcycle · BikeScan · BikeDetails
     ├── dashboard/                ← HomeScreen · ProfileScreen · EditProfileScreen + 8 widgets
-    ├── emergency_sos/            ← EmergencySosScreen
+    ├── emergency_sos/            ← EmergencySosScreen (Emergency contact, dialer, scannable QR)
     ├── garage/                   ← GarageScreen · BikeProfileScreen
     │   ├── controllers/          ← ActiveBikeController (singleton, persisted)
     │   └── domain/               ← Bike · ServiceRecord · FuelSystem · TrackingMode
-    ├── maintenance/              ← MaintenanceScreen · FinanceRigHealthScreen + 5 sub-screens + 12 widgets
-    │   ├── controllers/          ← PostRideReportController · TripBudgetController (both persisted)
-    │   └── domain/               ← MaintenancePredictionEngine · CarburetorGuidanceTable …
+    ├── maintenance/              ← MaintenanceScreen · FinanceRigHealthScreen · ServiceScheduleScreen + sub-screens
+    │   ├── controllers/          ← MaintenanceController · ServiceVisitController · PostRideReportController · TripBudgetController
+    │   └── domain/               ← ServiceScheduleEngine · MaintenancePredictionEngine · CarburetorGuidanceTable …
     ├── mechanics/                ← MechanicsHomeScreen · AddMechanicScreen
     ├── navigation/               ← NavigationMapScreen · RoutePacksScreen
     │   ├── controllers/          ← NavigationController (per-screen, not singleton)
@@ -67,24 +67,27 @@ lib/
 
 ## State Management & Data Flow
 
-All persistent user data is managed by six **ChangeNotifier singletons**, loaded eagerly in `main()` before `runApp`:
+Persistent user data is managed by reactive **ChangeNotifier controllers** and repositories, loaded eagerly in `main()` before `runApp`:
 
-| Controller | Persists To | Consumed By |
+| Controller / Repository | Persists To | Consumed By |
 |---|---|---|
 | `ActiveBikeController` | `LocalStore` (`camp_bikes`, `camp_active_bike_id`) | Dashboard, Maintenance, Navigation, Garage, Bike Scan |
 | `ProfileController` | `LocalStore` (`camp_rider_profile`) | Dashboard, ProfileScreen, EditProfileScreen |
-| `SettingsController` | `LocalStore` (`camp_settings`) | Settings screen, NavigationController (units) |
+| `SettingsController` | `LocalStore` (`camp_settings`) | Settings screen, NavigationController (units), Emergency SOS |
+| `MaintenanceController` | `LocalStore` via `MaintenanceRepository` | ServiceScheduleScreen, FinanceRigHealthScreen, HomeScreen |
+| `ServiceVisitController` | `LocalStore` via `MaintenanceRepository` | NextServiceVisitCard, PlanServiceVisitSheet, MarkServiceDone |
 | `PostRideReportController` | `LocalStore` (`camp_post_ride_reports`) | MaintenanceScreen (PostRide tab, Diagnostics engine), RideHistory |
-| `TripBudgetController` | `LocalStore` (`camp_trip_budget`, `camp_trip_expenses`) | FinanceRigHealth screen and all its sub-screens |
+| `TripBudgetController` | `LocalStore` (`camp_trip_budget`, `camp_trip_expenses`) | FinanceRigHealth screen and all expense sub-screens |
 | `MechanicController` | `LocalStore` (`camp_mechanics_list`) | MechanicsHomeScreen, AddMechanicScreen |
 
-`NavigationController` is **not** a singleton — it is created and disposed per `NavigationMapScreen` lifecycle. It reads `ActiveBikeController` (for fuel estimates) and `SettingsController` (for metric/imperial units).
+`NavigationController` is **not** a singleton — it is created and disposed per `NavigationMapScreen` lifecycle. It reads `ActiveBikeController` (for fuel estimates) and `SettingsController` (for metric/imperial units) and includes strict `_disposed` lifecycle guards.
 
 ### Persistence Layer (`LocalStore`)
 
 `LocalStore` wraps `SharedPreferences` with:
 - **Ordered write queue** — a chained `Future<void> _writeQueue` guarantees writes complete in submission order, preventing a later write from overtaking an earlier one.
 - **`flush()`** — awaits the entire queue; called on app lifecycle `paused / inactive / detached` via `WidgetsBindingObserver` in `CampApp`.
+- **Transactional Rollback** — UI optimistically reflects changes and rolls back with an `AppMessenger` alert if storage operations fail.
 - **Schema versioning** — `camp_schema_version` key guards against loading data from a future schema version.
 - **First-run seeding** — `camp_first_run_completed` gates whether defaults are seeded on install.
 
@@ -115,6 +118,8 @@ All route strings are declared as constants in [`lib/app/routes.dart`](lib/app/r
 | `/ride-history` | `RideHistoryScreen` | Ride History |
 | `/finance-rig-health` | `FinanceRigHealthScreen` | Maintenance |
 | `/maintenance` | `MaintenanceScreen` | Maintenance |
+| `/service-schedule` | `ServiceScheduleScreen` | Maintenance |
+| `/post-ride-debrief` | `PostRideDebriefScreen` | Maintenance |
 | `/predictive-maintenance` | `MaintenanceScreen(initialTab: diagnostics)` | Maintenance |
 | `/carburetor-tuning` | `MaintenanceScreen(initialTab: carburetor)` ¹ | Maintenance |
 | `/settings` | `SettingsScreen` | Settings |
@@ -122,7 +127,7 @@ All route strings are declared as constants in [`lib/app/routes.dart`](lib/app/r
 
 > ¹ EFI bikes automatically fall back to the Diagnostics tab.
 >
-> **Legacy aliases** (kept for branch compatibility, scheduled for removal):
+> **Legacy aliases** (kept for backwards compatibility):
 > `/mechanics/map` → `NavigationMapScreen` · `/mechanics/voice-assistant` → `VoiceAssistantScreen`
 
 ---
@@ -130,7 +135,7 @@ All route strings are declared as constants in [`lib/app/routes.dart`](lib/app/r
 ## Feature Details
 
 ### Dashboard (`features/dashboard/`)
-- **HomeScreen** — cockpit landing: active bike card, voice bar, maintenance alert, recent updates feed, floating `CampBottomNav`.
+- **HomeScreen** — cockpit landing: active bike card with live GPS fuel calculation, voice bar, dynamic maintenance alert reading from schedule engine with "+N more due" expandable link, recent updates feed, floating `CampBottomNav`.
 - **ProfileScreen** — rider overview: cockpit hero, touring tier, trail badges, garage summary, ride health, SOS medical ID.
 - **EditProfileScreen** — form editor for rider personal details.
 
@@ -144,82 +149,38 @@ All route strings are declared as constants in [`lib/app/routes.dart`](lib/app/r
 - **BikeProfileScreen** — full spec sheet, service records, active bike toggle.
 - **Bike model** — `id`, `make`, `modelName`, `modelYear`, `odometerKm`, `fuelSystem` (`efi` | `carburetor`), `carburetorType`, `fuelTankCapacityLiters`, `fuelAverageKmPerLiter`, `ridingTerrain`, `lastOilChange`, `lastTuneUp`, `vin`, `nickname`, `imagePath`.
 
-### Maintenance (`features/maintenance/`)
-- **MaintenanceScreen** — 4-tab shell:
-  - *Diagnostics* — `MaintenancePredictionEngine` computes wear % for engine oil, chain, brake pads, tires from odometer + service records + terrain tags. Shows `RidePatternInsight` derived from post-ride logs.
-  - *Carburetor* — hidden for EFI bikes. GPS altitude → US Standard Atmosphere 1976 → air-density ratio → 4 severity bands with jetting guidance.
-  - *Pre-Ride* — safety checklist.
-  - *Post-Ride* — debrief form → `PostRideReportController.addReport()`.
-- **FinanceRigHealthScreen** — trip budget (`TripBudgetController`) + maintenance item list. Sub-screens: `AddExpenseScreen`, `EditTripBudgetScreen`, `AddMaintenanceItemScreen`.
+### Maintenance & Service Schedule (`features/maintenance/`)
+- **Rider-Set Service Schedule Engine**:
+  - Deterministic arithmetic per motorcycle; no silent defaults, no sensor dependencies, and no estimated costs.
+  - Configurable items: Oil & Small Service, Oil Filter, Air Filter, Drive Chain, Spark Plug, Valve Tuning, Brakes, Tyres, Battery, Carburetor.
+  - Harsh conditions mode shortens distance intervals by 20% (`intervalKm * 0.80`).
+  - Status classification: `Not set up`, `Add last done`, `Overdue`, `Due soon`, `OK`.
+  - Predictions project due dates from 7+ days of logged debriefs and odometer progress.
+- **Multi-Bike Maintenance**:
+  - `BikeLabelChip` displays bike model/nickname and license plate.
+  - Prefilled with the active bike; backwards compatible with "No bike" legacy records.
+- **Finances & Rig Health**:
+  - Trip budget (`TripBudgetController`) + maintenance item list with rollback protection on disk errors.
+  - Refill sheet calculates dynamically across any two of litres, price per litre, and total paid in PKR.
 
 ### Navigation (`features/navigation/`)
 - **NavigationMapScreen** — OSM vector map (`flutter_map`), OSRM routing, Nominatim geocoding, GPS position stream, wakelock during active guidance, topo/standard layer toggle, POI markers (mechanic · fuel · rest stop).
-- **NavigationController** states: `idle → previewing → navigating → arrived`. Off-route detection (>50 m from polyline for 3 consecutive fixes) triggers reroute (throttled to 1 per 10 s).
+- **NavigationController** states: `idle → previewing → navigating → arrived`. Off-route detection (>50 m from polyline for 3 consecutive fixes) triggers reroute (throttled to 1 per 10 s). Includes safe disposal lifecycle guard.
 - **RoutePacksScreen** — offline route packs with trail difficulty ratings and storage management.
 
 ### Mechanics (`features/mechanics/`)
-- **MechanicsHomeScreen** — searchable, filterable directory (verified / emergency / brand-specific). List and map-preview toggles. Add mechanic returns result via `Navigator.pop`.
-- **AddMechanicScreen** — multi-field workshop registration form.
+- **MechanicsHomeScreen** — searchable, filterable directory with verified hours and emergency callout support. Real opening/closing hours calculations.
+- **AddMechanicScreen** — workshop registration form with photo picker and persistent storage.
 
-### Settings (`features/settings/`)
-- **SettingsController** — metric/imperial units, notifications, privacy sharing, cached pack display, language. Persisted to `LocalStore`.
-- **SettingsScreen** — toggles, cache clear, language picker.
-
----
-
-## Shared Widgets (`core/widgets/`)
-
-| Widget | Purpose |
-|---|---|
-| `CampAppBar` | Skeuomorphic top bar with back/menu leading, logo, action pill |
-| `CampBottomNav` | Floating tactical 5-tab dock (Home · Scan · Map · Wrench · Dash) |
-| `CampCard` | Raised clay container with dual-shadow skeuomorphic effect |
-| `InsetTile` | Recessed inset surface for input areas and info rows |
-| `IconTile` | Raised or inset icon button tile |
-| `GhostButton` | Secondary borderless action button |
-| `PrimaryButton` | Full-width orange CTA button |
-| `LabeledTextField` | Text input with label, validation, and error state |
-| `LabeledDropdown` | Styled dropdown with label |
-| `SegmentedControl` | Pill-style multi-option selector |
-| `MultiSelectChipRow` | Horizontally scrollable tag chip selector |
-| `SectionHeader` | Row with title + optional action link |
-| `StatusChip` | Color-coded status badge (ok / due soon / overdue) |
-| `DistanceOrDateInput` | Toggle input: distance (km) or calendar date |
-| `CockpitHeroCard` | Dark espresso gradient hero panel |
-
----
-
-## Design System
-
-- **Background**: `clay` `#EDF1F7` with `clayDark` `#E3E8F0` insets.
-- **Primary accent**: Tactical Orange `#FA7014`.
-- **Shadow system**: dual-shadow skeuomorphism — `skeuRaised` (convex) · `skeuRecessed` (inset) · `skeuRaisedSmall` · `cockpitBezel` · `dockShadow` · `orangeGlow`.
-- **Radii**: `radiusCard` 26 · `radiusTile` 18 · `radiusPill` 999.
-- **Typography**: Manrope (body/UI) · Teko (stats/display) · Share Tech Mono (telemetry labels).
-
----
-
-## Dependencies
-
-| Package | Version | Purpose |
-|---|---|---|
-| `camera` | `^0.12.1` | BikeScanScreen viewfinder |
-| `flutter_map` | `^7.0.2` | OSM tile map |
-| `geolocator` | `^13.0.1` | GPS position + altitude |
-| `google_fonts` | `^6.2.1` | Manrope, Teko, Share Tech Mono |
-| `latlong2` | `^0.9.1` | LatLng types + distance calc |
-| `http` | `^1.2.0` | OSRM + Nominatim API calls |
-| `image_picker` | `^1.1.2` | Photo upload in bike scan |
-| `url_launcher` | `^6.3.3` | Google Maps deep-link, phone dialer |
-| `share_plus` | `^13.3.1` | Report export |
-| `wakelock_plus` | `^1.8.1` | Screen-on during active navigation |
-| `shared_preferences` | `^2.5.6` | LocalStore offline persistence |
+### Emergency SOS (`features/emergency_sos/`)
+- Emergency number selector (1122, 15, 115, custom).
+- Dedicated Emergency QR screen with real scannable payload, per-field privacy toggles, and PNG/PDF export.
 
 ---
 
 ## Test Suite
 
-14 test files · **114 tests · 0 failures · 0 lints**
+20+ test files · **372 tests · 0 failures · 0 lints**
 
 | File | What It Covers |
 |---|---|
@@ -227,9 +188,17 @@ All route strings are declared as constants in [`lib/app/routes.dart`](lib/app/r
 | `widget_test.dart` | Route uniqueness, lifecycle flush (paused/inactive), tab selection |
 | `navigation_unit_test.dart` | NavigationController dispose guard, distance-to-polyline math |
 | `navigation_map_screen_test.dart` | Map screen renders with FakeTileProvider network isolation |
-| `maintenance_prediction_test.dart` | PredictionEngine wear %, pattern insights, terrain multipliers |
+| `maintenance_bike_label_test.dart` | Multi-bike scoping, bike chip rendering, active bike prefill |
+| `maintenance_persistence_and_rollback_test.dart` | Rollback handling on storage failure, AppMessenger alerts |
+| `maintenance_refresh_and_list_test.dart` | Reactive UI synchronization across Home, Finances, and Schedule |
+| `service_schedule_wording_test.dart` | Neutral phrasing, plain question helpers, harsh condition calculations |
+| `fuel_refill_pricing_test.dart` | Three-way dynamic calculation (litres / price / total) in PKR |
+| `budget_and_cost_per_km_test.dart` | Trip finances, distance tracking over trip periods, delete trip dialog |
+| `finance_maintenance_restore_test.dart` | Rider-added maintenance items restoration and "+ Add Item" |
+| `home_honesty_pass_test.dart` | Home screen service alert and status card agreement with schedule |
+| `maintenance_prediction_test.dart` | Prediction math, 7-day ride debrief thresholds, debrief screen navigation |
 | `maintenance_test.dart` | MaintenanceScreen tab switching, EFI carburetor fallback |
-| `bike_scan_test.dart` | BikeScanScreen camera timeout, manual-entry fallback |
+| `bike_scan_test.dart` | BikeScanScreen 8s camera timeout, manual-entry fallback |
 | `bike_profile_test.dart` | BikeProfileScreen renders, active bike toggle |
 | `bike_details_test.dart` | BikeDetailsScreen form validation and save |
 | `add_motorcycle_test.dart` | AddMotorcycleScreen entry point routing |
@@ -237,23 +206,16 @@ All route strings are declared as constants in [`lib/app/routes.dart`](lib/app/r
 | `profile_screen_test.dart` | ProfileScreen renders with active bike data |
 | `ride_history_test.dart` | RideHistoryScreen renders expedition list |
 | `route_packs_test.dart` | RoutePacksScreen renders route cards |
+| `mechanics_test.dart` | Mechanics directory filtering, hours, and empty states |
+| `safety_and_honesty_test.dart` | Emergency contact card, dialer launch, and real QR generation |
 
 ---
 
-## Known Issues (from Code Review)
+## Project Status & Issue Tracking
 
-| # | Issue | Priority |
-|---|---|---|
-| C-1 | `ActiveBikeCardWidget` shows hardcoded bike name/fuel — not reading from `ActiveBikeController` | 🔴 Critical |
-| C-2 | `FinanceRigHealthScreen` hero card always shows "KTM 890" regardless of active bike | 🔴 Critical |
-| C-3 | `MaintenanceItem` list in `FinanceRigHealthScreen` is widget-local state (not persisted) | 🔴 Critical |
-| C-4 | `RideHistoryScreen` renders static `ExpeditionLog.samples`, ignores `PostRideReportController` | 🔴 Critical |
-| C-5 | Added mechanics survive only in-memory (`_mechanicsList`), lost on screen dispose | 🔴 Critical |
-| C-6 | `NavigationController` is not a singleton — GPS restarts on every map visit | 🔴 Critical |
-| C-7 | `"SYNCD 2m ago"` label in `FinanceRigHealthScreen` is hardcoded (no real backend sync) | 🔴 Critical |
-| M-2 | `SettingsController.setLanguage()` does not call `save()` | 🟡 Medium |
-| M-3 | `SettingsController.clearLocalCache()` does not call `save()` | 🟡 Medium |
-| M-5 | `NavigationController` saved/recent places not persisted to `LocalStore` | 🟡 Medium |
-| L-9 | Default map center hardcoded to North Cascades, WA, USA | 🟢 Low |
+The project uses a comprehensive **119-issue tracking matrix** documented in [`CODE_REVIEW_REPORT.md`](CODE_REVIEW_REPORT.md).
 
-See [`CODE_REVIEW_REPORT.md`](CODE_REVIEW_REPORT.md) for the full issue list.
+- **Current Progress**: **71 Done / 119 Tracked (59.7% Complete)**
+- **Critical Defects 1–4**: All resolved and verified in automated tests.
+- **Next Development Focus**: **Batch D** (Maintenance & Finances shared repository, bikeId on expenses/refills, per-bike pre-ride checks).
+
