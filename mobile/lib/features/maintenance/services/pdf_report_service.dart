@@ -6,8 +6,10 @@ import 'package:printing/printing.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../garage/controllers/active_bike_controller.dart';
 import '../domain/expense_model.dart';
 import '../domain/maintenance_item_model.dart';
+import '../domain/service_visit_model.dart';
 
 /// Data payload for generating a Trip Budget PDF export.
 class BudgetReportData {
@@ -36,17 +38,21 @@ class BudgetReportData {
 class MaintenanceReportData {
   const MaintenanceReportData({
     required this.bikeName,
+    this.bikeId,
     this.odometerKm,
     this.items = const [],
+    this.visits = const [],
     this.generatedDate,
   });
 
   final String bikeName;
+  final String? bikeId;
   final num? odometerKm;
   final List<MaintenanceItem> items;
+  final List<ServiceVisit> visits;
   final DateTime? generatedDate;
 
-  bool get isEmpty => items.isEmpty;
+  bool get isEmpty => items.isEmpty && visits.isEmpty;
 }
 
 /// Pure PDF generator and export orchestrator for CAMP expedition reports.
@@ -222,13 +228,19 @@ class PdfReportService {
                   horizontal: 8,
                   vertical: 6,
                 ),
-                headers: ['Category', 'Description', 'Tracking', 'Amount'],
+                headers: ['Category', 'Description', 'Bike', 'Tracking', 'Amount'],
                 data: data.expenses.map((exp) {
+                  String bikeLabel = 'No bike';
+                  if (exp.bikeId != null && exp.bikeId!.isNotEmpty) {
+                    final bike = ActiveBikeController.instance.getBikeById(exp.bikeId!);
+                    bikeLabel = bike != null ? bike.name : 'Deleted bike';
+                  }
                   return [
                     exp.category.displayName,
                     exp.displaySubtitle != null && exp.displaySubtitle!.isNotEmpty
                         ? '${exp.title} (${exp.displaySubtitle})'
                         : exp.title,
+                    bikeLabel,
                     exp.trackingMode.label,
                     formatPkr(exp.amount),
                   ];
@@ -261,6 +273,36 @@ class PdfReportService {
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(36),
         build: (pw.Context context) {
+          final hasBikeId = data.bikeId != null && data.bikeId!.isNotEmpty;
+
+          final assignedItems = hasBikeId
+              ? data.items.where((i) => i.bikeId == data.bikeId).toList()
+              : (data.bikeId == null
+                  ? data.items
+                      .where((i) => i.bikeId == null || i.bikeId!.isEmpty)
+                      .toList()
+                  : <MaintenanceItem>[]);
+
+          final assignedVisits = hasBikeId
+              ? data.visits.where((v) => v.bikeId == data.bikeId).toList()
+              : (data.bikeId == null
+                  ? data.visits
+                      .where((v) => v.bikeId == null || v.bikeId!.isEmpty)
+                      .toList()
+                  : <ServiceVisit>[]);
+
+          final unassignedItems = hasBikeId
+              ? data.items
+                  .where((i) => i.bikeId == null || i.bikeId!.isEmpty)
+                  .toList()
+              : <MaintenanceItem>[];
+
+          final unassignedVisits = hasBikeId
+              ? data.visits
+                  .where((v) => v.bikeId == null || v.bikeId!.isEmpty)
+                  .toList()
+              : <ServiceVisit>[];
+
           return [
             // Header
             pw.Row(
@@ -337,7 +379,7 @@ class PdfReportService {
 
             // Summary of items
             pw.Text(
-              'INSPECTION & SERVICE ITEMS (${data.items.length})',
+              'INSPECTION & SERVICE ITEMS (${assignedItems.length})',
               style: const pw.TextStyle(
                 fontSize: 12,
                 fontWeight: pw.FontWeight.bold,
@@ -346,7 +388,7 @@ class PdfReportService {
             ),
             pw.SizedBox(height: 8),
 
-            if (data.items.isEmpty)
+            if (assignedItems.isEmpty)
               pw.Padding(
                 padding: const pw.EdgeInsets.symmetric(vertical: 16),
                 child: pw.Text(
@@ -381,7 +423,7 @@ class PdfReportService {
                   'Cost',
                   'Serviced By'
                 ],
-                data: data.items.map((item) {
+                data: assignedItems.map((item) {
                   return [
                     item.name,
                     item.category,
@@ -394,6 +436,125 @@ class PdfReportService {
                   ];
                 }).toList(),
               ),
+
+            if (assignedVisits.isNotEmpty) ...[
+              pw.SizedBox(height: 16),
+              pw.Text(
+                'SERVICE VISITS (${assignedVisits.length})',
+                style: const pw.TextStyle(
+                  fontSize: 12,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.blueGrey800,
+                ),
+              ),
+              pw.SizedBox(height: 8),
+              pw.TableHelper.fromTextArray(
+                border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                headerStyle: const pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.white,
+                ),
+                headerDecoration: const pw.BoxDecoration(
+                  color: PdfColors.blueGrey800,
+                ),
+                cellStyle: const pw.TextStyle(fontSize: 10),
+                cellPadding: const pw.EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 6,
+                ),
+                headers: ['Workshop / Mechanic', 'Date', 'Cost', 'Notes'],
+                data: assignedVisits.map((v) {
+                  return [
+                    v.shopName,
+                    v.formattedDateTime,
+                    v.cost != null && v.cost! > 0 ? formatPkr(v.cost!) : '-',
+                    v.note ?? '-',
+                  ];
+                }).toList(),
+              ),
+            ],
+
+            // Separate section for records not assigned to a bike
+            if (unassignedItems.isNotEmpty || unassignedVisits.isNotEmpty) ...[
+              pw.SizedBox(height: 20),
+              pw.Divider(color: PdfColors.grey400),
+              pw.SizedBox(height: 10),
+              pw.Text(
+                'NOT ASSIGNED TO A BIKE',
+                style: const pw.TextStyle(
+                  fontSize: 12,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.blueGrey800,
+                ),
+              ),
+              pw.SizedBox(height: 8),
+              if (unassignedItems.isNotEmpty)
+                pw.TableHelper.fromTextArray(
+                  border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                  headerStyle: const pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.white,
+                  ),
+                  headerDecoration: const pw.BoxDecoration(
+                    color: PdfColors.blueGrey600,
+                  ),
+                  cellStyle: const pw.TextStyle(fontSize: 10),
+                  cellPadding: const pw.EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                  headers: [
+                    'Component',
+                    'Category',
+                    'Status',
+                    'Due / Schedule',
+                    'Cost',
+                    'Serviced By'
+                  ],
+                  data: unassignedItems.map((item) {
+                    return [
+                      item.name,
+                      item.category,
+                      item.status.name.toUpperCase(),
+                      item.dueMileage ?? item.dueDate ?? '-',
+                      item.cost != null && item.cost! > 0
+                          ? formatPkr(item.cost!)
+                          : '-',
+                      item.mechanicName ?? '-',
+                    ];
+                  }).toList(),
+                ),
+              if (unassignedVisits.isNotEmpty) ...[
+                pw.SizedBox(height: 12),
+                pw.TableHelper.fromTextArray(
+                  border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                  headerStyle: const pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.white,
+                  ),
+                  headerDecoration: const pw.BoxDecoration(
+                    color: PdfColors.blueGrey600,
+                  ),
+                  cellStyle: const pw.TextStyle(fontSize: 10),
+                  cellPadding: const pw.EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                  headers: ['Workshop / Mechanic', 'Date', 'Cost', 'Notes'],
+                  data: unassignedVisits.map((v) {
+                    return [
+                      v.shopName,
+                      v.formattedDateTime,
+                      v.cost != null && v.cost! > 0 ? formatPkr(v.cost!) : '-',
+                      v.note ?? '-',
+                    ];
+                  }).toList(),
+                ),
+              ],
+            ],
 
             pw.SizedBox(height: 24),
             pw.Text(

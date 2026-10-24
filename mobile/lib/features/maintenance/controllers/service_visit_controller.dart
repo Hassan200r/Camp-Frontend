@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../core/data/app_repositories.dart';
 import '../../../core/data/service_visit_repository.dart';
 import '../../../core/widgets/app_messenger.dart';
+import '../../garage/controllers/active_bike_controller.dart';
+import '../domain/expense_model.dart';
 import '../domain/service_visit_model.dart';
+import 'trip_budget_controller.dart';
 
 /// Central state controller managing scheduled and historical workshop service visits.
 /// Follows the singleton ChangeNotifier pattern established by ActiveBikeController,
@@ -40,10 +43,19 @@ class ServiceVisitController extends ChangeNotifier {
     return List.unmodifiable(list);
   }
 
-  /// All past visits sorted by most recent first.
+  /// All past visits sorted by active bike first, then most recent first.
   List<ServiceVisit> get pastVisits {
+    final activeId = ActiveBikeController.instance.activeBike?.id;
     final list = _visits.where((v) => v.isPast).toList();
-    list.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+    list.sort((a, b) {
+      if (activeId != null && activeId.isNotEmpty) {
+        final aActive = a.bikeId != null && a.bikeId == activeId;
+        final bActive = b.bikeId != null && b.bikeId == activeId;
+        if (aActive && !bActive) return -1;
+        if (!aActive && bActive) return 1;
+      }
+      return b.dateTime.compareTo(a.dateTime);
+    });
     return List.unmodifiable(list);
   }
 
@@ -93,11 +105,19 @@ class ServiceVisitController extends ChangeNotifier {
   Future<void> deleteVisit(String id, [BuildContext? context]) async {
     final index = _visits.indexWhere((v) => v.id == id);
     if (index == -1) return;
+    final visit = _visits[index];
     final previous = List<ServiceVisit>.from(_visits);
     _visits.removeAt(index);
     notifyListeners();
     try {
       await _repository.saveServiceVisits(_visits);
+      if (visit.expenseId != null && visit.expenseId!.isNotEmpty) {
+        final expExists = TripBudgetController.instance.expenses
+            .any((Expense e) => e.id == visit.expenseId);
+        if (expExists) {
+          TripBudgetController.instance.deleteExpense(visit.expenseId!);
+        }
+      }
     } catch (e) {
       _visits.clear();
       _visits.addAll(previous);

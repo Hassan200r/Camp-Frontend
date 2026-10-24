@@ -69,14 +69,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       _expenseDate = exp.dateRecorded ?? exp.createdAt ?? DateTime.now();
       _dateRecorded =
           exp.formattedDate ?? _formatDate(_expenseDate);
+      _selectedBikeId = exp.bikeId;
     } else {
       _dateRecorded = _formatDate(_expenseDate);
       final settingsPrice = SettingsController.instance.fuelPricePerLiter;
       if (settingsPrice != null && settingsPrice > 0) {
         _priceCtrl.text = _formatPrice(settingsPrice);
       }
+      _selectedBikeId = ActiveBikeController.instance.activeBikeId;
     }
-    _selectedBikeId = ActiveBikeController.instance.activeBikeId;
   }
 
   static String _formatPrice(double val) {
@@ -251,6 +252,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             litres: litres,
             pricePerLitre: pricePerLitre,
             isFullTank: category == ExpenseCategory.fuel ? _isFullTank : false,
+            bikeId: _selectedBikeId,
             trackingMode: _trackingModeIndex == 0
                 ? ExpenseTrackingMode.autoTrack
                 : ExpenseTrackingMode.manualEntry,
@@ -269,6 +271,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             litres: litres,
             pricePerLitre: pricePerLitre,
             isFullTank: category == ExpenseCategory.fuel ? _isFullTank : false,
+            bikeId: _selectedBikeId,
             trackingMode: _trackingModeIndex == 0
                 ? ExpenseTrackingMode.autoTrack
                 : ExpenseTrackingMode.manualEntry,
@@ -387,6 +390,28 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Bike Picker Dropdown ──────────────────────────────
+                  LabeledDropdown<String?>(
+                    label: 'BIKE',
+                    value: _selectedBikeId,
+                    items: [
+                      null,
+                      ...ActiveBikeController.instance.bikes.map((b) => b.id),
+                      if (_selectedBikeId != null &&
+                          !ActiveBikeController.instance.bikes
+                              .any((b) => b.id == _selectedBikeId))
+                        _selectedBikeId,
+                    ],
+                    itemLabelBuilder: (id) {
+                      if (id == null) return 'No bike';
+                      final bike =
+                          ActiveBikeController.instance.getBikeById(id);
+                      return bike != null ? bike.name : 'Deleted bike';
+                    },
+                    onChanged: (val) => setState(() => _selectedBikeId = val),
+                  ),
+                  const SizedBox(height: 14),
+
                   // ── Category Chip Selector ────────────────────────────────
                   Row(
                     children: [

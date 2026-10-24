@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
-import '../../../../core/data/app_repositories.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
@@ -39,28 +38,6 @@ class FinanceRigHealthScreen extends StatefulWidget {
 
 class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  // ── Rider-added maintenance items (restored) ──────────────────────────────
-  late List<MaintenanceItem> _maintenanceItems;
-
-  @override
-  void initState() {
-    super.initState();
-    _maintenanceItems = const [];
-    _loadPersistedItems();
-  }
-
-  /// Load rider-added maintenance items from repository on first mount.
-  /// Fires-and-forgets; does not block the UI.
-  Future<void> _loadPersistedItems() async {
-    try {
-      final loaded =
-          await AppRepositories.instance.maintenanceRepository.loadMaintenanceItems();
-      if (loaded.isNotEmpty && mounted) {
-        setState(() => _maintenanceItems = loaded);
-      }
-    } catch (_) {}
-  }
 
   // ── Notifications ─────────────────────────────────────────────────────────
 
@@ -116,9 +93,7 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
       MaterialPageRoute(builder: (context) => const AddMaintenanceItemScreen()),
     );
     if (result != null && mounted) {
-      setState(() => _maintenanceItems = [..._maintenanceItems, result]);
-      AppRepositories.instance.maintenanceRepository
-          .saveMaintenanceItems(_maintenanceItems);
+      await MaintenanceController.instance.addMaintenanceItem(result, context);
       _showNotification('Added ${result.name} to maintenance list');
     }
   }
@@ -211,15 +186,8 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                   ),
                 );
                 if (updated != null && mounted) {
-                  final index = _maintenanceItems.indexWhere((i) => i.id == item.id);
-                  if (index != -1) {
-                    setState(() {
-                      _maintenanceItems = List.from(_maintenanceItems)..[index] = updated;
-                    });
-                    AppRepositories.instance.maintenanceRepository
-                        .saveMaintenanceItems(_maintenanceItems);
-                    _showNotification('Updated ${updated.name}');
-                  }
+                  await MaintenanceController.instance.updateMaintenanceItem(updated, context);
+                  _showNotification('Updated ${updated.name}');
                 }
               },
             ),
@@ -296,13 +264,18 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
   }
 
   void _handleDismissMaintenanceItem(MaintenanceItem item) {
-    final removedIndex = _maintenanceItems.indexOf(item);
-    setState(() {
-      _maintenanceItems =
-          _maintenanceItems.where((i) => i.id != item.id).toList();
-    });
-    AppRepositories.instance.maintenanceRepository
-        .saveMaintenanceItems(_maintenanceItems);
+    final removedIndex = MaintenanceController.instance.maintenanceItems.indexOf(item);
+    Expense? linkedExpense;
+    int? linkedExpenseIndex;
+    if (item.expenseId != null) {
+      linkedExpenseIndex = TripBudgetController.instance.expenses
+          .indexWhere((e) => e.id == item.expenseId);
+      if (linkedExpenseIndex != -1) {
+        linkedExpense = TripBudgetController.instance.expenses[linkedExpenseIndex];
+      }
+    }
+
+    MaintenanceController.instance.deleteMaintenanceItem(item.id, context);
 
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -315,14 +288,18 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
           textColor: AppColors.tacticalOrange,
           onPressed: () {
             if (!mounted) return;
-            setState(() {
-              final safeIndex = removedIndex.clamp(0, _maintenanceItems.length);
-              final updated = List<MaintenanceItem>.from(_maintenanceItems);
-              updated.insert(safeIndex, item);
-              _maintenanceItems = updated;
-            });
-            AppRepositories.instance.maintenanceRepository
-                .saveMaintenanceItems(_maintenanceItems);
+            MaintenanceController.instance.insertMaintenanceItem(
+              removedIndex,
+              item,
+              context,
+            );
+
+            if (linkedExpense != null) {
+              TripBudgetController.instance.insertExpense(
+                linkedExpenseIndex ?? 0,
+                linkedExpense,
+              );
+            }
           },
         ),
       ),
@@ -501,11 +478,8 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                             ),
                           ),
                           // Rider-added (restored)
-                          items: _maintenanceItems,
+                          items: MaintenanceController.instance.maintenanceItems,
                           onAddMaintenanceItem: _pushAddMaintenanceItem,
-                          onItemGuidePressed: (item) => _showNotification(
-                            'Opening service guide for ${item.name}...',
-                          ),
                           onItemTapped: _showMaintenanceItemActions,
                           onItemDismissed: _handleDismissMaintenanceItem,
                         );
@@ -530,8 +504,10 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
                           context,
                           MaintenanceReportData(
                             bikeName: bikeName,
+                            bikeId: activeBike?.id,
                             odometerKm: odo,
-                            items: _maintenanceItems,
+                            items: MaintenanceController.instance.maintenanceItems,
+                            visits: ServiceVisitController.instance.visits,
                           ),
                         );
                       },

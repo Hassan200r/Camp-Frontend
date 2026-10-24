@@ -4,7 +4,11 @@ import '../../../core/data/app_repositories.dart';
 import '../../../core/data/finance_repository.dart';
 import '../../../core/data/finance_repository_local.dart';
 import '../domain/expense_model.dart';
+import '../domain/maintenance_item_model.dart';
+import '../domain/service_visit_model.dart';
 import '../domain/trip_budget_model.dart';
+import 'maintenance_controller.dart';
+import 'service_visit_controller.dart';
 
 /// Central state controller managing trip budget cap, allocations, and expense ledger.
 /// Follows the singleton ChangeNotifier pattern established by ActiveBikeController,
@@ -24,6 +28,9 @@ class TripBudgetController extends ChangeNotifier {
 
   TripBudget _budget = TripBudget.defaultSampleBudget;
   final List<Expense> _expenses = [];
+
+  final Map<String, MaintenanceItem> _cachedDeletedItems = {};
+  final Map<String, ServiceVisit> _cachedDeletedVisits = {};
 
   TripBudget get budget => _budget;
   List<Expense> get expenses => List.unmodifiable(_expenses);
@@ -73,6 +80,7 @@ class TripBudgetController extends ChangeNotifier {
       );
       notifyListeners();
       save();
+      _syncLinkedMaintenanceOnUpdate(expense);
     }
   }
 
@@ -80,12 +88,13 @@ class TripBudgetController extends ChangeNotifier {
   void deleteExpense(String id) {
     final index = _expenses.indexWhere((e) => e.id == id);
     if (index != -1) {
-      _expenses.removeAt(index);
+      final removed = _expenses.removeAt(index);
       _budget = _budget.copyWith(
         allocatedSoFar: _expenses.fold<double>(0.0, (s, e) => s + e.amount),
       );
       notifyListeners();
       save();
+      _syncLinkedMaintenanceOnDelete(removed);
     }
   }
 
@@ -98,6 +107,164 @@ class TripBudgetController extends ChangeNotifier {
     );
     notifyListeners();
     save();
+    _syncLinkedMaintenanceOnRestore(expense);
+  }
+
+  Future<void> _syncLinkedMaintenanceOnUpdate(Expense expense) async {
+    final linkId = expense.maintenanceItemId;
+    if (linkId == null || linkId.isEmpty) return;
+
+    try {
+      final items = MaintenanceController.instance.maintenanceItems;
+      final idx = items.indexWhere((i) => i.id == linkId || i.expenseId == expense.id);
+      if (idx != -1) {
+        final existing = items[idx];
+        final updated = existing.copyWith(
+          cost: expense.amount,
+          bikeId: expense.bikeId ?? existing.bikeId,
+          expenseId: expense.id,
+          updatedAt: DateTime.now().toUtc(),
+        );
+        await MaintenanceController.instance.updateMaintenanceItem(updated);
+        return;
+      } else {
+        // Fallback to repository
+        final repo = AppRepositories.instance.maintenanceRepository;
+        final repoItems = await repo.loadMaintenanceItems();
+        final rIdx = repoItems.indexWhere((i) => i.id == linkId || i.expenseId == expense.id);
+        if (rIdx != -1) {
+          final existing = repoItems[rIdx];
+          final updated = existing.copyWith(
+            cost: expense.amount,
+            bikeId: expense.bikeId ?? existing.bikeId,
+            expenseId: expense.id,
+            updatedAt: DateTime.now().toUtc(),
+          );
+          repoItems[rIdx] = updated;
+          await repo.saveMaintenanceItems(repoItems);
+          await MaintenanceController.instance.loadMaintenanceItems();
+          return;
+        }
+      }
+    } catch (_) {}
+
+    try {
+      final visits = ServiceVisitController.instance.visits;
+      final idx = visits.indexWhere((v) => v.id == linkId || v.expenseId == expense.id);
+      if (idx != -1) {
+        final existing = visits[idx];
+        final updated = existing.copyWith(
+          cost: expense.amount,
+          bikeId: expense.bikeId ?? existing.bikeId,
+          expenseId: expense.id,
+          updatedAt: DateTime.now().toUtc(),
+        );
+        await ServiceVisitController.instance.updateVisit(updated);
+        return;
+      } else {
+        final vRepo = AppRepositories.instance.serviceVisitRepository;
+        final repoVisits = await vRepo.loadServiceVisits();
+        final rIdx = repoVisits.indexWhere((v) => v.id == linkId || v.expenseId == expense.id);
+        if (rIdx != -1) {
+          final existing = repoVisits[rIdx];
+          final updated = existing.copyWith(
+            cost: expense.amount,
+            bikeId: expense.bikeId ?? existing.bikeId,
+            expenseId: expense.id,
+            updatedAt: DateTime.now().toUtc(),
+          );
+          repoVisits[rIdx] = updated;
+          await vRepo.saveServiceVisits(repoVisits);
+          await ServiceVisitController.instance.load();
+          return;
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _syncLinkedMaintenanceOnDelete(Expense expense) async {
+    final linkId = expense.maintenanceItemId;
+    if (linkId == null || linkId.isEmpty) return;
+
+    try {
+      final items = MaintenanceController.instance.maintenanceItems;
+      final idx = items.indexWhere((i) => i.id == linkId || i.expenseId == expense.id);
+      if (idx != -1) {
+        final item = items[idx];
+        _cachedDeletedItems[expense.id] = item;
+        await MaintenanceController.instance.deleteMaintenanceItem(item.id);
+        return;
+      } else {
+        final repo = AppRepositories.instance.maintenanceRepository;
+        final repoItems = await repo.loadMaintenanceItems();
+        final rIdx = repoItems.indexWhere((i) => i.id == linkId || i.expenseId == expense.id);
+        if (rIdx != -1) {
+          final item = repoItems.removeAt(rIdx);
+          _cachedDeletedItems[expense.id] = item;
+          await repo.saveMaintenanceItems(repoItems);
+          await MaintenanceController.instance.loadMaintenanceItems();
+          return;
+        }
+      }
+    } catch (_) {}
+
+    try {
+      final visits = ServiceVisitController.instance.visits;
+      final idx = visits.indexWhere((v) => v.id == linkId || v.expenseId == expense.id);
+      if (idx != -1) {
+        final visit = visits[idx];
+        _cachedDeletedVisits[expense.id] = visit;
+        await ServiceVisitController.instance.deleteVisit(visit.id);
+        return;
+      } else {
+        final vRepo = AppRepositories.instance.serviceVisitRepository;
+        final repoVisits = await vRepo.loadServiceVisits();
+        final rIdx = repoVisits.indexWhere((v) => v.id == linkId || v.expenseId == expense.id);
+        if (rIdx != -1) {
+          final visit = repoVisits.removeAt(rIdx);
+          _cachedDeletedVisits[expense.id] = visit;
+          await vRepo.saveServiceVisits(repoVisits);
+          await ServiceVisitController.instance.load();
+          return;
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _syncLinkedMaintenanceOnRestore(Expense expense) async {
+    final linkId = expense.maintenanceItemId;
+    if (linkId == null || linkId.isEmpty) return;
+
+    final cachedItem = _cachedDeletedItems.remove(expense.id);
+    if (cachedItem != null) {
+      try {
+        if (!MaintenanceController.instance.maintenanceItems.any((i) => i.id == cachedItem.id)) {
+          final repo = AppRepositories.instance.maintenanceRepository;
+          final repoItems = await repo.loadMaintenanceItems();
+          if (!repoItems.any((i) => i.id == cachedItem.id)) {
+            repoItems.add(cachedItem);
+            await repo.saveMaintenanceItems(repoItems);
+          }
+          await MaintenanceController.instance.loadMaintenanceItems();
+        }
+      } catch (_) {}
+      return;
+    }
+
+    final cachedVisit = _cachedDeletedVisits.remove(expense.id);
+    if (cachedVisit != null) {
+      try {
+        if (!ServiceVisitController.instance.visits.any((v) => v.id == cachedVisit.id)) {
+          final vRepo = AppRepositories.instance.serviceVisitRepository;
+          final repoVisits = await vRepo.loadServiceVisits();
+          if (!repoVisits.any((v) => v.id == cachedVisit.id)) {
+            repoVisits.add(cachedVisit);
+            await vRepo.saveServiceVisits(repoVisits);
+          }
+          await ServiceVisitController.instance.load();
+        }
+      } catch (_) {}
+    }
   }
 
   /// Remove/delete the current trip and clear expenses ledger.
@@ -126,6 +293,8 @@ class TripBudgetController extends ChangeNotifier {
       allocatedSoFar: 0.0,
     );
     _expenses.clear();
+    _cachedDeletedItems.clear();
+    _cachedDeletedVisits.clear();
     _repository = AppRepositories.instance.financeRepository;
     notifyListeners();
   }

@@ -7,6 +7,7 @@ import '../../../core/widgets/app_messenger.dart';
 import '../../garage/controllers/active_bike_controller.dart';
 import '../../garage/domain/bike_model.dart';
 import '../domain/expense_model.dart';
+import '../domain/maintenance_item_model.dart';
 import '../domain/maintenance_prediction_engine.dart';
 import '../domain/service_schedule_engine.dart';
 import '../domain/service_schedule_item.dart';
@@ -62,18 +63,325 @@ class MaintenanceController extends ChangeNotifier {
   final Map<String, bool> _carburetorOverrides = {};
   final Set<String> _loadedBikes = {};
 
+  List<MaintenanceItem> _maintenanceItems = [];
+  bool _maintenanceItemsLoaded = false;
+  List<MaintenanceItem> get maintenanceItems => List.unmodifiable(_maintenanceItems);
+  bool get maintenanceItemsLoaded => _maintenanceItemsLoaded;
+
+  final Map<String, List<String>> _customChecks = {};
+
+  List<String> getCustomChecks(String? bikeId) {
+    if (bikeId == null) return [];
+    return List.unmodifiable(_customChecks[bikeId] ?? []);
+  }
+
+  void resetForTesting() {
+    _schedules.clear();
+    _harshConditions.clear();
+    _carburetorOverrides.clear();
+    _loadedBikes.clear();
+    _maintenanceItems = [];
+    _maintenanceItemsLoaded = false;
+    _customChecks.clear();
+    _cachedDeletedExpenses.clear();
+    notifyListeners();
+  }
+
   void _init() {
     ActiveBikeController.instance.addListener(_onActiveBikeChanged);
     final active = ActiveBikeController.instance.activeBike;
     if (active != null) {
       loadSchedule(active.id);
+      loadCustomChecks(active.id);
     }
+    loadMaintenanceItems();
   }
 
   void _onActiveBikeChanged() {
     final active = ActiveBikeController.instance.activeBike;
-    if (active != null && !_loadedBikes.contains(active.id)) {
-      loadSchedule(active.id);
+    if (active != null) {
+      if (!_loadedBikes.contains(active.id)) {
+        loadSchedule(active.id);
+      }
+      loadCustomChecks(active.id);
+    }
+  }
+
+  /// Load rider-added maintenance items from repository.
+  Future<void> loadMaintenanceItems() async {
+    try {
+      final loaded = await _repository.loadMaintenanceItems();
+      _maintenanceItems = List.from(loaded);
+      _maintenanceItemsLoaded = true;
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  /// Add a rider-configured maintenance item.
+  /// If cost is entered, automatically creates and links a service expense in [TripBudgetController].
+  Future<void> addMaintenanceItem(MaintenanceItem item, [BuildContext? context]) async {
+    MaintenanceItem itemToSave = item;
+    String? createdExpenseId;
+
+    if (item.cost != null && item.cost! > 0 && item.expenseId == null) {
+      final expId = 'exp-maint-${DateTime.now().millisecondsSinceEpoch}';
+      createdExpenseId = expId;
+      final newExp = Expense(
+        id: expId,
+        category: ExpenseCategory.service,
+        title: '${item.name} Service',
+        amount: item.cost!,
+        bikeId: item.bikeId,
+        maintenanceItemId: item.id,
+        trackingMode: ExpenseTrackingMode.manualEntry,
+        dateRecorded: DateTime.now(),
+      );
+      TripBudgetController.instance.addExpense(newExp);
+      itemToSave = item.copyWith(expenseId: expId);
+    }
+
+    final previous = List<MaintenanceItem>.from(_maintenanceItems);
+    _maintenanceItems = [..._maintenanceItems, itemToSave];
+    _maintenanceItemsLoaded = true;
+    notifyListeners();
+
+    try {
+      await _repository.saveMaintenanceItems(_maintenanceItems);
+    } catch (e) {
+      _maintenanceItems = previous;
+      notifyListeners();
+      if (createdExpenseId != null) {
+        TripBudgetController.instance.deleteExpense(createdExpenseId);
+      }
+      if (context != null && context.mounted) {
+        showSaveErrorSnackBar(context);
+      } else {
+        showSaveErrorSnackBar();
+      }
+      rethrow;
+    }
+  }
+
+  /// Update an existing maintenance item.
+  /// Synchronizes linked expense if cost or details changed.
+  Future<void> updateMaintenanceItem(MaintenanceItem item, [BuildContext? context]) async {
+    final index = _maintenanceItems.indexWhere((i) => i.id == item.id);
+    if (index == -1) return;
+
+    MaintenanceItem finalUpdated = item;
+
+    if (item.cost != null && item.cost! > 0) {
+      if (item.expenseId != null) {
+        final existingExp = TripBudgetController.instance.expenses
+            .where((e) => e.id == item.expenseId)
+            .firstOrNull;
+        if (existingExp != null) {
+          TripBudgetController.instance.updateExpense(
+            existingExp.copyWith(
+              title: '${item.name} Service',
+              amount: item.cost!,
+              bikeId: item.bikeId,
+              maintenanceItemId: item.id,
+            ),
+          );
+        } else {
+          final newExp = Expense(
+            id: item.expenseId!,
+            category: ExpenseCategory.service,
+            title: '${item.name} Service',
+            amount: item.cost!,
+            bikeId: item.bikeId,
+            maintenanceItemId: item.id,
+            trackingMode: ExpenseTrackingMode.manualEntry,
+            dateRecorded: DateTime.now(),
+          );
+          TripBudgetController.instance.addExpense(newExp);
+        }
+      } else {
+        final expId = 'exp-maint-${DateTime.now().millisecondsSinceEpoch}';
+        final newExp = Expense(
+          id: expId,
+          category: ExpenseCategory.service,
+          title: '${item.name} Service',
+          amount: item.cost!,
+          bikeId: item.bikeId,
+          maintenanceItemId: item.id,
+          trackingMode: ExpenseTrackingMode.manualEntry,
+          dateRecorded: DateTime.now(),
+        );
+        TripBudgetController.instance.addExpense(newExp);
+        finalUpdated = item.copyWith(expenseId: expId);
+      }
+    } else {
+      if (item.expenseId != null) {
+        if (TripBudgetController.instance.expenses.any((e) => e.id == item.expenseId)) {
+          TripBudgetController.instance.deleteExpense(item.expenseId!);
+        }
+        finalUpdated = item.copyWith(expenseId: null);
+      }
+    }
+
+    final previous = List<MaintenanceItem>.from(_maintenanceItems);
+    final updatedList = List<MaintenanceItem>.from(_maintenanceItems);
+    updatedList[index] = finalUpdated;
+    _maintenanceItems = updatedList;
+    _maintenanceItemsLoaded = true;
+    notifyListeners();
+
+    try {
+      await _repository.saveMaintenanceItems(_maintenanceItems);
+    } catch (e) {
+      _maintenanceItems = previous;
+      notifyListeners();
+      if (context != null && context.mounted) {
+        showSaveErrorSnackBar(context);
+      } else {
+        showSaveErrorSnackBar();
+      }
+      rethrow;
+    }
+  }
+
+  final Map<String, Expense> _cachedDeletedExpenses = {};
+
+  /// Delete a maintenance item by ID.
+  /// Removes any linked expense in [TripBudgetController].
+  Future<void> deleteMaintenanceItem(String id, [BuildContext? context]) async {
+    final index = _maintenanceItems.indexWhere((i) => i.id == id);
+    if (index == -1) return;
+
+    final removed = _maintenanceItems[index];
+    if (removed.expenseId != null) {
+      final expIdx = TripBudgetController.instance.expenses
+          .indexWhere((e) => e.id == removed.expenseId);
+      if (expIdx != -1) {
+        _cachedDeletedExpenses[removed.id] =
+            TripBudgetController.instance.expenses[expIdx];
+        TripBudgetController.instance.deleteExpense(removed.expenseId!);
+      }
+    }
+
+    final previous = List<MaintenanceItem>.from(_maintenanceItems);
+    _maintenanceItems = _maintenanceItems.where((i) => i.id != id).toList();
+    _maintenanceItemsLoaded = true;
+    notifyListeners();
+
+    try {
+      await _repository.saveMaintenanceItems(_maintenanceItems);
+    } catch (e) {
+      _maintenanceItems = previous;
+      notifyListeners();
+      if (context != null && context.mounted) {
+        showSaveErrorSnackBar(context);
+      } else {
+        showSaveErrorSnackBar();
+      }
+      rethrow;
+    }
+  }
+
+  /// Insert a maintenance item at a specific index (e.g. for Undo operations).
+  Future<void> insertMaintenanceItem(int index, MaintenanceItem item, [BuildContext? context]) async {
+    final cachedExp = _cachedDeletedExpenses.remove(item.id);
+    if (cachedExp != null) {
+      if (!TripBudgetController.instance.expenses.any((e) => e.id == cachedExp.id)) {
+        TripBudgetController.instance.insertExpense(
+          TripBudgetController.instance.expenses.length,
+          cachedExp,
+        );
+      }
+    }
+
+    final safeIndex = index.clamp(0, _maintenanceItems.length);
+    final previous = List<MaintenanceItem>.from(_maintenanceItems);
+    final updatedList = List<MaintenanceItem>.from(_maintenanceItems);
+    updatedList.insert(safeIndex, item);
+    _maintenanceItems = updatedList;
+    _maintenanceItemsLoaded = true;
+    notifyListeners();
+
+    try {
+      await _repository.saveMaintenanceItems(_maintenanceItems);
+    } catch (e) {
+      _maintenanceItems = previous;
+      notifyListeners();
+      if (context != null && context.mounted) {
+        showSaveErrorSnackBar(context);
+      } else {
+        showSaveErrorSnackBar();
+      }
+      rethrow;
+    }
+  }
+
+  /// Load custom checklist items for the specified bike.
+  Future<void> loadCustomChecks(String bikeId) async {
+    try {
+      final checks = await _repository.loadCustomChecks(bikeId);
+      _customChecks[bikeId] = checks;
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  /// Add a custom checklist item for the specified bike.
+  Future<void> addCustomCheck(String bikeId, String check, [BuildContext? context]) async {
+    final prev = List<String>.from(_customChecks[bikeId] ?? []);
+    final updated = [...prev, check];
+    _customChecks[bikeId] = updated;
+    notifyListeners();
+    try {
+      await _repository.saveCustomChecks(updated, bikeId);
+    } catch (e) {
+      _customChecks[bikeId] = prev;
+      notifyListeners();
+      if (context != null && context.mounted) {
+        showSaveErrorSnackBar(context);
+      } else {
+        showSaveErrorSnackBar();
+      }
+      rethrow;
+    }
+  }
+
+  /// Delete a custom checklist item for the specified bike.
+  Future<void> deleteCustomCheck(String bikeId, String check, [BuildContext? context]) async {
+    final prev = List<String>.from(_customChecks[bikeId] ?? []);
+    final updated = prev.where((c) => c != check).toList();
+    _customChecks[bikeId] = updated;
+    notifyListeners();
+    try {
+      await _repository.saveCustomChecks(updated, bikeId);
+    } catch (e) {
+      _customChecks[bikeId] = prev;
+      notifyListeners();
+      if (context != null && context.mounted) {
+        showSaveErrorSnackBar(context);
+      } else {
+        showSaveErrorSnackBar();
+      }
+      rethrow;
+    }
+  }
+
+  /// Insert a custom checklist item at a specific index (e.g. for Undo operations).
+  Future<void> insertCustomCheck(String bikeId, int index, String check, [BuildContext? context]) async {
+    final prev = List<String>.from(_customChecks[bikeId] ?? []);
+    final updated = List<String>.from(prev);
+    final safeIndex = index.clamp(0, updated.length);
+    updated.insert(safeIndex, check);
+    _customChecks[bikeId] = updated;
+    notifyListeners();
+    try {
+      await _repository.saveCustomChecks(updated, bikeId);
+    } catch (e) {
+      _customChecks[bikeId] = prev;
+      notifyListeners();
+      if (context != null && context.mounted) {
+        showSaveErrorSnackBar(context);
+      } else {
+        showSaveErrorSnackBar();
+      }
+      rethrow;
     }
   }
 
@@ -333,27 +641,36 @@ class MaintenanceController extends ChangeNotifier {
       ActiveBikeController.instance.updateBike(updatedBike);
     }
 
+    final String visitId = 'visit-${DateTime.now().millisecondsSinceEpoch}';
+    final String? expId = (cost != null && cost > 0)
+        ? 'exp-${DateTime.now().millisecondsSinceEpoch}'
+        : null;
+
     // Write a service visit record through ServiceVisitController
     try {
       final newVisit = ServiceVisit(
-        id: 'visit-${DateTime.now().millisecondsSinceEpoch}',
+        id: visitId,
         dateTime: date,
         shopName: '${updatedItem.type.displayName} Service',
         bikeId: bikeId,
+        cost: cost,
+        expenseId: expId,
         note: 'Completed at ${odometerKm.round()} km',
       );
       await ServiceVisitController.instance.addVisit(newVisit);
     } catch (_) {}
 
-    // Record optional rider-entered cost in Finances
-    if (cost != null && cost > 0) {
+    // Record optional rider-entered cost in Finances with reciprocal link
+    if (cost != null && cost > 0 && expId != null) {
       TripBudgetController.instance.addExpense(
         Expense(
-          id: 'exp-${DateTime.now().millisecondsSinceEpoch}',
+          id: expId,
           category: ExpenseCategory.service,
           title: '${updatedItem.type.displayName} Service',
           amount: cost,
           dateRecorded: date,
+          bikeId: bikeId,
+          maintenanceItemId: visitId,
           note: 'Marked service done at ${odometerKm.round()} km',
           trackingMode: ExpenseTrackingMode.manualEntry,
         ),

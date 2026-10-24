@@ -1,3 +1,4 @@
+import 'package:camp/app/routes.dart';
 import 'package:camp/features/dashboard/domain/profile_stats.dart';
 import 'package:camp/features/garage/controllers/active_bike_controller.dart';
 import 'package:camp/features/garage/domain/bike_model.dart';
@@ -364,8 +365,13 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: MaintenanceScreen(),
+        MaterialApp(
+          routes: {
+            CampRoutes.navigationMap: (context) => const Scaffold(
+                  body: Text('MAPS TAB'),
+                ),
+          },
+          home: const MaintenanceScreen(),
         ),
       );
       await tester.pumpAndSettle();
@@ -384,8 +390,9 @@ void main() {
 
       // Tap Start Ride button
       await tester.tap(find.text('Start Ride'));
-      await tester.pump();
-      expect(find.textContaining('items checked'), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(find.text('MAPS TAB'), findsOneWidget);
+      expect(find.textContaining('items checked'), findsNothing);
     });
 
     testWidgets('Post-Ride tab shows history and "Log a ride" button with no inline form',

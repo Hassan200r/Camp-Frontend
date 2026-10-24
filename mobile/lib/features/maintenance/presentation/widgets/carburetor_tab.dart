@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/data/app_repositories.dart';
 import '../../../../core/widgets/camp_card.dart';
 import '../../../../core/widgets/inset_tile.dart';
 import '../../../garage/domain/bike_model.dart';
@@ -16,9 +17,8 @@ import '../../domain/carburetor_guidance_table.dart';
 ///   1. GPS altitude via geolocator (requested on demand; falls back if denied).
 ///   2. Manual numeric entry field (always visible).
 ///
-/// Baseline altitude is entered via a separate "Jetting Log" field and stored
-/// locally in this widget's state. Without a baseline, the density-ratio
-/// calculation cannot run and an empty state is shown instead.
+/// Baseline altitude and jetting specs are entered in "Jetting Log" and persisted
+/// per bike through MaintenanceRepository.
 ///
 /// All guidance text is labelled "Guidance only" and sourced from
 /// [carburetor_guidance_table.dart] which carries visible TODO: verify markers.
@@ -35,6 +35,12 @@ class _CarburetorTabState extends State<CarburetorTab> {
   // ── Manual altitude fields ────────────────────────────────────────────────
   final _currentAltController = TextEditingController();
   final _baselineAltController = TextEditingController();
+  final _mainJetController = TextEditingController();
+  final _pilotJetController = TextEditingController();
+  final _needleClipController = TextEditingController();
+  final _airScrewController = TextEditingController();
+
+  String? _currentBikeId;
 
   /// GPS-sourced altitude (nullable — set when user taps "Use GPS").
   double? _gpsAltitude;
@@ -57,9 +63,65 @@ class _CarburetorTabState extends State<CarburetorTab> {
       double.tryParse(_baselineAltController.text.trim());
 
   @override
+  void initState() {
+    super.initState();
+    _currentBikeId = widget.bike.id;
+    _loadForBike(widget.bike.id);
+  }
+
+  @override
+  void didUpdateWidget(covariant CarburetorTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.bike.id != widget.bike.id) {
+      _currentBikeId = widget.bike.id;
+      _loadForBike(widget.bike.id);
+    }
+  }
+
+  Future<void> _loadForBike(String? bikeId) async {
+    _currentBikeId = bikeId;
+    final repo = AppRepositories.instance.maintenanceRepository;
+    final data = await repo.loadJettingBaseline(bikeId);
+    if (!mounted) return;
+    if (data != null) {
+      setState(() {
+        _baselineAltController.text =
+            data['baselineAltitude']?.toString() ?? '';
+        _mainJetController.text = data['mainJet']?.toString() ?? '';
+        _pilotJetController.text = data['pilotJet']?.toString() ?? '';
+        _needleClipController.text = data['needleClip']?.toString() ?? '';
+        _airScrewController.text = data['airScrew']?.toString() ?? '';
+      });
+    } else {
+      setState(() {
+        _baselineAltController.clear();
+        _mainJetController.clear();
+        _pilotJetController.clear();
+        _needleClipController.clear();
+        _airScrewController.clear();
+      });
+    }
+  }
+
+  Future<void> _saveBaseline() async {
+    final repo = AppRepositories.instance.maintenanceRepository;
+    await repo.saveJettingBaseline({
+      'baselineAltitude': _baselineAltController.text.trim(),
+      'mainJet': _mainJetController.text.trim(),
+      'pilotJet': _pilotJetController.text.trim(),
+      'needleClip': _needleClipController.text.trim(),
+      'airScrew': _airScrewController.text.trim(),
+    }, _currentBikeId);
+  }
+
+  @override
   void dispose() {
     _currentAltController.dispose();
     _baselineAltController.dispose();
+    _mainJetController.dispose();
+    _pilotJetController.dispose();
+    _needleClipController.dispose();
+    _airScrewController.dispose();
     super.dispose();
   }
 
@@ -208,7 +270,7 @@ class _CarburetorTabState extends State<CarburetorTab> {
         ),
         const SizedBox(height: 14),
 
-        // ── 2. Jetting Log — Baseline Altitude ─────────────────────────────
+        // ── 2. Jetting Log — Baseline Altitude & Jetting Setup ─────────────
         CampCard(
           padding: const EdgeInsets.all(16),
           borderRadius: AppColors.radiusCard,
@@ -217,18 +279,40 @@ class _CarburetorTabState extends State<CarburetorTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'JETTING LOG',
-                style: GoogleFonts.manrope(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.mutedText,
-                  letterSpacing: 0.5,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'JETTING LOG',
+                    style: GoogleFonts.manrope(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.mutedText,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 7, vertical: 2.5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius:
+                          BorderRadius.circular(AppColors.radiusPill),
+                    ),
+                    child: Text(
+                      'Guidance only',
+                      style: GoogleFonts.manrope(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF92400E),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               Text(
-                'Record the altitude where your current jetting setup was tuned. This is the baseline for the density-ratio calculation.',
+                'Record your current carburetor jetting and baseline altitude where it was tuned. Settings are saved per motorcycle for reference and theoretical density calculations. Always check adjustments with a qualified mechanic.',
                 style: GoogleFonts.manrope(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -238,7 +322,7 @@ class _CarburetorTabState extends State<CarburetorTab> {
               ),
               const SizedBox(height: 12),
               Text(
-                'ALTITUDE WHERE THIS SETUP WAS TUNED (m)',
+                'BASELINE ALTITUDE (m ASL)',
                 style: GoogleFonts.manrope(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w800,
@@ -248,13 +332,17 @@ class _CarburetorTabState extends State<CarburetorTab> {
               ),
               const SizedBox(height: 6),
               InsetTile(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 borderRadius: AppColors.radiusTile,
                 child: TextField(
                   controller: _baselineAltController,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  onChanged: (_) => setState(() {}),
+                  onChanged: (_) {
+                    setState(() {});
+                    _saveBaseline();
+                  },
                   style: GoogleFonts.manrope(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -262,7 +350,8 @@ class _CarburetorTabState extends State<CarburetorTab> {
                   ),
                   decoration: InputDecoration(
                     hintText: 'e.g. 500',
-                    hintStyle: GoogleFonts.manrope(color: AppColors.mutedLight),
+                    hintStyle:
+                        GoogleFonts.manrope(color: AppColors.mutedLight),
                     border: InputBorder.none,
                     suffixText: 'm ASL',
                     suffixStyle: GoogleFonts.manrope(
@@ -271,6 +360,166 @@ class _CarburetorTabState extends State<CarburetorTab> {
                     ),
                   ),
                 ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'MAIN JET',
+                          style: GoogleFonts.manrope(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.mutedText,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        InsetTile(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 4),
+                          borderRadius: AppColors.radiusTile,
+                          child: TextField(
+                            controller: _mainJetController,
+                            onChanged: (_) => _saveBaseline(),
+                            style: GoogleFonts.manrope(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.darkCharcoal,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'e.g. 115',
+                              hintStyle: GoogleFonts.manrope(
+                                  color: AppColors.mutedLight),
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'PILOT / SLOW JET',
+                          style: GoogleFonts.manrope(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.mutedText,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        InsetTile(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 4),
+                          borderRadius: AppColors.radiusTile,
+                          child: TextField(
+                            controller: _pilotJetController,
+                            onChanged: (_) => _saveBaseline(),
+                            style: GoogleFonts.manrope(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.darkCharcoal,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'e.g. 38',
+                              hintStyle: GoogleFonts.manrope(
+                                  color: AppColors.mutedLight),
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'NEEDLE CLIP POSITION',
+                          style: GoogleFonts.manrope(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.mutedText,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        InsetTile(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 4),
+                          borderRadius: AppColors.radiusTile,
+                          child: TextField(
+                            controller: _needleClipController,
+                            onChanged: (_) => _saveBaseline(),
+                            style: GoogleFonts.manrope(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.darkCharcoal,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'e.g. 3rd from top',
+                              hintStyle: GoogleFonts.manrope(
+                                  color: AppColors.mutedLight),
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'AIR / FUEL SCREW',
+                          style: GoogleFonts.manrope(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.mutedText,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        InsetTile(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 4),
+                          borderRadius: AppColors.radiusTile,
+                          child: TextField(
+                            controller: _airScrewController,
+                            onChanged: (_) => _saveBaseline(),
+                            style: GoogleFonts.manrope(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.darkCharcoal,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'e.g. 1.75 turns out',
+                              hintStyle: GoogleFonts.manrope(
+                                  color: AppColors.mutedLight),
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

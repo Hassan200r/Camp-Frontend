@@ -28,7 +28,6 @@ class MaintenanceListWidget extends StatelessWidget {
     required this.items,
     required this.onAddMaintenanceItem,
     super.key,
-    this.onItemGuidePressed,
     this.onItemTapped,
     this.onItemDismissed,
     // ── Schedule item tap (new) ────────────────────────────────────────────
@@ -43,7 +42,6 @@ class MaintenanceListWidget extends StatelessWidget {
   // Rider-added (restored)
   final List<MaintenanceItem> items;
   final VoidCallback onAddMaintenanceItem;
-  final ValueChanged<MaintenanceItem>? onItemGuidePressed;
   final ValueChanged<MaintenanceItem>? onItemTapped;
   final ValueChanged<MaintenanceItem>? onItemDismissed;
 
@@ -382,7 +380,6 @@ class MaintenanceListWidget extends StatelessWidget {
               onDismissed: (_) => onItemDismissed?.call(item),
               child: MaintenanceItemCardWidget(
                 item: item,
-                onActionPressed: () => onItemGuidePressed?.call(item),
                 onTap: () => onItemTapped?.call(item),
               ),
             ),

@@ -10,6 +10,8 @@ class ServiceVisit {
     required this.dateTime,
     required this.shopName,
     this.bikeId,
+    this.cost,
+    this.expenseId,
     this.phone,
     this.latitude,
     this.longitude,
@@ -39,12 +41,18 @@ class ServiceVisit {
     final phoneStr = (json['phone'] ?? json['phoneNumber']) as String?;
     final lat = (json['latitude'] as num?)?.toDouble();
     final lng = (json['longitude'] as num?)?.toDouble();
+    final costVal = (json['cost'] as num?)?.toDouble();
+    final rawExpId = (json['expenseId'] ?? json['expense_id']) as String?;
 
     return ServiceVisit(
       id: effectiveId,
       dateTime: parsedDt,
       shopName: json['shopName'] as String? ?? 'Motorcycle Workshop',
       bikeId: json['bikeId'] as String?,
+      cost: costVal,
+      expenseId: (rawExpId != null && rawExpId.trim().isNotEmpty)
+          ? rawExpId.trim()
+          : null,
       phone: (phoneStr != null && phoneStr.trim().isNotEmpty)
           ? phoneStr.trim()
           : null,
@@ -59,6 +67,8 @@ class ServiceVisit {
 
   final String id;
   final String? bikeId;
+  final double? cost;
+  final String? expenseId;
   final DateTime dateTime;
   final String shopName;
   final String? phone;
@@ -101,6 +111,8 @@ class ServiceVisit {
     DateTime? dateTime,
     String? shopName,
     Object? bikeId = _sentinel,
+    Object? cost = _sentinel,
+    Object? expenseId = _sentinel,
     String? phone,
     double? latitude,
     double? longitude,
@@ -114,6 +126,10 @@ class ServiceVisit {
       dateTime: dateTime ?? this.dateTime,
       shopName: shopName ?? this.shopName,
       bikeId: identical(bikeId, _sentinel) ? this.bikeId : (bikeId as String?),
+      cost: identical(cost, _sentinel) ? this.cost : (cost as double?),
+      expenseId: identical(expenseId, _sentinel)
+          ? this.expenseId
+          : (expenseId as String?),
       phone: phone ?? this.phone,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
@@ -124,19 +140,24 @@ class ServiceVisit {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'dateTime': dateTime.toIso8601String(),
-        'shopName': shopName,
-        'bikeId': bikeId,
-        'phone': phone,
-        'latitude': latitude,
-        'longitude': longitude,
-        'note': note,
-        'mechanicId': mechanicId,
-        'createdAt': effectiveCreatedAt.toIso8601String(),
-        'updatedAt': effectiveUpdatedAt.toIso8601String(),
-      };
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      'id': id,
+      'dateTime': dateTime.toIso8601String(),
+      'shopName': shopName,
+      'bikeId': bikeId,
+      'phone': phone,
+      'latitude': latitude,
+      'longitude': longitude,
+      'note': note,
+      'mechanicId': mechanicId,
+      'createdAt': effectiveCreatedAt.toIso8601String(),
+      'updatedAt': effectiveUpdatedAt.toIso8601String(),
+    };
+    if (cost != null) map['cost'] = cost;
+    if (expenseId != null) map['expenseId'] = expenseId;
+    return map;
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -147,9 +168,20 @@ class ServiceVisit {
           dateTime == other.dateTime &&
           shopName == other.shopName &&
           bikeId == other.bikeId &&
+          cost == other.cost &&
+          expenseId == other.expenseId &&
           phone == other.phone &&
           note == other.note;
 
   @override
-  int get hashCode => Object.hash(id, dateTime, shopName, bikeId, phone, note);
+  int get hashCode => Object.hash(
+        id,
+        dateTime,
+        shopName,
+        bikeId,
+        cost,
+        expenseId,
+        phone,
+        note,
+      );
 }

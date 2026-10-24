@@ -93,6 +93,8 @@ class Expense {
     required this.title,
     required this.amount,
     required this.trackingMode,
+    this.bikeId,
+    this.maintenanceItemId,
     this.litres,
     this.pricePerLitre,
     this.isFullTank = false,
@@ -150,6 +152,11 @@ class Expense {
       json['isFullTank'] ?? json['is_full_tank'] ?? json['fullTank'],
     );
 
+    final rawBikeId = json['bikeId'] as String?;
+    final rawMaintId = (json['maintenanceItemId'] ??
+        json['maintenance_item_id'] ??
+        json['serviceVisitId']) as String?;
+
     return Expense(
       id: effectiveId,
       createdAt: createdUtc,
@@ -163,6 +170,12 @@ class Expense {
       trackingMode: json['trackingMode'] == 'autoTrack'
           ? ExpenseTrackingMode.autoTrack
           : ExpenseTrackingMode.manualEntry,
+      bikeId: (rawBikeId != null && rawBikeId.trim().isNotEmpty)
+          ? rawBikeId.trim()
+          : null,
+      maintenanceItemId: (rawMaintId != null && rawMaintId.trim().isNotEmpty)
+          ? rawMaintId.trim()
+          : null,
       litres: parsedLitres,
       pricePerLitre: parsedPricePerLitre,
       isFullTank: parsedIsFullTank,
@@ -174,6 +187,8 @@ class Expense {
   }
 
   final String id;
+  final String? bikeId;
+  final String? maintenanceItemId;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -203,9 +218,7 @@ class Expense {
   String? get displaySubtitle {
     if (category == ExpenseCategory.fuel) {
       if (litres != null && litres! > 0 && pricePerLitre != null && pricePerLitre! > 0) {
-        final lStr = litres!.truncateToDouble() == litres
-            ? litres!.toInt().toString()
-            : litres!.toStringAsFixed(1);
+        final lStr = litres!.toStringAsFixed(2);
         return '$lStr L at ${formatPkr(pricePerLitre)}/L';
       }
       return null;
@@ -213,12 +226,16 @@ class Expense {
     return subtitle;
   }
 
+  static const _sentinel = Object();
+
   Expense copyWith({
     String? id,
     ExpenseCategory? category,
     String? title,
     double? amount,
     ExpenseTrackingMode? trackingMode,
+    Object? bikeId = _sentinel,
+    Object? maintenanceItemId = _sentinel,
     double? litres,
     double? pricePerLitre,
     bool? isFullTank,
@@ -235,6 +252,10 @@ class Expense {
       title: title ?? this.title,
       amount: amount ?? this.amount,
       trackingMode: trackingMode ?? this.trackingMode,
+      bikeId: identical(bikeId, _sentinel) ? this.bikeId : (bikeId as String?),
+      maintenanceItemId: identical(maintenanceItemId, _sentinel)
+          ? this.maintenanceItemId
+          : (maintenanceItemId as String?),
       litres: litres ?? this.litres,
       pricePerLitre: pricePerLitre ?? this.pricePerLitre,
       isFullTank: isFullTank ?? this.isFullTank,
@@ -291,6 +312,8 @@ class Expense {
           title == other.title &&
           amount == other.amount &&
           trackingMode == other.trackingMode &&
+          bikeId == other.bikeId &&
+          maintenanceItemId == other.maintenanceItemId &&
           litres == other.litres &&
           pricePerLitre == other.pricePerLitre &&
           isFullTank == other.isFullTank &&
@@ -306,6 +329,8 @@ class Expense {
         title,
         amount,
         trackingMode,
+        bikeId,
+        maintenanceItemId,
         litres,
         pricePerLitre,
         isFullTank,
@@ -330,6 +355,8 @@ class Expense {
       'dateRecorded': dateRecorded?.toIso8601String(),
       'formattedDate': formattedDate,
     };
+    if (bikeId != null) map['bikeId'] = bikeId;
+    if (maintenanceItemId != null) map['maintenanceItemId'] = maintenanceItemId;
     if (litres != null) map['litres'] = litres;
     if (pricePerLitre != null) map['pricePerLitre'] = pricePerLitre;
     return map;

@@ -30,6 +30,7 @@ class MaintenanceItem {
     this.actionLabel,
     this.trailingNote,
     this.cost,
+    this.expenseId,
     this.mechanicName,
     this.statusValueDisplay,
     this.subtitle,
@@ -62,6 +63,8 @@ class MaintenanceItem {
       );
     }
 
+    final rawExpId = (json['expenseId'] ?? json['expense_id']) as String?;
+
     return MaintenanceItem(
       id: effectiveId,
       createdAt: createdUtc,
@@ -83,6 +86,9 @@ class MaintenanceItem {
       actionLabel: json['actionLabel'] as String?,
       trailingNote: json['trailingNote'] as String?,
       cost: (json['cost'] as num?)?.toDouble(),
+      expenseId: (rawExpId != null && rawExpId.trim().isNotEmpty)
+          ? rawExpId.trim()
+          : null,
       mechanicName: (json['mechanicName'] ?? json['mechanic'] ?? json['shopName']) as String?,
       statusValueDisplay: json['statusValueDisplay'] as String?,
       subtitle: json['subtitle'] as String?,
@@ -93,6 +99,7 @@ class MaintenanceItem {
 
   final String id;
   final String? bikeId;
+  final String? expenseId;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -130,7 +137,6 @@ class MaintenanceItem {
           trackingMode: MaintenanceTrackingMode.auto,
           subtitle: 'Sintered Compound • Brembo Rear',
           conditionNote: 'Due in 350 mi',
-          actionLabel: 'View Guide',
           icon: Icons.disc_full_rounded,
         ),
         MaintenanceItem(
@@ -154,7 +160,6 @@ class MaintenanceItem {
           statusValueDisplay: 'DIY',
           subtitle: 'Tension Slack: 32mm (Spec: 30mm)',
           conditionNote: 'Recommended before pass',
-          actionLabel: 'View Guide',
           icon: Icons.link_rounded,
         ),
         MaintenanceItem(
@@ -177,7 +182,6 @@ class MaintenanceItem {
           trackingMode: MaintenanceTrackingMode.manual,
           subtitle: 'WP XPLOR 48mm • Inspect seal weeping',
           conditionNote: 'Due soon • 12,500 mi',
-          actionLabel: 'View Guide',
           icon: Icons.swap_vert_circle_rounded,
         ),
       ];
@@ -197,6 +201,7 @@ class MaintenanceItem {
     String? actionLabel,
     String? trailingNote,
     double? cost,
+    Object? expenseId = _sentinel,
     String? mechanicName,
     String? statusValueDisplay,
     String? subtitle,
@@ -218,6 +223,9 @@ class MaintenanceItem {
       actionLabel: actionLabel ?? this.actionLabel,
       trailingNote: trailingNote ?? this.trailingNote,
       cost: cost ?? this.cost,
+      expenseId: identical(expenseId, _sentinel)
+          ? this.expenseId
+          : (expenseId as String?),
       mechanicName: mechanicName ?? this.mechanicName,
       statusValueDisplay: statusValueDisplay ?? this.statusValueDisplay,
       subtitle: subtitle ?? this.subtitle,
@@ -228,27 +236,31 @@ class MaintenanceItem {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'createdAt': effectiveCreatedAt.toIso8601String(),
-        'updatedAt': effectiveUpdatedAt.toIso8601String(),
-        'name': name,
-        'category': category,
-        'status': status.name,
-        'trackingMode': trackingMode.name,
-        'bikeId': bikeId,
-        'dueMileage': dueMileage,
-        'dueDate': dueDate,
-        'notes': notes,
-        'actionLabel': actionLabel,
-        'trailingNote': trailingNote,
-        'cost': cost,
-        'mechanicName': mechanicName,
-        'statusValueDisplay': statusValueDisplay,
-        'subtitle': subtitle,
-        'conditionNote': conditionNote,
-        'iconCodePoint': icon?.codePoint,
-      };
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      'id': id,
+      'createdAt': effectiveCreatedAt.toIso8601String(),
+      'updatedAt': effectiveUpdatedAt.toIso8601String(),
+      'name': name,
+      'category': category,
+      'status': status.name,
+      'trackingMode': trackingMode.name,
+      'bikeId': bikeId,
+      'dueMileage': dueMileage,
+      'dueDate': dueDate,
+      'notes': notes,
+      'actionLabel': actionLabel,
+      'trailingNote': trailingNote,
+      'cost': cost,
+      'mechanicName': mechanicName,
+      'statusValueDisplay': statusValueDisplay,
+      'subtitle': subtitle,
+      'conditionNote': conditionNote,
+      'iconCodePoint': icon?.codePoint,
+    };
+    if (expenseId != null) map['expenseId'] = expenseId;
+    return map;
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -267,6 +279,7 @@ class MaintenanceItem {
           actionLabel == other.actionLabel &&
           trailingNote == other.trailingNote &&
           cost == other.cost &&
+          expenseId == other.expenseId &&
           mechanicName == other.mechanicName &&
           statusValueDisplay == other.statusValueDisplay &&
           subtitle == other.subtitle &&
@@ -286,6 +299,7 @@ class MaintenanceItem {
         actionLabel,
         trailingNote,
         cost,
+        expenseId,
         mechanicName,
         statusValueDisplay,
         subtitle,

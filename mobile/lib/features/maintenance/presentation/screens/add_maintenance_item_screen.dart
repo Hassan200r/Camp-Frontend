@@ -101,6 +101,47 @@ class _AddMaintenanceItemScreenState extends State<AddMaintenanceItemScreen> {
         ? 'OK'
         : (parsedCost != null && parsedCost > 0 ? formatPkr(parsedCost) : null);
 
+    String conditionNote;
+    if (_selectedStatus == MaintenanceStatus.ok) {
+      conditionNote = 'Good • Ready for trail';
+    } else {
+      final rawVal = _dueValueCtrl.text.trim();
+      if (rawVal.isNotEmpty) {
+        final cleanNum = int.tryParse(rawVal.replaceAll(',', '').replaceAll(' ', ''));
+        if (_dueTypeIndex == 0) {
+          // By Mileage
+          if (cleanNum != null) {
+            conditionNote = 'Due soon • in ${_formatThousands(cleanNum)} km';
+          } else {
+            final kmMatch = RegExp(r'^(?:in\s+)?(\d[\d,]*)\s*km$', caseSensitive: false).firstMatch(rawVal);
+            if (kmMatch != null) {
+              final n = int.tryParse(kmMatch.group(1)!.replaceAll(',', ''));
+              conditionNote = 'Due soon • in ${_formatThousands(n ?? 0)} km';
+            } else {
+              conditionNote = 'Due soon • $rawVal';
+            }
+          }
+        } else {
+          // By Date
+          if (cleanNum != null) {
+            conditionNote = 'Due soon • in ${_formatThousands(cleanNum)} days';
+          } else {
+            final daysMatch = RegExp(r'^(?:in\s+)?(\d[\d,]*)\s*days?$', caseSensitive: false).firstMatch(rawVal);
+            if (daysMatch != null) {
+              final n = int.tryParse(daysMatch.group(1)!.replaceAll(',', ''));
+              conditionNote = 'Due soon • in ${_formatThousands(n ?? 0)} days';
+            } else {
+              conditionNote = 'Due soon • $rawVal';
+            }
+          }
+        }
+      } else {
+        conditionNote = _selectedStatus == MaintenanceStatus.dueSoon
+            ? 'Due soon'
+            : 'Maintenance due';
+      }
+    }
+
     final item = widget.initialItem != null
         ? widget.initialItem!.copyWith(
             name: name,
@@ -115,17 +156,12 @@ class _AddMaintenanceItemScreenState extends State<AddMaintenanceItemScreen> {
             notes: _notesCtrl.text.trim(),
             cost: parsedCost,
             mechanicName: mechanicName,
-            actionLabel:
-                _selectedStatus == MaintenanceStatus.ok ? null : 'View Guide',
+            actionLabel: null,
             statusValueDisplay: statusDisplay,
             subtitle: _notesCtrl.text.trim().isNotEmpty
                 ? _notesCtrl.text.trim()
                 : (mechanicName != null ? 'Serviced by $mechanicName' : null),
-            conditionNote: _selectedStatus == MaintenanceStatus.ok
-                ? 'Good • Ready for trail'
-                : (_dueValueCtrl.text.trim().isNotEmpty
-                    ? 'Due soon • ${_dueValueCtrl.text.trim()}'
-                    : 'Maintenance due'),
+            conditionNote: conditionNote,
             icon: _getCategoryIcon(_selectedCategory),
             updatedAt: DateTime.now().toUtc(),
           )
@@ -143,21 +179,22 @@ class _AddMaintenanceItemScreenState extends State<AddMaintenanceItemScreen> {
             notes: _notesCtrl.text.trim(),
             cost: parsedCost,
             mechanicName: mechanicName,
-            actionLabel:
-                _selectedStatus == MaintenanceStatus.ok ? null : 'View Guide',
+            actionLabel: null,
             statusValueDisplay: statusDisplay,
             subtitle: _notesCtrl.text.trim().isNotEmpty
                 ? _notesCtrl.text.trim()
                 : (mechanicName != null ? 'Serviced by $mechanicName' : null),
-            conditionNote: _selectedStatus == MaintenanceStatus.ok
-                ? 'Good • Ready for trail'
-                : (_dueValueCtrl.text.trim().isNotEmpty
-                    ? 'Due soon • ${_dueValueCtrl.text.trim()}'
-                    : 'Maintenance due'),
+            conditionNote: conditionNote,
             icon: _getCategoryIcon(_selectedCategory),
           );
 
     Navigator.of(context).pop(item);
+  }
+
+  static String _formatThousands(int num) {
+    final str = num.toString();
+    final reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+    return str.replaceAllMapped(reg, (Match m) => '${m[1]},');
   }
 
   IconData _getCategoryIcon(String cat) {

@@ -8,6 +8,8 @@ import '../../../garage/controllers/active_bike_controller.dart';
 import '../../../mechanics/controllers/mechanic_controller.dart';
 import '../../../mechanics/domain/mechanic_model.dart';
 import '../../controllers/service_visit_controller.dart';
+import '../../controllers/trip_budget_controller.dart';
+import '../../domain/expense_model.dart';
 import '../../domain/service_visit_model.dart';
 import '../../domain/trip_budget_model.dart';
 
@@ -34,6 +36,7 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
   final _shopNameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
+  final _costCtrl = TextEditingController();
 
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
@@ -51,6 +54,9 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
       _shopNameCtrl.text = v.shopName;
       _phoneCtrl.text = v.phone ?? '';
       _noteCtrl.text = v.note ?? '';
+      if (v.cost != null && v.cost! > 0) {
+        _costCtrl.text = v.cost!.round().toString();
+      }
       _selectedDate = v.dateTime;
       _selectedTime =
           TimeOfDay(hour: v.dateTime.hour, minute: v.dateTime.minute);
@@ -69,6 +75,7 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
     _shopNameCtrl.dispose();
     _phoneCtrl.dispose();
     _noteCtrl.dispose();
+    _costCtrl.dispose();
     super.dispose();
   }
 
@@ -156,6 +163,35 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
 
     final phone = _phoneCtrl.text.trim().isNotEmpty ? _phoneCtrl.text.trim() : null;
     final note = _noteCtrl.text.trim().isNotEmpty ? _noteCtrl.text.trim() : null;
+    final cost = double.tryParse(_costCtrl.text.trim());
+    final visitId = widget.initialVisit?.id ??
+        'visit-${DateTime.now().millisecondsSinceEpoch}';
+    String? expenseId = widget.initialVisit?.expenseId;
+
+    // Existing linked expenses created by the old behaviour stay as they are.
+    if (expenseId != null && expenseId.isNotEmpty) {
+      final existingExp = TripBudgetController.instance.expenses
+          .cast<Expense?>()
+          .firstWhere((e) => e?.id == expenseId, orElse: () => null);
+      if (existingExp != null) {
+        if (cost != null && cost > 0) {
+          TripBudgetController.instance.updateExpense(
+            existingExp.copyWith(
+              amount: cost,
+              bikeId: _selectedBikeId,
+              title: '$shop Service',
+              category: ExpenseCategory.service,
+              dateRecorded: combinedDt,
+              updatedAt: DateTime.now().toUtc(),
+            ),
+          );
+        } else {
+          TripBudgetController.instance.deleteExpense(expenseId);
+          expenseId = null;
+        }
+      }
+    }
+    // New planned visits do not create an expense yet: cost is stored on the visit only.
 
     final visit = widget.initialVisit != null
         ? widget.initialVisit!.copyWith(
@@ -166,11 +202,13 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
             latitude: _latitude,
             longitude: _longitude,
             note: note,
+            cost: cost != null && cost > 0 ? cost : null,
+            expenseId: expenseId,
             mechanicId: _selectedMechanicId,
             updatedAt: DateTime.now().toUtc(),
           )
         : ServiceVisit(
-            id: 'visit-${DateTime.now().millisecondsSinceEpoch}',
+            id: visitId,
             dateTime: combinedDt,
             shopName: shop,
             bikeId: _selectedBikeId,
@@ -178,14 +216,16 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
             latitude: _latitude,
             longitude: _longitude,
             note: note,
+            cost: cost != null && cost > 0 ? cost : null,
+            expenseId: expenseId,
             mechanicId: _selectedMechanicId,
           );
 
     try {
       if (widget.initialVisit != null) {
-        await ServiceVisitController.instance.updateVisit(visit, context);
+        await ServiceVisitController.instance.updateVisit(visit);
       } else {
-        await ServiceVisitController.instance.addVisit(visit, context);
+        await ServiceVisitController.instance.addVisit(visit);
       }
     } catch (_) {
       return;
@@ -453,6 +493,16 @@ class _PlanServiceVisitSheetState extends State<PlanServiceVisitSheet> {
               controller: _phoneCtrl,
               placeholder: 'e.g. +92 300 1234567',
               keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 14),
+
+            // Expected cost (optional)
+            LabeledTextField(
+              label: 'Expected cost (optional)',
+              controller: _costCtrl,
+              prefixText: 'Rs ',
+              placeholder: '0',
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
             ),
             const SizedBox(height: 14),
 

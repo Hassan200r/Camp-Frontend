@@ -82,15 +82,23 @@ class TripBudgetCardWidget extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        expense.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.manrope(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.darkCharcoal,
-                        ),
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6,
+                        runSpacing: 2,
+                        children: [
+                          Text(
+                            expense.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.manrope(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.darkCharcoal,
+                            ),
+                          ),
+                          BikeLabelChip(bikeId: expense.bikeId),
+                        ],
                       ),
                       Text(
                         formatPkr(expense.amount),
@@ -548,6 +556,7 @@ class TripBudgetCardWidget extends StatelessWidget {
             builder: (context, _) {
               final reports = PostRideReportController.instance.reports;
               final activeBike = ActiveBikeController.instance.activeBike;
+              final String? bikeName = activeBike?.name;
               final double totalDistance = calculateTripDistance(
                 tripStartDate: tripBudget.parsedStartDate,
                 tripEndDate: tripBudget.parsedEndDate,
@@ -566,13 +575,39 @@ class TripBudgetCardWidget extends StatelessWidget {
               final String costPerKmDisplay =
                   costPerKm != null ? '${formatPkr(costPerKm)}/km' : '-';
 
+              final matchingExpenses = expenses.where((e) {
+                if (activeBike != null && activeBike.id.isNotEmpty) {
+                  return e.bikeId == null ||
+                      e.bikeId!.isEmpty ||
+                      e.bikeId == activeBike.id;
+                }
+                return true;
+              }).toList();
+              final double otherBikesExpenses = expenses.where((e) {
+                if (activeBike != null && activeBike.id.isNotEmpty) {
+                  return e.bikeId != null &&
+                      e.bikeId!.isNotEmpty &&
+                      e.bikeId != activeBike.id;
+                }
+                return false;
+              }).fold<double>(0.0, (sum, e) => sum + e.amount);
+
+              final double activeBikeCost = expenses.isEmpty
+                  ? tripBudget.allocatedSoFar
+                  : (matchingExpenses.isEmpty
+                      ? 0.0
+                      : (tripBudget.allocatedSoFar > 0
+                          ? (tripBudget.allocatedSoFar - otherBikesExpenses)
+                          : matchingExpenses.fold<double>(
+                              0.0, (sum, e) => sum + e.amount)));
+
               final String distanceStr =
                   totalDistance.truncateToDouble() == totalDistance
                       ? '${totalDistance.toInt()} km'
                       : '${totalDistance.toStringAsFixed(1)} km';
               final String costPerKmInputs = totalDistance > 0
-                  ? '${formatPkr(tripBudget.allocatedSoFar)} ÷ $distanceStr'
-                  : '${formatPkr(tripBudget.allocatedSoFar)} ÷ 0 km';
+                  ? '${formatPkr(activeBikeCost)} ÷ $distanceStr'
+                  : '${formatPkr(activeBikeCost)} ÷ 0 km';
 
               final double? fuelPrice =
                   SettingsController.instance.fuelPricePerLiter;
@@ -594,11 +629,31 @@ class TripBudgetCardWidget extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Cost per km',
-                        style: AppTextStyles.caption.copyWith(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Text(
+                              'Cost per km',
+                              style: AppTextStyles.caption.copyWith(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (bikeName != null && bikeName.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  'for $bikeName',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 11,
+                                    color: AppColors.mutedText,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                       Text(
@@ -624,11 +679,31 @@ class TripBudgetCardWidget extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Fuel cost per km',
-                        style: AppTextStyles.caption.copyWith(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Text(
+                              'Fuel cost per km',
+                              style: AppTextStyles.caption.copyWith(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (bikeName != null && bikeName.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  'for $bikeName',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 11,
+                                    color: AppColors.mutedText,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                       Text(
@@ -776,6 +851,7 @@ class TripBudgetCardWidget extends StatelessWidget {
                                         fontSize: 13.5,
                                       ),
                                     ),
+                                    BikeLabelChip(bikeId: expense.bikeId),
                                     StatusChip(
                                       label: expense.trackingMode.label,
                                       variant: expense.trackingMode ==
@@ -900,6 +976,7 @@ class TripBudgetCardWidget extends StatelessWidget {
                 tripEndDate: tripBudget.parsedEndDate,
                 expenses: expenses,
                 reports: reports,
+                bikeId: activeBike?.id,
               );
               final String? costDisplay =
                   costPerKm != null ? '${formatPkr(costPerKm)}/km' : null;

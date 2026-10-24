@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/widgets/primary_button.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../../../maintenance/controllers/trip_budget_controller.dart';
 import '../../../maintenance/domain/expense_model.dart';
 import '../../../maintenance/domain/refill_calculator.dart';
@@ -62,10 +62,17 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
   bool _isUpdatingProgrammatically = false;
   bool _isFullTank = false;
   String? _errorMessage;
+  String? _selectedBikeId;
 
   @override
   void initState() {
     super.initState();
+    if (widget.initialExpense != null) {
+      _selectedBikeId = widget.initialExpense!.bikeId;
+    } else {
+      _selectedBikeId =
+          ActiveBikeController.instance.activeBike?.id ?? widget.bike.id;
+    }
     _tankCapacity = widget.bike.fuelTankCapacityLiters ?? 20.0;
     if (_tankCapacity <= 0) _tankCapacity = 20.0;
 
@@ -332,6 +339,7 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
         litres: litres,
         pricePerLitre: roundedPrice,
         isFullTank: _isFullTank,
+        bikeId: _selectedBikeId,
         updatedAt: DateTime.now().toUtc(),
       );
       TripBudgetController.instance.updateExpense(updated);
@@ -352,6 +360,7 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
         pricePerLitre: roundedPrice,
         isFullTank: _isFullTank,
         category: ExpenseCategory.fuel,
+        bikeId: _selectedBikeId,
         dateRecorded: DateTime.now(),
         trackingMode: ExpenseTrackingMode.manualEntry,
         subtitle: '${widget.bike.make} ${widget.bike.modelName}',
@@ -790,6 +799,28 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Bike picker dropdown
+                  LabeledDropdown<String?>(
+                    label: 'BIKE',
+                    value: _selectedBikeId,
+                    items: [
+                      null,
+                      ...ActiveBikeController.instance.bikes.map((b) => b.id),
+                      if (_selectedBikeId != null &&
+                          !ActiveBikeController.instance.bikes
+                              .any((b) => b.id == _selectedBikeId))
+                        _selectedBikeId,
+                    ],
+                    itemLabelBuilder: (id) {
+                      if (id == null) return 'No bike';
+                      final b =
+                          ActiveBikeController.instance.getBikeById(id);
+                      return b != null ? b.name : 'Deleted bike';
+                    },
+                    onChanged: (val) => setState(() => _selectedBikeId = val),
+                  ),
+                  const SizedBox(height: 14),
+
                   // Quick presets for litres
                   if (!isEditing) ...[
                     Row(

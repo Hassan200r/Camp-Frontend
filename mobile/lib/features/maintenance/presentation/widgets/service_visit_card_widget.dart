@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../controllers/service_visit_controller.dart';
 import '../../domain/service_visit_model.dart';
@@ -165,6 +166,9 @@ class ServiceVisitCardWidget extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (ServiceVisitController.instance.pastVisits.isNotEmpty)
+                  _buildPastVisitsSection(
+                      context, ServiceVisitController.instance.pastVisits),
               ],
             ),
           );
@@ -398,10 +402,105 @@ class ServiceVisitCardWidget extends StatelessWidget {
                   ],
                 ),
               ],
+              if (ServiceVisitController.instance.pastVisits.isNotEmpty)
+                _buildPastVisitsSection(
+                    context, ServiceVisitController.instance.pastVisits),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildPastVisitsSection(
+      BuildContext context, List<ServiceVisit> pastVisits) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 14),
+        const Divider(height: 1),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('PAST SERVICE VISITS', style: AppTextStyles.overline),
+            Text(
+              '${pastVisits.length} recorded',
+              style: AppTextStyles.caption.copyWith(fontSize: 11),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ...pastVisits.map((pv) => _buildPastVisitItem(context, pv)),
+      ],
+    );
+  }
+
+  Widget _buildPastVisitItem(BuildContext context, ServiceVisit pv) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.clayDark,
+        borderRadius: BorderRadius.circular(AppColors.radiusTile),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.history_rounded,
+            size: 16,
+            color: AppColors.mutedText,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        pv.shopName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.manrope(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.darkCharcoal,
+                        ),
+                      ),
+                    ),
+                    BikeLabelChip(bikeId: pv.bikeId),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Text(
+                      pv.formattedDateTime,
+                      style: AppTextStyles.caption.copyWith(fontSize: 11),
+                    ),
+                    if (pv.cost != null && pv.cost! > 0) ...[
+                      const SizedBox(width: 6),
+                      Text('•',
+                          style: AppTextStyles.caption.copyWith(fontSize: 11)),
+                      const SizedBox(width: 6),
+                      Text(
+                        formatPkr(pv.cost!),
+                        style: GoogleFonts.manrope(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.tacticalOrangeDark,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

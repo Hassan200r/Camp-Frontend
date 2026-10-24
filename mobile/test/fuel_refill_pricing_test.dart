@@ -57,7 +57,7 @@ void main() {
       expect(expense.litres, 10.0);
       expect(expense.pricePerLitre, 275.0);
       expect(expense.amount, 2750.0);
-      expect(expense.displaySubtitle, '10 L at Rs 275/L');
+      expect(expense.displaySubtitle, '10.00 L at Rs 275/L');
 
       // Tolerant variant keys: "liters" and "price_per_litre"
       final jsonVariant = {
@@ -74,7 +74,7 @@ void main() {
       expect(expenseVariant.litres, 12.5);
       expect(expenseVariant.pricePerLitre, 280.0);
       expect(expenseVariant.amount, 3500.0);
-      expect(expenseVariant.displaySubtitle, '12.5 L at Rs 280/L');
+      expect(expenseVariant.displaySubtitle, '12.50 L at Rs 280/L');
 
       // Serializes back with litres and pricePerLitre
       final serialized = expense.toJson();
@@ -339,8 +339,8 @@ void main() {
       );
       await tester.pump();
 
-      // Expense row shows subtitle "8 L at Rs 275/L"
-      expect(find.text('8 L at Rs 275/L'), findsOneWidget);
+      // Expense row shows subtitle "8.00 L at Rs 275/L"
+      expect(find.text('8.00 L at Rs 275/L'), findsOneWidget);
 
       // Tap expense to open action sheet
       await tester.tap(find.text('Fuel Refill (8 L)'));
@@ -485,8 +485,8 @@ void main() {
       );
       await tester.pump();
 
-      // New refill shows "10 L at Rs 275/L"
-      expect(find.text('10 L at Rs 275/L'), findsOneWidget);
+      // New refill shows "10.00 L at Rs 275/L"
+      expect(find.text('10.00 L at Rs 275/L'), findsOneWidget);
 
       // Old refill renders amount only (Rs 3,000) with title, and has NO subtitle
       expect(find.text('Legacy Fuel Stop'), findsOneWidget);

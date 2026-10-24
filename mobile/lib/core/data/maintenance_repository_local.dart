@@ -130,32 +130,169 @@ class MaintenanceRepositoryLocal implements MaintenanceRepository {
   }
 
   @override
-  Future<Map<String, dynamic>?> loadJettingBaseline() async {
+  Future<Map<String, dynamic>?> loadJettingBaseline([String? bikeId]) async {
     final json = await _store.readJson(LocalStore.keyJettingBaseline);
-    if (json is Map) {
-      return json is Map<String, dynamic> ? json : json.cast<String, dynamic>();
+    if (json is! Map) return null;
+    final map = json is Map<String, dynamic> ? json : json.cast<String, dynamic>();
+    if (bikeId != null && bikeId.isNotEmpty) {
+      final bikeData = map[bikeId];
+      if (bikeData is Map) {
+        return bikeData is Map<String, dynamic>
+            ? bikeData
+            : bikeData.cast<String, dynamic>();
+      }
+      return null;
+    }
+    return map;
+  }
+
+  @override
+  Future<void> saveJettingBaseline(Map<String, dynamic>? baseline, [String? bikeId]) async {
+    if (bikeId != null && bikeId.isNotEmpty) {
+      final raw = await _store.readJson(LocalStore.keyJettingBaseline);
+      final map = raw is Map
+          ? (raw is Map<String, dynamic>
+              ? Map<String, dynamic>.from(raw)
+              : raw.cast<String, dynamic>())
+          : <String, dynamic>{};
+      if (baseline != null) {
+        map[bikeId] = baseline;
+      } else {
+        map.remove(bikeId);
+      }
+      await _store.writeJson(LocalStore.keyJettingBaseline, map);
+    } else {
+      await _store.writeJson(LocalStore.keyJettingBaseline, baseline);
+    }
+  }
+
+  @override
+  Future<Map<String, bool>> loadChecklist([String? bikeId]) async {
+    final json = await _store.readJson(LocalStore.keyChecklist);
+    if (json is! Map) return {};
+    final map = json is Map<String, dynamic> ? json : json.cast<String, dynamic>();
+    if (bikeId != null && bikeId.isNotEmpty) {
+      final bikeData = map[bikeId];
+      if (bikeData is Map) {
+        final items = bikeData['items'];
+        if (items is Map) {
+          return items.map((k, v) => MapEntry(k.toString(), v == true));
+        }
+        return bikeData.map((k, v) => MapEntry(k.toString(), v == true));
+      }
+      return {};
+    }
+    return map.map((key, value) => MapEntry(key.toString(), value == true));
+  }
+
+  @override
+  Future<DateTime?> loadChecklistLastChecked([String? bikeId]) async {
+    final json = await _store.readJson(LocalStore.keyChecklist);
+    if (json is! Map) return null;
+    final map = json is Map<String, dynamic> ? json : json.cast<String, dynamic>();
+    if (bikeId != null && bikeId.isNotEmpty) {
+      final bikeData = map[bikeId];
+      if (bikeData is Map && bikeData['lastChecked'] is String) {
+        return DateTime.tryParse(bikeData['lastChecked'] as String)?.toUtc();
+      }
+    } else if (map['lastChecked'] is String) {
+      return DateTime.tryParse(map['lastChecked'] as String)?.toUtc();
     }
     return null;
   }
 
   @override
-  Future<void> saveJettingBaseline(Map<String, dynamic>? baseline) async {
-    await _store.writeJson(LocalStore.keyJettingBaseline, baseline);
-  }
-
-  @override
-  Future<Map<String, bool>> loadChecklist() async {
-    final json = await _store.readJson(LocalStore.keyChecklist);
-    if (json is Map) {
-      final map = json is Map<String, dynamic> ? json : json.cast<String, dynamic>();
-      return map.map((key, value) => MapEntry(key, value == true));
+  Future<void> saveChecklist(Map<String, bool> checklist, {String? bikeId, DateTime? lastChecked}) async {
+    final raw = await _store.readJson(LocalStore.keyChecklist);
+    final map = raw is Map
+        ? (raw is Map<String, dynamic>
+            ? Map<String, dynamic>.from(raw)
+            : raw.cast<String, dynamic>())
+        : <String, dynamic>{};
+    if (bikeId != null && bikeId.isNotEmpty) {
+      final prevBike = map[bikeId] is Map
+          ? Map<String, dynamic>.from(map[bikeId] as Map)
+          : <String, dynamic>{};
+      prevBike['items'] = checklist;
+      if (lastChecked != null) {
+        prevBike['lastChecked'] = lastChecked.toUtc().toIso8601String();
+      }
+      map[bikeId] = prevBike;
+      await _store.writeJson(LocalStore.keyChecklist, map);
+    } else {
+      await _store.writeJson(LocalStore.keyChecklist, checklist);
     }
-    return {};
   }
 
   @override
-  Future<void> saveChecklist(Map<String, bool> checklist) async {
-    await _store.writeJson(LocalStore.keyChecklist, checklist);
+  Future<void> resetChecklist([String? bikeId]) async {
+    final raw = await _store.readJson(LocalStore.keyChecklist);
+    final map = raw is Map
+        ? (raw is Map<String, dynamic>
+            ? Map<String, dynamic>.from(raw)
+            : raw.cast<String, dynamic>())
+        : <String, dynamic>{};
+    if (bikeId != null && bikeId.isNotEmpty) {
+      final prevBike = map[bikeId] is Map
+          ? Map<String, dynamic>.from(map[bikeId] as Map)
+          : <String, dynamic>{};
+      final customChecks = prevBike['customChecks'];
+      final bikeReset = <String, dynamic>{
+        'items': <String, bool>{},
+        'lastChecked': null,
+      };
+      if (customChecks != null) {
+        bikeReset['customChecks'] = customChecks;
+      }
+      map[bikeId] = bikeReset;
+      await _store.writeJson(LocalStore.keyChecklist, map);
+    } else {
+      final customChecks = map['customChecks'];
+      final globalReset = <String, dynamic>{};
+      if (customChecks != null) {
+        globalReset['customChecks'] = customChecks;
+      }
+      await _store.writeJson(LocalStore.keyChecklist, globalReset);
+    }
+  }
+
+  @override
+  Future<List<String>> loadCustomChecks([String? bikeId]) async {
+    final json = await _store.readJson(LocalStore.keyChecklist);
+    if (json is! Map) return [];
+    final map = json is Map<String, dynamic> ? json : json.cast<String, dynamic>();
+    if (bikeId != null && bikeId.isNotEmpty) {
+      final bikeData = map[bikeId];
+      if (bikeData is Map && bikeData['customChecks'] is List) {
+        return (bikeData['customChecks'] as List).map((e) => e.toString()).toList();
+      }
+      return [];
+    }
+    if (map['customChecks'] is List) {
+      return (map['customChecks'] as List).map((e) => e.toString()).toList();
+    }
+    return [];
+  }
+
+  @override
+  Future<void> saveCustomChecks(List<String> customChecks, [String? bikeId]) async {
+    final raw = await _store.readJson(LocalStore.keyChecklist);
+    final map = raw is Map
+        ? (raw is Map<String, dynamic>
+            ? Map<String, dynamic>.from(raw)
+            : raw.cast<String, dynamic>())
+        : <String, dynamic>{};
+    if (bikeId != null && bikeId.isNotEmpty) {
+      final prevBike = map[bikeId] is Map
+          ? Map<String, dynamic>.from(map[bikeId] as Map)
+          : <String, dynamic>{};
+      prevBike['customChecks'] = customChecks;
+      map[bikeId] = prevBike;
+      await _store.writeJson(LocalStore.keyChecklist, map);
+    } else {
+      map['customChecks'] = customChecks;
+      await _store.writeJson(LocalStore.keyChecklist, map);
+    }
   }
 
   @override

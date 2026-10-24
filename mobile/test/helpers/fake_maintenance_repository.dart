@@ -10,6 +10,9 @@ class FakeMaintenanceRepository extends Fake implements MaintenanceRepository {
   final Map<String, List<ServiceScheduleItem>> schedules = {};
   final Map<String, bool> harshConditions = {};
   final List<MaintenanceItem> items = [];
+  final Map<String, Map<String, bool>> bikeChecklists = {};
+  final Map<String, DateTime?> bikeChecklistDates = {};
+  final Map<String, Map<String, dynamic>?> bikeJetting = {};
   Map<String, bool> checklist = {};
   Map<String, dynamic>? jettingBaseline;
 
@@ -45,19 +48,78 @@ class FakeMaintenanceRepository extends Fake implements MaintenanceRepository {
   }
 
   @override
-  Future<Map<String, bool>> loadChecklist() async => Map.from(checklist);
-
-  @override
-  Future<void> saveChecklist(Map<String, bool> list) async {
-    checklist = Map.from(list);
+  Future<Map<String, bool>> loadChecklist([String? bikeId]) async {
+    if (bikeId != null && bikeId.isNotEmpty) {
+      return Map.from(bikeChecklists[bikeId] ?? {});
+    }
+    return Map.from(checklist);
   }
 
   @override
-  Future<Map<String, dynamic>?> loadJettingBaseline() async => jettingBaseline;
+  Future<DateTime?> loadChecklistLastChecked([String? bikeId]) async {
+    if (bikeId != null && bikeId.isNotEmpty) {
+      return bikeChecklistDates[bikeId];
+    }
+    return null;
+  }
 
   @override
-  Future<void> saveJettingBaseline(Map<String, dynamic>? baseline) async {
-    jettingBaseline = baseline;
+  Future<void> saveChecklist(Map<String, bool> list, {String? bikeId, DateTime? lastChecked}) async {
+    if (bikeId != null && bikeId.isNotEmpty) {
+      bikeChecklists[bikeId] = Map.from(list);
+      if (lastChecked != null) {
+        bikeChecklistDates[bikeId] = lastChecked;
+      }
+    } else {
+      checklist = Map.from(list);
+    }
+  }
+
+  final Map<String, List<String>> bikeCustomChecks = {};
+  List<String> customChecks = [];
+
+  @override
+  Future<void> resetChecklist([String? bikeId]) async {
+    if (bikeId != null && bikeId.isNotEmpty) {
+      bikeChecklists[bikeId] = {};
+      bikeChecklistDates[bikeId] = null;
+    } else {
+      checklist = {};
+    }
+  }
+
+  @override
+  Future<List<String>> loadCustomChecks([String? bikeId]) async {
+    if (bikeId != null && bikeId.isNotEmpty) {
+      return List.from(bikeCustomChecks[bikeId] ?? []);
+    }
+    return List.from(customChecks);
+  }
+
+  @override
+  Future<void> saveCustomChecks(List<String> list, [String? bikeId]) async {
+    if (bikeId != null && bikeId.isNotEmpty) {
+      bikeCustomChecks[bikeId] = List.from(list);
+    } else {
+      customChecks = List.from(list);
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>?> loadJettingBaseline([String? bikeId]) async {
+    if (bikeId != null && bikeId.isNotEmpty) {
+      return bikeJetting[bikeId];
+    }
+    return jettingBaseline;
+  }
+
+  @override
+  Future<void> saveJettingBaseline(Map<String, dynamic>? baseline, [String? bikeId]) async {
+    if (bikeId != null && bikeId.isNotEmpty) {
+      bikeJetting[bikeId] = baseline;
+    } else {
+      jettingBaseline = baseline;
+    }
   }
 
   @override

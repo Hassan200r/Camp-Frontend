@@ -62,15 +62,13 @@ double calculateTripDistance({
 ///
 /// Returns null if no distance was covered or totalCost <= 0 (rendered as "-").
 double? calculateCostPerKm({
-  required num totalCost,
+  num? totalCost,
   DateTime? tripStartDate,
   DateTime? tripEndDate,
   List<Expense> expenses = const [],
   List<PostRideReport> reports = const [],
   String? bikeId,
 }) {
-  if (totalCost <= 0) return null;
-
   final totalDistance = calculateTripDistance(
     tripStartDate: tripStartDate,
     tripEndDate: tripEndDate,
@@ -80,5 +78,38 @@ double? calculateCostPerKm({
   );
 
   if (totalDistance <= 0.0) return null;
-  return totalCost / totalDistance;
+
+  double numerator;
+  if (expenses.isNotEmpty) {
+    final otherBikesExpenses = expenses.where((e) {
+      if (bikeId != null && bikeId.isNotEmpty) {
+        return e.bikeId != null && e.bikeId!.isNotEmpty && e.bikeId != bikeId;
+      }
+      return false;
+    }).fold<double>(0.0, (sum, e) => sum + e.amount);
+
+    final matchingExpenses = expenses.where((e) {
+      if (bikeId != null && bikeId.isNotEmpty) {
+        return e.bikeId == null || e.bikeId!.isEmpty || e.bikeId == bikeId;
+      }
+      return true;
+    }).toList();
+
+    if (bikeId != null && bikeId.isNotEmpty && matchingExpenses.isEmpty) {
+      return null;
+    }
+
+    if (totalCost != null && totalCost > 0) {
+      numerator = totalCost.toDouble() - otherBikesExpenses;
+    } else {
+      numerator = matchingExpenses.fold<double>(0.0, (sum, e) => sum + e.amount);
+    }
+  } else if (totalCost != null) {
+    numerator = totalCost.toDouble();
+  } else {
+    return null;
+  }
+
+  if (numerator <= 0) return null;
+  return numerator / totalDistance;
 }

@@ -315,8 +315,17 @@ class LatestExpeditionCardWidget extends StatelessWidget {
               Expanded(
                 child: Builder(
                   builder: (context) {
+                    final activeBike = ActiveBikeController.instance.activeBike;
                     final fuelExpenses = TripBudgetController.instance.expenses
-                        .where((e) => e.category == ExpenseCategory.fuel)
+                        .where((e) {
+                          if (e.category != ExpenseCategory.fuel) return false;
+                          if (activeBike != null && activeBike.id.isNotEmpty) {
+                            return e.bikeId == null ||
+                                e.bikeId!.isEmpty ||
+                                e.bikeId == activeBike.id;
+                          }
+                          return true;
+                        })
                         .toList();
                     final totalFuel = fuelExpenses.fold<double>(
                         0.0, (sum, e) => sum + e.amount);
