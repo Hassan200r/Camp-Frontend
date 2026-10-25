@@ -24,6 +24,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'helpers/fake_ride_report_repository.dart';
 import 'helpers/maintenance_test_helpers.dart';
 
 void main() {
@@ -34,7 +35,8 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     LocalStore.instance.resetForTesting(prefs);
     ActiveBikeController.instance.resetForTesting();
-    PostRideReportController.instance.resetForTesting();
+    PostRideReportController.instance =
+        PostRideReportController(repository: FakeRideReportRepository());
     TripBudgetController.instance.resetForTesting();
     ServiceVisitController.instance = ServiceVisitController(
       repository: FakeServiceVisitRepository(),

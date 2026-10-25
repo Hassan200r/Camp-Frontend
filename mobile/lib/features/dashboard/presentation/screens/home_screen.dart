@@ -4,6 +4,9 @@ import 'package:flutter/services.dart';
 import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/camp_bottom_nav.dart';
+import '../../../garage/controllers/active_bike_controller.dart';
+import '../../../maintenance/controllers/maintenance_controller.dart';
+import '../../../settings/controllers/settings_controller.dart';
 import '../widgets/active_bike_card_widget.dart';
 import '../widgets/app_drawer_widget.dart';
 import '../widgets/app_header_widget.dart';
@@ -24,8 +27,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  bool _maintenanceAlertDismissed = false;
 
   void _showNotification(String message) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -98,16 +99,42 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: AppColors.cardGap),
 
-                    // 4. Maintenance Alert Card (dismissible)
-                    if (!_maintenanceAlertDismissed) ...[
-                      MaintenanceAlertCardWidget(
-                        onDismiss: () {
-                          setState(() => _maintenanceAlertDismissed = true);
-                          _showNotification('Maintenance alert dismissed');
-                        },
-                      ),
-                      const SizedBox(height: AppColors.cardGap),
-                    ],
+                    // 4. Maintenance Alert Card (dismissible with persistence)
+                    ListenableBuilder(
+                      listenable: Listenable.merge([
+                        ActiveBikeController.instance,
+                        MaintenanceController.instance,
+                        SettingsController.instance,
+                      ]),
+                      builder: (context, _) {
+                        final bike = ActiveBikeController.instance.activeBike;
+                        final urgent = MaintenanceController.instance.mostUrgentItem(bike?.id);
+                        final isDismissed = urgent != null &&
+                            SettingsController.instance.isAlertDismissed(
+                              urgent.item.id,
+                              urgent.scheduleStatus.name,
+                            );
+                        if (isDismissed) {
+                          return const SizedBox.shrink();
+                        }
+                        return Column(
+                          children: [
+                            MaintenanceAlertCardWidget(
+                              onDismiss: urgent != null
+                                  ? () {
+                                      SettingsController.instance.dismissAlert(
+                                        urgent.item.id,
+                                        urgent.scheduleStatus.name,
+                                      );
+                                      _showNotification('Maintenance alert dismissed');
+                                    }
+                                  : null,
+                            ),
+                            const SizedBox(height: AppColors.cardGap),
+                          ],
+                        );
+                      },
+                    ),
 
                     // 5. Active Motorcycle Overview Card
                     ActiveBikeCardWidget(

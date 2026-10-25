@@ -6,8 +6,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../garage/controllers/active_bike_controller.dart';
-import '../../settings/controllers/settings_controller.dart';
-import '../../settings/domain/units_system.dart';
 import '../domain/geocoding_service.dart';
 import '../domain/location_service.dart';
 import '../domain/places_poi_service.dart';
@@ -37,13 +35,11 @@ class NavigationController extends ChangeNotifier {
     GeocodingService? geocodingService,
     PlacesPoiService? placesPoiService,
     ActiveBikeController? bikeController,
-    SettingsController? settingsController,
   })  : _locationService = locationService ?? const GeolocatorLocationService(),
         _routingService = routingService ?? OsrmRoutingService(),
         _geocodingService = geocodingService ?? NominatimGeocodingService(),
         _placesPoiService = placesPoiService ?? PlacesPoiService(),
-        _bikeController = bikeController ?? ActiveBikeController.instance,
-        _settingsController = settingsController ?? SettingsController.instance {
+        _bikeController = bikeController ?? ActiveBikeController.instance {
     _initDefaultPlaces();
   }
 
@@ -52,7 +48,6 @@ class NavigationController extends ChangeNotifier {
   final GeocodingService _geocodingService;
   final PlacesPoiService _placesPoiService;
   final ActiveBikeController _bikeController;
-  final SettingsController _settingsController;
 
   static const Distance _distanceCalc = Distance();
 
@@ -160,32 +155,20 @@ class NavigationController extends ChangeNotifier {
   int get currentSpeed {
     final rawSpeedMs = _currentPosition?.speed;
     if (rawSpeedMs == null || rawSpeedMs <= 0) return 0;
-    if (_settingsController.isImperial) {
-      // m/s to mph: 1 m/s = 2.23694 mph
-      return (rawSpeedMs * 2.23694).round();
-    } else {
-      // m/s to km/h: 1 m/s = 3.6 km/h
-      return (rawSpeedMs * 3.6).round();
-    }
+    // m/s to km/h: 1 m/s = 3.6 km/h
+    return (rawSpeedMs * 3.6).round();
   }
 
-  /// Speed unit label ('KM / H' or 'MPH').
-  String get speedUnitLabel =>
-      _settingsController.isImperial ? 'MPH' : 'KM / H';
+  /// Speed unit label ('KM / H').
+  String get speedUnitLabel => 'KM / H';
 
   /// Distance unit label.
-  String get distanceUnitLabel =>
-      _settingsController.isImperial ? 'mi' : 'km';
+  String get distanceUnitLabel => 'km';
 
-  /// Formatted remaining distance string (e.g. "5.4 km" or "3.4 mi").
+  /// Formatted remaining distance string (e.g. "5.4 km").
   String get formattedRemainingDistance {
-    if (_settingsController.isImperial) {
-      final miles = _remainingDistanceMeters / 1609.344;
-      return '${miles.toStringAsFixed(1)} mi';
-    } else {
-      final km = _remainingDistanceMeters / 1000.0;
-      return '${km.toStringAsFixed(1)} km';
-    }
+    final km = _remainingDistanceMeters / 1000.0;
+    return '${km.toStringAsFixed(1)} km';
   }
 
   /// Formatted remaining duration string (e.g. "11 min").
@@ -215,14 +198,7 @@ class NavigationController extends ChangeNotifier {
 
     final distanceKm = _route!.distanceKm;
     final liters = distanceKm / kmPerL;
-
-    if (_settingsController.isImperial) {
-      // 1 liter = 0.264172 gallons
-      final gallons = liters * 0.264172;
-      return '${gallons.toStringAsFixed(2)} gal';
-    } else {
-      return '${liters.toStringAsFixed(2)} L';
-    }
+    return '${liters.toStringAsFixed(2)} L';
   }
 
   /// Google Maps deep-link URL for opening navigation externally in two-wheeler mode.

@@ -19,7 +19,7 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
-  final _emailController = TextEditingController(text: 'moto.rider@camp.io');
+  final _emailController = TextEditingController(text: 'moto.rider@example.com');
   final _passwordController = TextEditingController(text: 'Adventure#2026');
   bool _obscurePassword = true;
   bool _isLoading = false;
@@ -164,7 +164,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     AuthTextField(
                       label: 'Rider ID or Email',
                       controller: _emailController,
-                      hintText: 'moto.rider@camp.io',
+                      hintText: 'moto.rider@example.com',
                       prefixIcon: Icons.mail_outline_rounded,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,

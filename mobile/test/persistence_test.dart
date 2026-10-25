@@ -20,7 +20,7 @@ void main() {
     LocalStore.instance.resetForTesting();
     ActiveBikeController.instance.resetForTesting();
     SettingsController.instance.resetForTesting();
-    PostRideReportController.instance.resetForTesting();
+    PostRideReportController.instance = PostRideReportController();
     TripBudgetController.instance.resetForTesting();
   });
 
@@ -144,9 +144,9 @@ void main() {
       store.resetForTesting();
       await store.markFirstRunCompleted();
 
-      SettingsController.instance.setUnits(UnitsSystem.imperial);
       SettingsController.instance.setNotificationsEnabled(false);
-      SettingsController.instance.setPrivacySharingEnabled(false);
+      SettingsController.instance.setLanguage('English');
+      SettingsController.instance.dismissAlert('item-1', 'dueSoon');
       await SettingsController.instance.save(store);
 
       // Reset to defaults
@@ -156,9 +156,9 @@ void main() {
 
       // Restore
       await SettingsController.instance.load(store);
-      expect(SettingsController.instance.units, UnitsSystem.imperial);
+      expect(SettingsController.instance.units, UnitsSystem.metric);
       expect(SettingsController.instance.notificationsEnabled, isFalse);
-      expect(SettingsController.instance.privacySharingEnabled, isFalse);
+      expect(SettingsController.instance.isAlertDismissed('item-1', 'dueSoon'), isTrue);
     });
 
     test('PostRideReportController round-trip saves and restores reports', () async {
@@ -180,7 +180,7 @@ void main() {
       await PostRideReportController.instance.save(store);
 
       // Reset in-memory state without writing empty list to storage
-      PostRideReportController.instance.resetForTesting();
+      PostRideReportController.instance = PostRideReportController();
       expect(PostRideReportController.instance.reports, isEmpty);
 
       await PostRideReportController.instance.load(store);
@@ -319,7 +319,7 @@ void main() {
 
       // Clear in-memory singletons
       ActiveBikeController.instance.resetForTesting();
-      PostRideReportController.instance.resetForTesting();
+      PostRideReportController.instance = PostRideReportController();
       TripBudgetController.instance.resetForTesting();
 
       // Reload
@@ -434,11 +434,10 @@ void main() {
       PostRideReportController.instance.addReport(testReport);
       await PostRideReportController.instance.save(store);
 
-      SettingsController.instance.setUnits(UnitsSystem.imperial);
-      SettingsController.instance.setPrivacySharingEnabled(false);
+      SettingsController.instance.setNotificationsEnabled(false);
       await SettingsController.instance.save(store);
 
-      expect(SettingsController.instance.localCacheSizeGb, greaterThan(0.0));
+      expect(SettingsController.instance.localCacheSizeGb, greaterThanOrEqualTo(0.0));
 
       // Execute Clear Local Cache from Settings
       SettingsController.instance.clearLocalCache();
@@ -452,7 +451,7 @@ void main() {
       freshStore.resetForTesting();
 
       ActiveBikeController.instance.resetForTesting();
-      PostRideReportController.instance.resetForTesting();
+      PostRideReportController.instance = PostRideReportController();
       SettingsController.instance.resetForTesting();
 
       await ActiveBikeController.instance.load(freshStore);
@@ -469,8 +468,8 @@ void main() {
         PostRideReportController.instance.reports.any((r) => r.id == 'cache-test-report'),
         isTrue,
       );
-      expect(SettingsController.instance.units, UnitsSystem.imperial);
-      expect(SettingsController.instance.privacySharingEnabled, isFalse);
+      expect(SettingsController.instance.units, UnitsSystem.metric);
+      expect(SettingsController.instance.notificationsEnabled, isFalse);
     });
   });
 
@@ -613,7 +612,7 @@ void main() {
     test('clearAll() awaits its save and persists empty list', () async {
       SharedPreferences.setMockInitialValues({});
       LocalStore.instance.resetForTesting();
-      PostRideReportController.instance.resetForTesting();
+      PostRideReportController.instance = PostRideReportController();
       await LocalStore.instance.markFirstRunCompleted();
 
       final report = PostRideReport(
@@ -632,7 +631,7 @@ void main() {
       // Reload from fresh store
       final freshStore = LocalStore();
       freshStore.resetForTesting();
-      PostRideReportController.instance.resetForTesting();
+      PostRideReportController.instance = PostRideReportController();
       await PostRideReportController.instance.load(freshStore);
 
       expect(PostRideReportController.instance.reports, isEmpty);

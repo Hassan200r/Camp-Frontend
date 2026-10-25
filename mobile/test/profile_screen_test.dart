@@ -2,17 +2,19 @@ import 'package:camp/features/dashboard/presentation/screens/profile_screen.dart
 import 'package:camp/features/maintenance/controllers/post_ride_report_controller.dart';
 import 'package:camp/features/maintenance/domain/post_ride_report.dart';
 import 'package:camp/features/settings/controllers/settings_controller.dart';
-import 'package:camp/features/settings/domain/units_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'helpers/fake_ride_report_repository.dart';
 
 void main() {
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
     SettingsController.instance.reset();
-    PostRideReportController.instance.resetForTesting();
+    PostRideReportController.instance =
+        PostRideReportController(repository: FakeRideReportRepository());
     PostRideReportController.instance.addReport(
       PostRideReport(
         id: 'test-profile-1',
@@ -26,7 +28,8 @@ void main() {
   });
 
   tearDown(() {
-    PostRideReportController.instance.resetForTesting();
+    PostRideReportController.instance =
+        PostRideReportController(repository: FakeRideReportRepository());
   });
   testWidgets('ProfileScreen renders all sections matching reference screenshots in order',
       (WidgetTester tester) async {
@@ -99,10 +102,9 @@ void main() {
     // 10. Settings List Card
     expect(find.text('SETTINGS'), findsOneWidget);
     expect(find.text('Edit Personal Info'), findsOneWidget);
-    expect(find.text('Units'), findsOneWidget);
     expect(find.text('Notifications'), findsOneWidget);
     expect(find.text('Offline Maps'), findsOneWidget);
-    expect(find.text('Privacy & Data Sharing'), findsOneWidget);
+    expect(find.text('Privacy & Data'), findsOneWidget);
     expect(find.text('Help & Support'), findsOneWidget);
     expect(find.text('About CAMP'), findsOneWidget);
 
@@ -125,19 +127,15 @@ void main() {
     await tester.pumpAndSettle();
 
     // Initial state check
-    expect(find.text('Metric (km, °C)'), findsOneWidget);
-    expect(find.text('Enabled'), findsNWidgets(2)); // Notifications and Privacy
+    expect(find.text('Enabled'), findsOneWidget); // Notifications
 
     // Update settings in SettingsController
     final settings = SettingsController.instance;
-    settings.setUnits(UnitsSystem.imperial);
     settings.setNotificationsEnabled(false);
-    settings.setPrivacySharingEnabled(false);
     await tester.pumpAndSettle();
 
     // Verify values updated reactively without rebuilding/restarting screen
-    expect(find.text('Imperial (mi, °F)'), findsOneWidget);
-    expect(find.text('Disabled'), findsNWidgets(2));
+    expect(find.text('Disabled'), findsOneWidget);
   });
 
   testWidgets('ProfileScreen Settings rows navigate to /settings and /edit-profile',
@@ -161,8 +159,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Tap Units -> should navigate to /settings
-    await tester.tap(find.text('Units'));
+    // Tap Offline Maps -> should navigate to /settings
+    await tester.tap(find.text('Offline Maps'));
     await tester.pumpAndSettle();
     expect(lastPushedRoute, '/settings');
 
@@ -188,8 +186,8 @@ void main() {
     Navigator.of(tester.element(find.text('Destination: /settings'))).pop();
     await tester.pumpAndSettle();
 
-    // Tap Privacy & Data Sharing -> should navigate to /settings
-    await tester.tap(find.text('Privacy & Data Sharing'));
+    // Tap Privacy & Data -> should navigate to /settings
+    await tester.tap(find.text('Privacy & Data'));
     await tester.pumpAndSettle();
     expect(lastPushedRoute, '/settings');
 

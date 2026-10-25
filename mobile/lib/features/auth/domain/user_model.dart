@@ -26,7 +26,7 @@ class RiderUser {
   static RiderUser defaultRider = RiderUser(
     id: 'RIDER-441-MX',
     name: 'Alex Henderson',
-    email: 'moto.rider@camp.io',
+    email: 'moto.rider@example.com',
     phone: '+1 (555) 019–2834',
     callSign: 'Apex Navigator',
     helmetTokenId: 'TOKEN-SCHUBERTH-C5',

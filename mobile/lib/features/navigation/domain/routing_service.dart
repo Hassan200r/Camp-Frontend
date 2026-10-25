@@ -115,22 +115,13 @@ class RouteStep {
     }
   }
 
-  /// Formatted distance string based on units.
-  String formattedDistance(UnitsSystem units) {
-    if (units == UnitsSystem.imperial) {
-      final miles = distanceMeters / 1609.344;
-      if (miles < 0.1) {
-        final feet = (distanceMeters * 3.28084).round();
-        return '$feet ft';
-      }
-      return '${miles.toStringAsFixed(1)} mi';
-    } else {
-      if (distanceMeters < 1000) {
-        return '${distanceMeters.round()} m';
-      }
-      final km = distanceMeters / 1000.0;
-      return '${km.toStringAsFixed(1)} km';
+  /// Formatted distance string based on units (Metric: m / km).
+  String formattedDistance([UnitsSystem? units]) {
+    if (distanceMeters < 1000) {
+      return '${distanceMeters.round()} m';
     }
+    final km = distanceMeters / 1000.0;
+    return '${km.toStringAsFixed(1)} km';
   }
 }
 
@@ -165,15 +156,10 @@ class RouteResult {
     return mins > 0 ? '${hours}h ${mins}m' : '${hours}h';
   }
 
-  /// Formatted distance string according to active [UnitsSystem].
-  String formattedDistance(UnitsSystem units) {
-    if (units == UnitsSystem.imperial) {
-      final miles = distanceMeters / 1609.344;
-      return '${miles.toStringAsFixed(1)} mi';
-    } else {
-      final km = distanceMeters / 1000.0;
-      return '${km.toStringAsFixed(1)} km';
-    }
+  /// Formatted distance string according to active [UnitsSystem] (Metric: km).
+  String formattedDistance([UnitsSystem? units]) {
+    final km = distanceMeters / 1000.0;
+    return '${km.toStringAsFixed(1)} km';
   }
 
   /// Distance in kilometers.

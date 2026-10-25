@@ -49,7 +49,7 @@ class AuthController extends ChangeNotifier {
     final trimmed = input.trim();
     if (trimmed.isEmpty) return 'Elena Vance';
 
-    // If it's an email address like elena.vance@camp.io or alex_henderson@bmw.com
+    // If it's an email address like elena.vance@example.com or alex_henderson@bmw.com
     if (trimmed.contains('@')) {
       final localPart = trimmed.split('@').first;
       final parts = localPart.split(RegExp(r'[._\-]'));
@@ -93,7 +93,7 @@ class AuthController extends ChangeNotifier {
     final user = RiderUser(
       id: trimmedInput.contains('@') ? 'RIDER-${trimmedInput.split('@').first.toUpperCase()}' : trimmedInput,
       name: parsedName,
-      email: trimmedInput.contains('@') ? trimmedInput : '$trimmedInput@camp.io',
+      email: trimmedInput.contains('@') ? trimmedInput : '$trimmedInput@example.com',
       phone: '+1 (555) 019–2834',
       telemetryActive: true,
       biometricEnabled: true,

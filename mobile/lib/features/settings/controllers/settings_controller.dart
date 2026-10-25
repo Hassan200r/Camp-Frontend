@@ -1,23 +1,30 @@
 import 'package:flutter/foundation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../core/data/app_repositories.dart';
 import '../../../core/data/settings_repository.dart';
 import '../../../core/data/settings_repository_local.dart';
 import '../domain/app_settings.dart';
+import '../domain/cache_service.dart';
 import '../domain/units_system.dart';
 
 /// Central state controller managing application settings:
-/// Units (Metric/Imperial), Notifications, Privacy & Data Sharing, Offline Maps cache, and Language.
+/// Units (Metric only: km, L, PKR), Notifications (low fuel alerts),
+/// Language (English / Urdu), and Local Cache metrics.
 ///
 /// Follows the same reactive ChangeNotifier singleton pattern as [ActiveBikeController].
 class SettingsController extends ChangeNotifier {
-  SettingsController({SettingsRepository? repository})
-      : _repository = repository ?? AppRepositories.instance.settingsRepository;
+  SettingsController({
+    SettingsRepository? repository,
+    CacheService? cacheService,
+  })  : _repository = repository ?? AppRepositories.instance.settingsRepository,
+        _cacheService = cacheService ?? const PlatformCacheService();
 
   /// Shared singleton instance across the application.
   static SettingsController instance = SettingsController();
 
   SettingsRepository _repository;
+  CacheService _cacheService;
 
   @visibleForTesting
   SettingsRepository get repository => _repository;
@@ -25,50 +32,57 @@ class SettingsController extends ChangeNotifier {
   @visibleForTesting
   set repository(SettingsRepository repo) => _repository = repo;
 
-  UnitsSystem _units = UnitsSystem.metric;
+  @visibleForTesting
+  CacheService get cacheService => _cacheService;
+
+  @visibleForTesting
+  set cacheService(CacheService service) => _cacheService = service;
+
+  final UnitsSystem _units = UnitsSystem.metric;
   bool _notificationsEnabled = true;
   bool _privacySharingEnabled = true;
-  double _cachedPacksSizeGb = 14.2;
-  String _cachedPacksSubtitle = 'Cascades & Alps Route Packs';
-  double _localCacheSizeGb = 1.4;
+  int _cacheSizeBytes = 0;
   String _language = 'English';
   String _emergencyNumber = '1122';
   double? _fuelPricePerLiter;
   bool _showBikeOnEmergencyQr = true;
   DateTime? _recentActivityClearedAt;
 
+  String? _dismissedAlertItemId;
+  String? _dismissedAlertStatus;
+
   // ── Getters ────────────────────────────────────────────────────────────────
   UnitsSystem get units => _units;
-  bool get isMetric => _units == UnitsSystem.metric;
-  bool get isImperial => _units == UnitsSystem.imperial;
+  bool get isMetric => true;
+  bool get isImperial => false;
   bool get notificationsEnabled => _notificationsEnabled;
   bool get privacySharingEnabled => _privacySharingEnabled;
-  double get cachedPacksSizeGb => _cachedPacksSizeGb;
-  String get cachedPacksSubtitle => _cachedPacksSubtitle;
   bool get showBikeOnEmergencyQr => _showBikeOnEmergencyQr;
-  double get localCacheSizeGb => _localCacheSizeGb;
+  int get cacheSizeBytes => _cacheSizeBytes;
+  double get localCacheSizeGb => _cacheSizeBytes / (1024 * 1024 * 1024);
   String get language => _language;
   String get emergencyNumber => _emergencyNumber;
   double? get fuelPricePerLiter => _fuelPricePerLiter;
   DateTime? get recentActivityClearedAt => _recentActivityClearedAt;
+  String? get dismissedAlertItemId => _dismissedAlertItemId;
+  String? get dismissedAlertStatus => _dismissedAlertStatus;
+
+  static String formatBytes(int bytes) {
+    if (bytes <= 0) return '0 B';
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+  }
 
   /// Human-readable representation of local cache size
-  String get localCacheDisplay {
-    if (_localCacheSizeGb <= 0.0) return '0 B';
-    return '${_localCacheSizeGb.toStringAsFixed(1)} GB';
-  }
+  String get localCacheDisplay => formatBytes(_cacheSizeBytes);
 
   // ── Modifiers ─────────────────────────────────────────────────────────────
 
-  /// Update the active measurement unit system.
-  void setUnits(UnitsSystem units) {
-    if (_units == units) return;
-    _units = units;
-    notifyListeners();
-    save();
-  }
-
-  /// Toggle or update the push notification preference.
+  /// Toggle or update the push notification preference (controls low fuel alerts).
   void setNotificationsEnabled(bool enabled) {
     if (_notificationsEnabled == enabled) return;
     _notificationsEnabled = enabled;
@@ -82,7 +96,7 @@ class SettingsController extends ChangeNotifier {
     save();
   }
 
-  /// Toggle or update ride telemetry anonymization and sharing preference.
+  /// Toggle or update privacy sharing preference.
   void setPrivacySharingEnabled(bool enabled) {
     if (_privacySharingEnabled == enabled) return;
     _privacySharingEnabled = enabled;
@@ -96,18 +110,68 @@ class SettingsController extends ChangeNotifier {
     save();
   }
 
-  /// Clear temporary tile and telemetry cache, releasing local device space.
-  /// NOTE: This only clears map/tile cache, never garage, reports, or settings.
-  void clearLocalCache() {
-    _localCacheSizeGb = 0.0;
+  /// Compute real bytes in the platform temporary cache directory.
+  Future<int> refreshCacheSize() async {
+    final size = await _cacheService.getCacheSizeBytes();
+    _cacheSizeBytes = size;
     notifyListeners();
+    return size;
   }
 
-  /// Update the user display language.
+  /// Clear temporary cache directory, releasing local device space.
+  /// NOTE: This only clears temporary cache, never garage, reports, or settings.
+  Future<int> clearTemporaryCache() async {
+    final cleared = await _cacheService.clearCache();
+    _cacheSizeBytes = 0;
+    notifyListeners();
+    return cleared;
+  }
+
+  /// Synchronous fallback for test mocks and callers.
+  void clearLocalCache() {
+    _cacheSizeBytes = 0;
+    notifyListeners();
+    clearTemporaryCache();
+  }
+
+  /// Update the user display language and persist through SettingsRepository.
   void setLanguage(String language) {
     if (_language == language) return;
     _language = language;
     notifyListeners();
+    save();
+  }
+
+  /// Checks if a maintenance alert is currently dismissed for this item and status.
+  bool isAlertDismissed(String itemId, String status) {
+    return _dismissedAlertItemId == itemId && _dismissedAlertStatus == status;
+  }
+
+  /// Dismisses a maintenance alert for a specific item id and status.
+  void dismissAlert(String itemId, String status) {
+    _dismissedAlertItemId = itemId;
+    _dismissedAlertStatus = status;
+    notifyListeners();
+    save();
+  }
+
+  /// Resets dismissed alert state (e.g. after marking an item done).
+  void clearDismissedAlert() {
+    if (_dismissedAlertItemId == null && _dismissedAlertStatus == null) return;
+    _dismissedAlertItemId = null;
+    _dismissedAlertStatus = null;
+    notifyListeners();
+    save();
+  }
+
+  /// Fetch real application version from package info.
+  Future<String> getAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      return 'v${info.version} (${info.buildNumber})';
+    } catch (_) {
+      return 'v1.0.0+1';
+    }
   }
 
   /// Update the emergency rescue dispatch number.
@@ -145,17 +209,16 @@ class SettingsController extends ChangeNotifier {
 
   /// Reset all preferences to factory defaults (useful for tests).
   void reset() {
-    _units = UnitsSystem.metric;
     _notificationsEnabled = true;
     _privacySharingEnabled = true;
-    _cachedPacksSizeGb = 14.2;
-    _cachedPacksSubtitle = 'Cascades & Alps Route Packs';
-    _localCacheSizeGb = 1.4;
+    _cacheSizeBytes = 0;
     _language = 'English';
     _emergencyNumber = '1122';
     _fuelPricePerLiter = null;
     _showBikeOnEmergencyQr = true;
     _recentActivityClearedAt = null;
+    _dismissedAlertItemId = null;
+    _dismissedAlertStatus = null;
     notifyListeners();
   }
 
@@ -176,22 +239,26 @@ class SettingsController extends ChangeNotifier {
     }
     try {
       final settings = await repo.loadSettings();
-      _units = settings.units;
       _notificationsEnabled = settings.notificationsEnabled;
       _privacySharingEnabled = settings.privacySharingEnabled;
+      _language = settings.language;
       _emergencyNumber = settings.emergencyNumber;
       _fuelPricePerLiter = settings.fuelPricePerLiter;
       _showBikeOnEmergencyQr = settings.showBikeOnEmergencyQr;
       _recentActivityClearedAt = settings.recentActivityClearedAt;
+      _dismissedAlertItemId = settings.dismissedAlertItemId;
+      _dismissedAlertStatus = settings.dismissedAlertStatus;
       notifyListeners();
     } catch (_) {
-      _units = UnitsSystem.metric;
       _notificationsEnabled = true;
       _privacySharingEnabled = true;
+      _language = 'English';
       _emergencyNumber = '1122';
       _fuelPricePerLiter = null;
       _showBikeOnEmergencyQr = true;
       _recentActivityClearedAt = null;
+      _dismissedAlertItemId = null;
+      _dismissedAlertStatus = null;
       notifyListeners();
     }
   }
@@ -204,10 +271,13 @@ class SettingsController extends ChangeNotifier {
         units: _units,
         notificationsEnabled: _notificationsEnabled,
         privacySharingEnabled: _privacySharingEnabled,
+        language: _language,
         emergencyNumber: _emergencyNumber,
         fuelPricePerLiter: _fuelPricePerLiter,
         showBikeOnEmergencyQr: _showBikeOnEmergencyQr,
         recentActivityClearedAt: _recentActivityClearedAt,
+        dismissedAlertItemId: _dismissedAlertItemId,
+        dismissedAlertStatus: _dismissedAlertStatus,
       );
       await repo.saveSettings(settings);
     } catch (_) {

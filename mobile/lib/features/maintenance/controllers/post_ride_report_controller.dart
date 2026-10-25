@@ -113,13 +113,6 @@ class PostRideReportController extends ChangeNotifier {
   /// Await completion of all pending storage writes.
   Future<void> flush() => _repository.flush();
 
-  /// Reset in-memory state for unit testing without writing to storage.
-  void resetForTesting() {
-    _reports.clear();
-    _repository = AppRepositories.instance.rideReportRepository;
-    notifyListeners();
-  }
-
   /// Load post-ride reports from repository.
   Future<void> load([dynamic source]) async {
     final repo = resolveRideReportRepository(source, _repository);

@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
+import '../../../../core/constants/app_info.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/camp_app_bar.dart';
 import '../../../../core/widgets/camp_bottom_nav.dart';
@@ -14,15 +16,17 @@ import '../../../../core/widgets/camp_card.dart';
 import '../../../../core/widgets/icon_tile.dart';
 import '../../../auth/controllers/auth_controller.dart';
 import '../../../dashboard/controllers/profile_controller.dart';
+import '../../../dashboard/domain/profile_stats.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
 import '../../../garage/controllers/active_bike_controller.dart';
+import '../../../maintenance/controllers/post_ride_report_controller.dart';
 import '../../controllers/settings_controller.dart';
 import '../widgets/settings_controls.dart';
 import '../widgets/settings_row_widget.dart';
 
 /// CAMP Settings Screen
-/// Serves as the application's single source of truth for Units, Notifications,
-/// Privacy & Data Sharing, and Offline Maps storage metrics.
+/// Serves as the application's single source of truth for Notifications,
+/// Language, Storage metrics, and Emergency preferences.
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -36,13 +40,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static const double _kNavBottomMargin = 24.0;
   static const double _kScrollBottomPadding = 120.0;
 
+  @override
+  void initState() {
+    super.initState();
+    SettingsController.instance.refreshCacheSize();
+  }
+
   void _showNotification(String message) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           message,
-          style: const TextStyle(
+          style: GoogleFonts.manrope(
             color: Colors.white,
             fontWeight: FontWeight.w600,
           ),
@@ -55,223 +65,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showChangePasswordDialog() {
-    final passwordController = TextEditingController();
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.clay,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppColors.radiusCard),
-        ),
-        title: Row(
-          children: [
-            const IconTile(
-              icon: Icons.lock_outline_rounded,
-              size: 34,
-              iconSize: 16,
-              isInset: true,
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'Change Password',
-              style: GoogleFonts.manrope(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: AppColors.darkCharcoal,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Enter a new secure password for your rider account.',
-              style: AppTextStyles.bodySecondary,
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              style: const TextStyle(color: AppColors.darkCharcoal),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: AppColors.clayDark,
-                hintText: 'New password (min 6 chars)',
-                hintStyle: const TextStyle(color: AppColors.mutedText, fontSize: 13),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppColors.radiusTile - 4),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.manrope(
-                fontWeight: FontWeight.w700,
-                color: AppColors.mutedText,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              _showNotification('Password updated successfully');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.tacticalOrange,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppColors.radiusPill),
-              ),
-              elevation: 0,
-            ),
-            child: Text(
-              'Update',
-              style: GoogleFonts.manrope(
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showLinkedAccountsBottomSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.clay,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppColors.radiusCard)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.mutedLight.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  const IconTile(
-                    icon: Icons.link_rounded,
-                    size: 36,
-                    iconSize: 18,
-                    isInset: true,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Linked Accounts',
-                    style: GoogleFonts.manrope(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.darkCharcoal,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              ListenableBuilder(
-                listenable: ProfileController.instance,
-                builder: (context, _) => _buildLinkedAccountItem(
-                  title: 'CAMP Cloud Backup',
-                  account: ProfileController.instance.email,
-                  connected: ProfileController.instance.email.isNotEmpty,
-                ),
-              ),
-              const SizedBox(height: 10),
-              _buildLinkedAccountItem(
-                title: 'Google Drive Backup',
-                account: 'Not connected',
-                connected: false,
-              ),
-              const SizedBox(height: 10),
-              _buildLinkedAccountItem(
-                title: 'Apple Health (Rider Vitals)',
-                account: 'Not connected',
-                connected: false,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLinkedAccountItem({
-    required String title,
-    required String account,
-    required bool connected,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.clayDark,
-        borderRadius: BorderRadius.circular(AppColors.radiusTile - 4),
-        boxShadow: AppColors.skeuRecessed,
-      ),
-      child: Row(
-        children: [
-          Icon(
-            connected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-            color: connected ? AppColors.statusGreen : AppColors.mutedText,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.manrope(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.darkCharcoal,
-                  ),
-                ),
-                Text(
-                  account,
-                  style: GoogleFonts.manrope(
-                    fontSize: 11,
-                    color: AppColors.mutedText,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            connected ? 'Linked' : 'Connect',
-            style: GoogleFonts.manrope(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: connected ? AppColors.terracotta : AppColors.tacticalOrange,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Note: Linked Accounts and Change Password return with AuthRepository and Firebase Auth (Batch H).
 
   void _showLanguageSelector() {
     showModalBottomSheet<void>(
@@ -307,11 +101,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              _buildLanguageOption('English', isSelected: true),
-              _buildLanguageOption('Deutsch (German)', isSelected: false),
-              _buildLanguageOption('Français (French)', isSelected: false),
-              _buildLanguageOption('Español (Spanish)', isSelected: false),
-              _buildLanguageOption('Italiano (Italian)', isSelected: false),
+              _buildLanguageOption(
+                'English',
+                isSelected: SettingsController.instance.language == 'English',
+                isAvailable: true,
+              ),
+              // Note: Real Urdu localisation (translation files, RTL layout, Nastaliq font) is a separate batch.
+              _buildLanguageOption(
+                'اردو (Urdu)',
+                isSelected: false,
+                isAvailable: false,
+              ),
             ],
           ),
         ),
@@ -319,7 +119,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildLanguageOption(String lang, {required bool isSelected}) {
+  Widget _buildLanguageOption(
+    String lang, {
+    required bool isSelected,
+    required bool isAvailable,
+  }) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(
@@ -327,20 +131,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
         style: GoogleFonts.manrope(
           fontSize: 14,
           fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-          color: isSelected ? AppColors.tacticalOrangeDark : AppColors.darkCharcoal,
+          color: isAvailable
+              ? (isSelected ? AppColors.tacticalOrangeDark : AppColors.darkCharcoal)
+              : AppColors.mutedText,
         ),
       ),
-      trailing: isSelected
-          ? const Icon(Icons.check_circle_rounded, color: AppColors.tacticalOrange)
-          : null,
+      trailing: isAvailable
+          ? (isSelected
+              ? const Icon(Icons.check_circle_rounded, color: AppColors.tacticalOrange)
+              : null)
+          : Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.clayDark,
+                borderRadius: BorderRadius.circular(AppColors.radiusPill),
+              ),
+              child: Text(
+                'Coming soon',
+                style: GoogleFonts.manrope(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mutedText,
+                ),
+              ),
+            ),
       onTap: () {
-        Navigator.of(context).pop();
-        if (lang.startsWith('English')) {
-          SettingsController.instance.setLanguage('English');
-          _showNotification('Language set to English');
-        } else {
-          _showNotification('$lang localization preview coming soon');
+        if (!isAvailable) {
+          _showNotification('Urdu localisation coming soon');
+          return;
         }
+        Navigator.of(context).pop();
+        SettingsController.instance.setLanguage('English');
+        _showNotification('Language set to English');
       },
     );
   }
@@ -552,9 +374,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Navigator.of(dialogCtx).pop();
                 _showNotification('Fuel price cleared');
               },
-              child: const Text(
+              child: Text(
                 'Clear',
-                style: TextStyle(color: AppColors.alertRed),
+                style: GoogleFonts.manrope(color: AppColors.alertRed),
               ),
             ),
           ElevatedButton(
@@ -581,9 +403,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-
   void _showClearCacheDialog() {
     final controller = SettingsController.instance;
+    final currentDisplay = controller.localCacheDisplay;
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -613,7 +435,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
         content: Text(
-          'This will purge temporary offline map tiles and telemetry caches (${controller.localCacheDisplay}). Your saved route packs, garage fleet, and profile records will not be deleted.',
+          'This will purge temporary cache files ($currentDisplay). Your saved rides, garage fleet, and settings will not be deleted.',
           style: AppTextStyles.bodySecondary,
         ),
         actions: [
@@ -628,11 +450,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(ctx).pop();
-              final freed = controller.localCacheDisplay;
-              controller.clearLocalCache();
-              _showNotification('Local cache cleared ($freed freed)');
+              final freedBytes = await controller.clearTemporaryCache();
+              final freedText = SettingsController.formatBytes(freedBytes);
+              _showNotification('Local cache cleared ($freedText freed)');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.alertRed,
@@ -654,86 +476,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showHelpSupportBottomSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.clay,
-      shape: const RoundedRectangleBorder(
-        borderRadius: verticalCardRadius,
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.mutedLight.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  const IconTile(
-                    icon: Icons.help_outline_rounded,
-                    size: 36,
-                    iconSize: 18,
-                    isInset: true,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Help & Rider Support',
-                    style: GoogleFonts.manrope(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.darkCharcoal,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              ListTile(
-                leading: const Icon(Icons.menu_book_rounded, color: AppColors.tacticalOrange),
-                title: const Text('CAMP Rider Handbook & Offline Guide'),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  _showNotification('Opening Rider Handbook...');
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.mail_outline_rounded, color: AppColors.tacticalOrange),
-                title: const Text('Contact Support (support@camp.io)'),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  _showNotification('Support inquiry initiated');
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.bug_report_outlined, color: AppColors.tacticalOrange),
-                title: const Text('Submit Telemetry Diagnostic Log'),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  _showNotification('Diagnostic logs queued for review');
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  Future<void> _handleHelpSupport() async {
+    const email = AppInfo.supportEmail;
+    final uri = Uri.parse('mailto:$email?subject=CAMP%20Rider%20Support');
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        await Clipboard.setData(const ClipboardData(text: email));
+        _showNotification('Support email copied: $email');
+      }
+    } catch (_) {
+      await Clipboard.setData(const ClipboardData(text: email));
+      _showNotification('Support email copied: $email');
+    }
   }
 
-  static const BorderRadius verticalCardRadius =
-      BorderRadius.vertical(top: Radius.circular(AppColors.radiusCard));
-
-  void _showAboutDialog() {
+  void _showAboutDialog(SettingsController settings) {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -786,13 +545,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              'Version 1.0.0 (Build 890-GS)',
-              style: AppTextStyles.bodySecondary.copyWith(fontSize: 12),
+            FutureBuilder<String>(
+              future: settings.getAppVersion(),
+              builder: (context, snapshot) => Text(
+                'Version ${snapshot.data ?? '1.0.0+1'}',
+                style: AppTextStyles.bodySecondary.copyWith(fontSize: 12),
+              ),
             ),
             const SizedBox(height: 12),
             Text(
-              'CAMP is a tactically engineered rider cockpit and telemetry suite built for adventure riders tackling high-altitude passes, off-grid expeditions, and backcountry trails.',
+              'CAMP is an offline-first rider companion designed for adventure motorcycling, pass ascents, and backcountry touring in Pakistan.',
               style: AppTextStyles.bodySecondary.copyWith(height: 1.45),
             ),
           ],
@@ -850,7 +612,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
         content: Text(
-          'Are you sure you want to end your active rider session? Live telemetry recording will pause.',
+          'Are you sure you want to end your active rider session?',
           style: AppTextStyles.bodySecondary,
         ),
         actions: [
@@ -947,54 +709,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               const SizedBox(height: 8),
 
                               // 2. Hero Row (Compact rider summary card)
-                        _buildHeroRow(),
+                              _buildHeroRow(),
 
-                        const SizedBox(height: AppColors.cardGap),
+                              const SizedBox(height: AppColors.cardGap),
 
-                        // 3. Card "ACCOUNT"
-                        _buildAccountCard(),
+                              // 3. Card "ACCOUNT"
+                              _buildAccountCard(),
 
-                        const SizedBox(height: AppColors.cardGap),
+                              const SizedBox(height: AppColors.cardGap),
 
-                        // 4. Card "PREFERENCES"
-                        _buildPreferencesCard(settings),
+                              // 4. Card "PREFERENCES"
+                              _buildPreferencesCard(settings),
 
-                        const SizedBox(height: AppColors.cardGap),
+                              const SizedBox(height: AppColors.cardGap),
 
-                        // 5. Card "STORAGE & DATA"
-                        _buildStorageCard(settings),
+                              // 5. Card "STORAGE & DATA"
+                              _buildStorageCard(settings),
 
-                        const SizedBox(height: AppColors.cardGap),
+                              const SizedBox(height: AppColors.cardGap),
 
-                        // 6. Card "SUPPORT"
-                        _buildSupportCard(),
+                              // 6. Card "SUPPORT"
+                              _buildSupportCard(settings),
 
-                        const SizedBox(height: AppColors.cardGap),
+                              const SizedBox(height: AppColors.cardGap),
 
-                        // 7. Full-width outlined red/danger "Log Out" button
-                        _buildLogOutButton(),
+                              // 7. Full-width outlined red/danger "Log Out" button
+                              _buildLogOutButton(),
 
-                        const SizedBox(height: 16),
+                              const SizedBox(height: 16),
 
-                        // 8. Small centered muted footer text
-                        Text(
-                          'CAMP v1.0.0 • Built for adventure riders',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.manrope(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.mutedLight,
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
+                              // 8. Small centered muted footer text
+                              FutureBuilder<String>(
+                                future: settings.getAppVersion(),
+                                builder: (context, snapshot) => Text(
+                                  'CAMP ${snapshot.data ?? 'v1.0.0+1'} • Built for adventure riders',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.mutedLight,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
 
             // ── Floating Bottom Dock (No tab active) ─────────────────────────
             const Positioned(
@@ -1016,16 +781,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ── 2. Compact Hero Row ───────────────────────────────────────────────────
   Widget _buildHeroRow() {
     return ListenableBuilder(
-      listenable: Listenable.merge([ProfileController.instance, ActiveBikeController.instance]),
+      listenable: Listenable.merge([
+        ProfileController.instance,
+        ActiveBikeController.instance,
+        PostRideReportController.instance,
+      ]),
       builder: (context, _) {
         final profile = ProfileController.instance;
         final avatarPath = profile.avatarPath;
         final displayName = profile.fullName;
-        final ridingTier = profile.ridingTier;
         final activeBike = ActiveBikeController.instance.activeBike;
         final bikeLabel = activeBike != null
             ? 'Active Rig: ${activeBike.make} ${activeBike.modelName}'
             : 'No bike added yet';
+
+        // Show tier chip only if computed from the rider's real rides (Batch B)
+        final reports = PostRideReportController.instance.reports;
+        final tierName = reports.isNotEmpty
+            ? ProfileStats(reports).currentTier.name
+            : null;
+
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () => Navigator.of(context).pushNamed(CampRoutes.profile),
@@ -1038,65 +813,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             child: Row(
               children: [
-                // Circular Avatar + Green Dot
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.tacticalOrange,
-                          width: 2.0,
-                        ),
-                        boxShadow: AppColors.skeuRaisedSmall,
-                      ),
-                      child: ClipOval(
-                        child: avatarPath != null && File(avatarPath).existsSync()
-                            ? Image.file(File(avatarPath), fit: BoxFit.cover)
-                            : Container(
-                                color: AppColors.clayDark,
-                                child: Center(
-                                  child: Text(
-                                    profile.firstName.isNotEmpty
-                                        ? profile.firstName[0].toUpperCase()
-                                        : 'R',
-                                    style: GoogleFonts.manrope(
-                                      color: AppColors.terracotta,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
+                // Circular Avatar without fake green online dot
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.tacticalOrange,
+                      width: 2.0,
+                    ),
+                    boxShadow: AppColors.skeuRaisedSmall,
+                  ),
+                  child: ClipOval(
+                    child: avatarPath != null && File(avatarPath).existsSync()
+                        ? Image.file(File(avatarPath), fit: BoxFit.cover)
+                        : Container(
+                            color: AppColors.clayDark,
+                            child: Center(
+                              child: Text(
+                                profile.firstName.isNotEmpty
+                                    ? profile.firstName[0].toUpperCase()
+                                    : 'R',
+                                style: GoogleFonts.manrope(
+                                  color: AppColors.terracotta,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
-                      ),
-                    ),
-                    Positioned(
-                      right: 1,
-                      bottom: 1,
-                      child: Container(
-                        width: 13,
-                        height: 13,
-                        decoration: BoxDecoration(
-                          color: AppColors.statusGreen,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x33000000),
-                              blurRadius: 3,
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                          ),
+                  ),
                 ),
                 const SizedBox(width: 14),
 
-                // Rider Name + Tier Pill + Active Rig
+                // Rider Name + Real Tier Pill (if computed) + Active Rig
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1116,27 +867,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                            decoration: BoxDecoration(
-                              color: AppColors.tacticalOrange.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(AppColors.radiusPill),
-                              border: Border.all(
-                                color: AppColors.tacticalOrange.withValues(alpha: 0.35),
-                                width: 1,
+                          if (tierName != null) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                              decoration: BoxDecoration(
+                                color: AppColors.tacticalOrange.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(AppColors.radiusPill),
+                                border: Border.all(
+                                  color: AppColors.tacticalOrange.withValues(alpha: 0.35),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                tierName,
+                                style: GoogleFonts.manrope(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                  color: AppColors.tacticalOrangeDark,
+                                ),
                               ),
                             ),
-                            child: Text(
-                              ridingTier,
-                              style: GoogleFonts.manrope(
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.5,
-                                color: AppColors.tacticalOrangeDark,
-                              ),
-                            ),
-                          ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 3),
@@ -1153,22 +906,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                 ),
-            const SizedBox(width: 8),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: AppColors.mutedLight,
-              size: 22,
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.mutedLight,
+                  size: 22,
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-    );
+          ),
+        );
       },
     );
   }
 
   // ── 3. Card "ACCOUNT" ─────────────────────────────────────────────────────
   Widget _buildAccountCard() {
+    // Note: Both Linked Accounts and Change Password return with AuthRepository and Firebase Auth (Batch H).
     return CampCard(
       color: Colors.white.withValues(alpha: 0.92),
       borderRadius: AppColors.radiusCard,
@@ -1185,22 +939,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.badge_outlined,
             title: 'Edit Personal Info',
             onTap: () => Navigator.of(context).pushNamed(CampRoutes.editProfile),
-          ),
-          const Divider(height: 1, color: Color(0x10000000)),
-          SettingsRowWidget(
-            icon: Icons.lock_outline_rounded,
-            title: 'Change Password',
-            onTap: _showChangePasswordDialog,
-          ),
-          const Divider(height: 1, color: Color(0x10000000)),
-          ListenableBuilder(
-            listenable: ProfileController.instance,
-            builder: (context, _) => SettingsRowWidget(
-              icon: Icons.link_rounded,
-              title: 'Linked Accounts',
-              subtitle: 'Connected as ${ProfileController.instance.email}',
-              onTap: _showLinkedAccountsBottomSheet,
-            ),
           ),
         ],
       ),
@@ -1222,18 +960,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: 'PREFERENCES',
           ),
           SettingsRowWidget(
-            icon: Icons.straighten_rounded,
-            title: 'Units',
-            trailing: InlineUnitsToggle(
-              selected: settings.units,
-              onChanged: settings.setUnits,
-            ),
-          ),
-          const Divider(height: 1, color: Color(0x10000000)),
-          SettingsRowWidget(
             icon: Icons.notifications_none_rounded,
             title: 'Notifications',
-            subtitle: 'Maintenance alerts, trip reminders',
+            subtitle: 'Low fuel alerts',
             trailing: TacticalSwitch(
               value: settings.notificationsEnabled,
               onChanged: settings.setNotificationsEnabled,
@@ -1342,37 +1071,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SettingsRowWidget(
             icon: Icons.map_outlined,
             title: 'Offline Maps',
-            subtitle: settings.cachedPacksSubtitle,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '${settings.cachedPacksSizeGb.toStringAsFixed(1)} GB used',
-                  style: GoogleFonts.manrope(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.mutedText,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.mutedLight,
-                  size: 20,
-                ),
-              ],
+            trailing: Text(
+              'Coming soon',
+              style: GoogleFonts.manrope(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.mutedText,
+              ),
             ),
-            onTap: () => Navigator.of(context).pushNamed(CampRoutes.routePacks),
+            onTap: () => _showNotification('Offline maps coming soon'),
           ),
           const Divider(height: 1, color: Color(0x10000000)),
-          SettingsRowWidget(
+          const SettingsRowWidget(
             icon: Icons.shield_outlined,
-            title: 'Privacy & Data Sharing',
-            subtitle: 'Anonymized ride telemetry for predictive maintenance',
-            trailing: TacticalSwitch(
-              value: settings.privacySharingEnabled,
-              onChanged: settings.setPrivacySharingEnabled,
-            ),
+            title: 'Privacy & Data',
+            subtitle: 'Your data stays on this phone.',
           ),
           const Divider(height: 1, color: Color(0x10000000)),
           SettingsRowWidget(
@@ -1394,7 +1107,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // ── 6. Card "SUPPORT" ─────────────────────────────────────────────────────
-  Widget _buildSupportCard() {
+  Widget _buildSupportCard(SettingsController settings) {
     return CampCard(
       color: Colors.white.withValues(alpha: 0.92),
       borderRadius: AppColors.radiusCard,
@@ -1410,32 +1123,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SettingsRowWidget(
             icon: Icons.help_outline_rounded,
             title: 'Help & Support',
-            onTap: _showHelpSupportBottomSheet,
+            subtitle: AppInfo.supportEmail,
+            onTap: _handleHelpSupport,
           ),
           const Divider(height: 1, color: Color(0x10000000)),
           SettingsRowWidget(
             icon: Icons.info_outline_rounded,
             title: 'About CAMP',
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'v1.0.0',
-                  style: GoogleFonts.manrope(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.mutedText,
+            trailing: FutureBuilder<String>(
+              future: settings.getAppVersion(),
+              builder: (context, snapshot) => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    snapshot.data ?? 'v1.0.0+1',
+                    style: GoogleFonts.manrope(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.mutedText,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.mutedLight,
-                  size: 20,
-                ),
-              ],
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.mutedLight,
+                    size: 20,
+                  ),
+                ],
+              ),
             ),
-            onTap: _showAboutDialog,
+            onTap: () => _showAboutDialog(settings),
           ),
         ],
       ),

@@ -10,6 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'helpers/fake_ride_report_repository.dart';
+
 class FakeSessionRepository implements SessionRepository {
   bool _loggedIn = true;
 
@@ -36,12 +38,14 @@ void main() {
     AppRepositories.resetWith(sessionRepository: fakeSession);
     SettingsController.instance.reset();
     ActiveBikeController.instance.reset();
-    PostRideReportController.instance.reset();
+    PostRideReportController.instance =
+        PostRideReportController(repository: FakeRideReportRepository());
   });
 
   tearDown(() {
     ActiveBikeController.instance.reset();
-    PostRideReportController.instance.reset();
+    PostRideReportController.instance =
+        PostRideReportController(repository: FakeRideReportRepository());
     AppRepositories.resetToDefault();
   });
 
@@ -51,7 +55,8 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
 
     // Completely empty ride history and empty garage
-    PostRideReportController.instance.resetForTesting();
+    PostRideReportController.instance =
+        PostRideReportController(repository: FakeRideReportRepository());
     ActiveBikeController.instance.resetForTesting();
 
     await tester.pumpWidget(
@@ -120,7 +125,8 @@ void main() {
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.resetPhysicalSize);
 
-    PostRideReportController.instance.resetForTesting();
+    PostRideReportController.instance =
+        PostRideReportController(repository: FakeRideReportRepository());
     // Add one ride of 150 km
     PostRideReportController.instance.addReport(
       PostRideReport(

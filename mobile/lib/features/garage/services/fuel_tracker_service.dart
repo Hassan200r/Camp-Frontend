@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../navigation/domain/location_service.dart';
+import '../../settings/controllers/settings_controller.dart';
 import '../controllers/active_bike_controller.dart';
 import '../domain/fuel_estimator.dart';
 import 'fuel_notification_service.dart';
@@ -252,7 +253,7 @@ class FuelTrackerService extends ChangeNotifier with WidgetsBindingObserver {
     if (pct != null && pct < 15.0) {
       if (!_hasShownLowFuelNotification) {
         _hasShownLowFuelNotification = true;
-        if (range != null) {
+        if (range != null && SettingsController.instance.notificationsEnabled) {
           _notificationService.showLowFuelAlert(rangeKm: range.round());
         }
       }

@@ -6,6 +6,7 @@ import '../../../core/data/service_visit_repository.dart';
 import '../../../core/widgets/app_messenger.dart';
 import '../../garage/controllers/active_bike_controller.dart';
 import '../../garage/domain/bike_model.dart';
+import '../../settings/controllers/settings_controller.dart';
 import '../domain/expense_model.dart';
 import '../domain/maintenance_item_model.dart';
 import '../domain/maintenance_prediction_engine.dart';
@@ -675,6 +676,12 @@ class MaintenanceController extends ChangeNotifier {
           trackingMode: ExpenseTrackingMode.manualEntry,
         ),
       );
+    }
+
+    // Clear dismissed alert in SettingsController if this item was dismissed
+    if (SettingsController.instance.dismissedAlertItemId == updatedItem.id ||
+        SettingsController.instance.dismissedAlertItemId == itemId) {
+      SettingsController.instance.clearDismissedAlert();
     }
 
     notifyListeners();

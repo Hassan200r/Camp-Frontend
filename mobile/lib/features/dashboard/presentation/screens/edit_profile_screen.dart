@@ -702,7 +702,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
             title: 'Linked Accounts',
-            subtitle: 'Connected as ${_emailCtrl.text.isNotEmpty ? _emailCtrl.text : "rider@camp.io"}',
+            subtitle: 'Connected as ${_emailCtrl.text.isNotEmpty ? _emailCtrl.text : "rider@example.com"}',
             onTap: () {},
           ),
         ],

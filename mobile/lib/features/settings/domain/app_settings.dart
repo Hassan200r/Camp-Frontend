@@ -11,14 +11,16 @@ class AppSettings {
     this.units = UnitsSystem.metric,
     this.notificationsEnabled = true,
     this.privacySharingEnabled = true,
-    this.cachedPacksSizeGb = 14.2,
-    this.cachedPacksSubtitle = 'Cascades & Alps Route Packs',
-    this.localCacheSizeGb = 1.4,
+    this.cachedPacksSizeGb = 0.0,
+    this.cachedPacksSubtitle = '',
+    this.localCacheSizeGb = 0.0,
     this.language = 'English',
     this.emergencyNumber = '1122',
     this.fuelPricePerLiter,
     this.showBikeOnEmergencyQr = true,
     this.recentActivityClearedAt,
+    this.dismissedAlertItemId,
+    this.dismissedAlertStatus,
   })  : id = id ?? 'settings-default',
         createdAt = (createdAt ?? DateTime.now()).toUtc(),
         updatedAt = (updatedAt ?? DateTime.now()).toUtc();
@@ -43,15 +45,16 @@ class AppSettings {
       notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
       privacySharingEnabled: json['privacySharingEnabled'] as bool? ?? true,
       cachedPacksSizeGb:
-          (json['cachedPacksSizeGb'] as num?)?.toDouble() ?? 14.2,
-      cachedPacksSubtitle: json['cachedPacksSubtitle'] as String? ??
-          'Cascades & Alps Route Packs',
-      localCacheSizeGb: (json['localCacheSizeGb'] as num?)?.toDouble() ?? 1.4,
+          (json['cachedPacksSizeGb'] as num?)?.toDouble() ?? 0.0,
+      cachedPacksSubtitle: json['cachedPacksSubtitle'] as String? ?? '',
+      localCacheSizeGb: (json['localCacheSizeGb'] as num?)?.toDouble() ?? 0.0,
       language: json['language'] as String? ?? 'English',
       emergencyNumber: json['emergencyNumber'] as String? ?? '1122',
       fuelPricePerLiter: (json['fuelPricePerLiter'] as num?)?.toDouble(),
       showBikeOnEmergencyQr: json['showBikeOnEmergencyQr'] as bool? ?? true,
       recentActivityClearedAt: parseUtc(json['recentActivityClearedAt']),
+      dismissedAlertItemId: json['dismissedAlertItemId'] as String?,
+      dismissedAlertStatus: json['dismissedAlertStatus'] as String?,
     );
   }
 
@@ -73,6 +76,8 @@ class AppSettings {
   final double? fuelPricePerLiter;
   final bool showBikeOnEmergencyQr;
   final DateTime? recentActivityClearedAt;
+  final String? dismissedAlertItemId;
+  final String? dismissedAlertStatus;
 
   AppSettings copyWith({
     String? id,
@@ -90,6 +95,9 @@ class AppSettings {
     bool? showBikeOnEmergencyQr,
     DateTime? recentActivityClearedAt,
     bool clearRecentActivityClearedAt = false,
+    String? dismissedAlertItemId,
+    String? dismissedAlertStatus,
+    bool clearDismissedAlert = false,
   }) {
     return AppSettings(
       id: id ?? this.id,
@@ -110,6 +118,12 @@ class AppSettings {
       recentActivityClearedAt: clearRecentActivityClearedAt
           ? null
           : (recentActivityClearedAt ?? this.recentActivityClearedAt),
+      dismissedAlertItemId: clearDismissedAlert
+          ? null
+          : (dismissedAlertItemId ?? this.dismissedAlertItemId),
+      dismissedAlertStatus: clearDismissedAlert
+          ? null
+          : (dismissedAlertStatus ?? this.dismissedAlertStatus),
     );
   }
 
@@ -129,6 +143,8 @@ class AppSettings {
         'showBikeOnEmergencyQr': showBikeOnEmergencyQr,
         'recentActivityClearedAt':
             recentActivityClearedAt?.toUtc().toIso8601String(),
+        'dismissedAlertItemId': dismissedAlertItemId,
+        'dismissedAlertStatus': dismissedAlertStatus,
       };
 
   @override
@@ -147,7 +163,9 @@ class AppSettings {
           emergencyNumber == other.emergencyNumber &&
           fuelPricePerLiter == other.fuelPricePerLiter &&
           showBikeOnEmergencyQr == other.showBikeOnEmergencyQr &&
-          recentActivityClearedAt == other.recentActivityClearedAt;
+          recentActivityClearedAt == other.recentActivityClearedAt &&
+          dismissedAlertItemId == other.dismissedAlertItemId &&
+          dismissedAlertStatus == other.dismissedAlertStatus;
 
   @override
   int get hashCode => Object.hash(
@@ -163,5 +181,7 @@ class AppSettings {
         fuelPricePerLiter,
         showBikeOnEmergencyQr,
         recentActivityClearedAt,
+        dismissedAlertItemId,
+        dismissedAlertStatus,
       );
 }

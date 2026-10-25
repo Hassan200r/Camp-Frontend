@@ -16,7 +16,6 @@ import '../../../maintenance/controllers/post_ride_report_controller.dart';
 import '../../../maintenance/domain/maintenance_item_model.dart';
 import '../../../maintenance/domain/post_ride_report.dart';
 import '../../../settings/controllers/settings_controller.dart';
-import '../../../settings/domain/units_system.dart';
 import '../../controllers/profile_controller.dart';
 import '../../domain/profile_stats.dart';
 import '../widgets/app_drawer_widget.dart';
@@ -1738,9 +1737,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       listenable: SettingsController.instance,
       builder: (context, _) {
         final settings = SettingsController.instance;
-        final unitsLabel = settings.units.label;
         final notificationsLabel = settings.notificationsEnabled ? 'Enabled' : 'Disabled';
-        final privacyLabel = settings.privacySharingEnabled ? 'Enabled' : 'Disabled';
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1765,36 +1762,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const Divider(height: 1, color: Color(0x12000000)),
                   _buildSettingsRow(
-                    icon: Icons.straighten_rounded,
-                    title: 'Units',
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.clayDark,
-                            borderRadius: BorderRadius.circular(AppColors.radiusPill),
-                          ),
-                          child: Text(
-                            unitsLabel,
-                            style: GoogleFonts.manrope(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.darkCharcoal,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
-                      ],
-                    ),
-                    onTap: () => Navigator.of(context).pushNamed(CampRoutes.settings),
-                  ),
-                  const Divider(height: 1, color: Color(0x12000000)),
-                  _buildSettingsRow(
                     icon: Icons.notifications_none_rounded,
                     title: 'Notifications',
+                    subtitle: 'Low fuel alerts',
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -1816,29 +1786,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildSettingsRow(
                     icon: Icons.cloud_download_outlined,
                     title: 'Offline Maps',
-                    subtitle: '${settings.cachedPacksSizeGb.toStringAsFixed(1)} GB used • ${settings.cachedPacksSubtitle}',
+                    subtitle: 'Coming soon',
                     trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
                     onTap: () => Navigator.of(context).pushNamed(CampRoutes.settings),
                   ),
                   const Divider(height: 1, color: Color(0x12000000)),
                   _buildSettingsRow(
                     icon: Icons.security_rounded,
-                    title: 'Privacy & Data Sharing',
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          privacyLabel,
-                          style: GoogleFonts.manrope(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: settings.privacySharingEnabled ? AppColors.statusGreen : AppColors.mutedText,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
-                      ],
-                    ),
+                    title: 'Privacy & Data',
+                    subtitle: 'Your data stays on this phone.',
+                    trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.mutedLight, size: 20),
                     onTap: () => Navigator.of(context).pushNamed(CampRoutes.settings),
                   ),
                   const Divider(height: 1, color: Color(0x12000000)),

@@ -15,6 +15,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'helpers/fake_ride_report_repository.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -35,7 +37,8 @@ void main() {
     ActiveBikeController.instance.resetForTesting();
     SettingsController.instance.resetForTesting();
     TripBudgetController.instance.resetForTesting();
-    PostRideReportController.instance.resetForTesting();
+    PostRideReportController.instance =
+        PostRideReportController(repository: FakeRideReportRepository());
 
     ActiveBikeController.instance.addBike(testBike);
     ActiveBikeController.instance.setActiveBike(testBike.id);

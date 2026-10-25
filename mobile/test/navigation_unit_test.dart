@@ -5,8 +5,6 @@ import 'package:camp/features/navigation/controllers/navigation_controller.dart'
 import 'package:camp/features/navigation/domain/geocoding_service.dart';
 import 'package:camp/features/navigation/domain/location_service.dart';
 import 'package:camp/features/navigation/domain/routing_service.dart';
-import 'package:camp/features/settings/controllers/settings_controller.dart';
-import 'package:camp/features/settings/domain/units_system.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -263,13 +261,12 @@ void main() {
   });
 
   group('Speed Conversion across Unit Systems', () {
-    test('Converts speed in m/s to KM/H and MPH, clamped at 0 for null/negative', () async {
+    test('Converts speed in m/s to KM/H, clamped at 0 for null/negative', () async {
       final fakeLocation = FakeLocationService();
       final controller = NavigationController(locationService: fakeLocation);
       controller.startPositionStream();
 
       // 10 m/s in Metric -> 36 km/h
-      SettingsController.instance.setUnits(UnitsSystem.metric);
       fakeLocation.emitPosition(
         PositionData(
           latitude: 48.0,
@@ -281,11 +278,6 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(controller.currentSpeed, 36);
       expect(controller.speedUnitLabel, 'KM / H');
-
-      // 10 m/s in Imperial -> ~22 mph
-      SettingsController.instance.setUnits(UnitsSystem.imperial);
-      expect(controller.currentSpeed, 22);
-      expect(controller.speedUnitLabel, 'MPH');
 
       // Negative or null speed returns 0
       fakeLocation.emitPosition(
@@ -310,8 +302,6 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(controller.currentSpeed, 0);
 
-      // Reset units to metric
-      SettingsController.instance.setUnits(UnitsSystem.metric);
       controller.dispose();
     });
   });
@@ -330,19 +320,13 @@ void main() {
         ),
       );
 
-      SettingsController.instance.setUnits(UnitsSystem.metric);
-
       final bike = ActiveBikeController.instance.activeBike;
       if (bike?.fuelAverageKmPerLiter != null) {
         expect(controller.fuelEstimateDisplay, contains('L'));
-
-        SettingsController.instance.setUnits(UnitsSystem.imperial);
-        expect(controller.fuelEstimateDisplay, contains('gal'));
       } else {
         expect(controller.fuelEstimateDisplay, isNull);
       }
 
-      SettingsController.instance.setUnits(UnitsSystem.metric);
       controller.dispose();
     });
   });

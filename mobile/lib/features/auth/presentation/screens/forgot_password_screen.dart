@@ -18,7 +18,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final _emailController = TextEditingController(text: 'moto.rider@camp.io');
+  final _emailController = TextEditingController(text: 'moto.rider@example.com');
   bool _isLoading = false;
   bool _submitted = false;
 
@@ -177,7 +177,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       AuthTextField(
                         label: 'Rider ID or Email',
                         controller: _emailController,
-                        hintText: 'moto.rider@camp.io',
+                        hintText: 'moto.rider@example.com',
                         prefixIcon: Icons.mail_outline_rounded,
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.done,

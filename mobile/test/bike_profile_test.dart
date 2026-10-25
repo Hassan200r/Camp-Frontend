@@ -9,16 +9,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'helpers/fake_ride_report_repository.dart';
+
 void main() {
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
     ActiveBikeController.instance.reset();
-    PostRideReportController.instance.resetForTesting();
+    PostRideReportController.instance =
+        PostRideReportController(repository: FakeRideReportRepository());
   });
 
   tearDown(() {
-    PostRideReportController.instance.resetForTesting();
+    PostRideReportController.instance =
+        PostRideReportController(repository: FakeRideReportRepository());
   });
 
   group('ActiveBikeController Unit Tests', () {

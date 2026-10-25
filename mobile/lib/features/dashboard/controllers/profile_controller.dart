@@ -62,7 +62,7 @@ class ProfileController extends ChangeNotifier {
     if (_email != null && _email!.trim().isNotEmpty) {
       return _email!.trim();
     }
-    return AuthController.instance.currentUser?.email ?? 'rider@camp.io';
+    return AuthController.instance.currentUser?.email ?? 'rider@example.com';
   }
 
   String get phone => _phone ?? (AuthController.instance.currentUser?.phone ?? '');

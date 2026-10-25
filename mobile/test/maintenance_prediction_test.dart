@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'helpers/fake_ride_report_repository.dart';
 import 'helpers/maintenance_test_helpers.dart';
 
 void _seedFakeReportsForBmw() {
@@ -78,14 +79,18 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
     ActiveBikeController.instance.reset();
-    PostRideReportController.instance.resetForTesting();
+    PostRideReportController.instance = PostRideReportController(
+      repository: FakeRideReportRepository(),
+    );
     MaintenanceController.instance = MaintenanceController(
       repository: FakeMaintenanceRepository(),
     );
   });
 
   tearDown(() {
-    PostRideReportController.instance.resetForTesting();
+    PostRideReportController.instance = PostRideReportController(
+      repository: FakeRideReportRepository(),
+    );
   });
 
   group('Phase 1 & 2: PostRideReport and MaintenancePredictionEngine Unit Tests', () {

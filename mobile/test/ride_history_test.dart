@@ -17,13 +17,15 @@ void main() {
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
-    PostRideReportController.instance.resetForTesting();
+    PostRideReportController.instance =
+        PostRideReportController(repository: FakeRideReportRepository());
     ActiveBikeController.instance.resetForTesting();
     ProfileController.instance.resetForTesting();
   });
 
   tearDown(() {
-    PostRideReportController.instance.resetForTesting();
+    PostRideReportController.instance =
+        PostRideReportController(repository: FakeRideReportRepository());
     ActiveBikeController.instance.resetForTesting();
     ProfileController.instance.resetForTesting();
   });
