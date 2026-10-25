@@ -12,18 +12,15 @@ import '../../../maintenance/domain/trip_budget_model.dart';
 import '../../domain/stat_model.dart';
 import 'dark_info_tile_widget.dart';
 import 'dark_stat_tile_widget.dart';
-import 'elevation_chart_widget.dart';
-import 'route_progress_widget.dart';
 
 enum LatestExpeditionOptionAction {
-  exportGpx,
-  shareTelemetry,
-  hideFromArchive,
+  shareRide,
+  deleteRide,
 }
 
-/// Widget #8 — Dark cockpit-gradient hero card for the latest expedition.
-/// Shows real ride report data and fuel entries, or an empty state ("No trips yet")
-/// when no rides exist. In debug sample mode, demo data is explicitly labelled "Demo data".
+/// Cockpit-gradient hero card for the latest ride.
+/// Shows real ride report data, date, terrain, bike name, and fuel entries.
+/// Elevation chart, track replay, waypoint logs, and synthetic telemetry have been removed.
 class LatestExpeditionCardWidget extends StatelessWidget {
   const LatestExpeditionCardWidget({
     super.key,
@@ -57,7 +54,7 @@ class LatestExpeditionCardWidget extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppColors.radiusPill),
                   ),
                   child: Text(
-                    'LATEST EXPEDITION',
+                    'LATEST RIDE',
                     style: GoogleFonts.manrope(
                       fontSize: 9,
                       fontWeight: FontWeight.w800,
@@ -79,7 +76,7 @@ class LatestExpeditionCardWidget extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'No trips yet',
+                    'No rides yet',
                     style: GoogleFonts.manrope(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
@@ -88,7 +85,7 @@ class LatestExpeditionCardWidget extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Record a ride to view route stats, fuel spent, and elevation profile.',
+                    'Record a ride to view route stats and fuel spent.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.manrope(
                       fontSize: 12,
@@ -109,14 +106,14 @@ class LatestExpeditionCardWidget extends StatelessWidget {
     final activeBike = ActiveBikeController.instance.activeBike;
     final bikeName = activeBike != null
         ? '${activeBike.make} ${activeBike.modelName}'
-        : 'BMW R1250 GS Adventure';
+        : 'Motorcycle';
 
     final title = effectiveReport.notes != null &&
             effectiveReport.notes!.trim().isNotEmpty
         ? effectiveReport.notes!.trim()
         : (effectiveReport.terrainTags.isNotEmpty
-            ? '${effectiveReport.terrainTags.join(' • ')} Expedition'
-            : 'Expedition Ride Debrief');
+            ? '${effectiveReport.terrainTags.join(' • ')} Ride'
+            : 'Ride Debrief');
 
     final stats = [
       Stat(
@@ -128,13 +125,14 @@ class LatestExpeditionCardWidget extends StatelessWidget {
       ),
       Stat(
         label: 'DATE',
-        value: '${kTripMonths[effectiveReport.date.month - 1]} ${effectiveReport.date.day}',
+        value:
+            '${kTripMonths[effectiveReport.date.month - 1]} ${effectiveReport.date.day}',
       ),
       Stat(
         label: 'TERRAIN',
         value: effectiveReport.terrainTags.isNotEmpty
             ? effectiveReport.terrainTags.first
-            : 'Trail',
+            : 'Road',
       ),
     ];
 
@@ -143,7 +141,7 @@ class LatestExpeditionCardWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Top row: badge + date + compact popup menu button ──────────────
+          // ── Top row: badge + date + popup menu button ──────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -162,7 +160,7 @@ class LatestExpeditionCardWidget extends StatelessWidget {
                             BorderRadius.circular(AppColors.radiusPill),
                       ),
                       child: Text(
-                        'LATEST EXPEDITION',
+                        'LATEST RIDE',
                         style: GoogleFonts.manrope(
                           fontSize: 9,
                           fontWeight: FontWeight.w800,
@@ -171,28 +169,6 @@ class LatestExpeditionCardWidget extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (isDemo) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius:
-                              BorderRadius.circular(AppColors.radiusPill),
-                        ),
-                        child: Text(
-                          'Demo data',
-                          style: GoogleFonts.manrope(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white70,
-                          ),
-                        ),
-                      ),
-                    ],
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
@@ -233,33 +209,19 @@ class LatestExpeditionCardWidget extends StatelessWidget {
 
           const SizedBox(height: 6),
 
-          // ── Bike line ─────────────────────────────────────────────────────
-          RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: '🏍 $bikeName • ',
-                  style: GoogleFonts.manrope(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.7),
-                  ),
-                ),
-                TextSpan(
-                  text: 'Active Fleet',
-                  style: GoogleFonts.manrope(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.tacticalOrange,
-                  ),
-                ),
-              ],
+          // ── Bike line (no "Active Fleet") ──────────────────────────────────
+          Text(
+            '🏍 $bikeName',
+            style: GoogleFonts.manrope(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.8),
             ),
           ),
 
           const SizedBox(height: 14),
 
-          // ── 3 dark stats — translucent dark tiles (no glow/shadow) ────────
+          // ── 3 dark stats ───────────────────────────────────────────────────
           Row(
             children: [
               for (int i = 0; i < stats.length; i++) ...[
@@ -273,34 +235,7 @@ class LatestExpeditionCardWidget extends StatelessWidget {
 
           const SizedBox(height: 14),
 
-          // ── Route progress ────────────────────────────────────────────────
-          const RouteProgressWidget(
-            startLabel: 'Basecamp',
-            peakLabel: 'Summit',
-            peakElevation: 'Elevation',
-            endLabel: 'Waypoint',
-          ),
-
-          const SizedBox(height: 14),
-
-          // ── Elevation chart ───────────────────────────────────────────────
-          Text(
-            'ELEVATION & INCLINE PROFILE',
-            style: GoogleFonts.manrope(
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-              color: Colors.white.withValues(alpha: 0.45),
-              letterSpacing: 0.8,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const ElevationChartWidget(
-            points: ElevationChartWidget.defaultPoints,
-          ),
-
-          const SizedBox(height: 14),
-
-          // ── Two info tiles ─────────────────────────────────────────────────
+          // ── Two info tiles: Terrain and Fuel Spent ─────────────────────────
           Row(
             children: [
               Expanded(
@@ -308,7 +243,7 @@ class LatestExpeditionCardWidget extends StatelessWidget {
                   category: 'TERRAIN CONDITIONS',
                   primaryLine: effectiveReport.terrainTags.isNotEmpty
                       ? effectiveReport.terrainTags.join('\n')
-                      : 'Mountain Pass\nNominal trail conditions',
+                      : 'Road\nNominal conditions',
                 ),
               ),
               const SizedBox(width: 8),
@@ -333,15 +268,13 @@ class LatestExpeditionCardWidget extends StatelessWidget {
                     final hasFuel = totalFuel > 0;
                     final primary = hasFuel
                         ? formatPkr(totalFuel)
-                        : (isDemo ? '13.8L Refill' : 'No fuel logged');
+                        : 'No fuel logged';
                     final note = hasFuel
-                        ? '${fuelExpenses.length} refill ${fuelExpenses.length == 1 ? 'entry' : 'entries'}'
-                        : (isDemo
-                            ? 'Demo fuel calculation'
-                            : 'Log refill in garage');
+                        ? 'All refills for this bike (${fuelExpenses.length})'
+                        : 'All refills for this bike';
 
                     return DarkInfoTileWidget(
-                      category: 'FUEL SPENT',
+                      category: 'FUEL SPENT (ALL REFILLS)',
                       primaryLine: primary,
                       noteLine: note,
                     );
@@ -350,89 +283,7 @@ class LatestExpeditionCardWidget extends StatelessWidget {
               ),
             ],
           ),
-
-          const SizedBox(height: 14),
-
-          // ── Action buttons ─────────────────────────────────────────────────
-          Row(
-            children: [
-              Expanded(
-                child: _HeroButton(
-                  label: 'Replay Track',
-                  icon: Icons.play_circle_rounded,
-                  isPrimary: true,
-                  onTap: () {},
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _HeroButton(
-                  label: 'Waypoint Log',
-                  icon: Icons.bookmark_border_rounded,
-                  isPrimary: false,
-                  onTap: () {},
-                ),
-              ),
-            ],
-          ),
         ],
-      ),
-    );
-  }
-}
-
-class _HeroButton extends StatelessWidget {
-  const _HeroButton({
-    required this.label,
-    required this.icon,
-    required this.isPrimary,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool isPrimary;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final bg = isPrimary
-        ? AppColors.tacticalOrange
-        : Colors.white.withValues(alpha: 0.08);
-    final border = isPrimary
-        ? Border.all(color: Colors.white.withValues(alpha: 0.18), width: 1)
-        : Border.all(color: Colors.white.withValues(alpha: 0.10), width: 1);
-    const textColor = Colors.white;
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(AppColors.radiusTile),
-          border: border,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: textColor),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.manrope(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: textColor,
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -464,28 +315,7 @@ class _ExpeditionOptionsMenuButton extends StatelessWidget {
       onSelected: onSelected,
       itemBuilder: (context) => [
         PopupMenuItem(
-          value: LatestExpeditionOptionAction.exportGpx,
-          child: Row(
-            children: [
-              const Icon(
-                Icons.file_download_outlined,
-                size: 16,
-                color: Colors.white70,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Export GPX',
-                style: GoogleFonts.manrope(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: LatestExpeditionOptionAction.shareTelemetry,
+          value: LatestExpeditionOptionAction.shareRide,
           child: Row(
             children: [
               const Icon(
@@ -506,17 +336,17 @@ class _ExpeditionOptionsMenuButton extends StatelessWidget {
           ),
         ),
         PopupMenuItem(
-          value: LatestExpeditionOptionAction.hideFromArchive,
+          value: LatestExpeditionOptionAction.deleteRide,
           child: Row(
             children: [
               const Icon(
-                Icons.visibility_off_outlined,
+                Icons.delete_outline_rounded,
                 size: 16,
                 color: Colors.white70,
               ),
               const SizedBox(width: 10),
               Text(
-                'Hide from Archive',
+                'Delete ride',
                 style: GoogleFonts.manrope(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,

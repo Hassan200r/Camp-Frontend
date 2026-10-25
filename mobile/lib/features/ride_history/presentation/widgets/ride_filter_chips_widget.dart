@@ -4,43 +4,42 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/theme/app_colors.dart';
 
-/// Widget #2 — Horizontally scrollable filter chip row.
-/// One chip active at a time; selection state managed locally with setState.
-/// Defaults to index 0 ("All Rides 24").
-class RideFilterChipsWidget extends StatefulWidget {
+/// Horizontally scrollable filter chip row for Ride History.
+/// Renders "All rides (n)" plus one chip per terrain that exists in the saved rides.
+class RideFilterChipsWidget extends StatelessWidget {
   const RideFilterChipsWidget({
     super.key,
-    this.initialSelected = 0,
+    this.totalCount = 0,
+    this.terrainCounts = const {},
+    this.selectedTerrain,
+    this.onTerrainSelected,
+    this.initialSelected,
     this.onFilterChanged,
   });
 
-  /// Initially selected chip index. Defaults to 0 ("All Rides 24").
-  final int initialSelected;
+  /// Total count of all rides.
+  final int totalCount;
+
+  /// Counts of rides grouped by terrain tag.
+  final Map<String, int> terrainCounts;
+
+  /// Currently active terrain filter (null indicates "All rides").
+  final String? selectedTerrain;
+
+  /// Callback when terrain filter selection changes.
+  final ValueChanged<String?>? onTerrainSelected;
+
+  /// Optional legacy index support.
+  final int? initialSelected;
   final ValueChanged<int>? onFilterChanged;
 
   @override
-  State<RideFilterChipsWidget> createState() => _RideFilterChipsWidgetState();
-}
-
-class _RideFilterChipsWidgetState extends State<RideFilterChipsWidget> {
-  late int _selected;
-
-  @override
-  void initState() {
-    super.initState();
-    // Default selection is 0 ("All Rides 24"), not "Rally Tracks" (index 2)
-    _selected = widget.initialSelected;
-  }
-
-  void _select(int index) {
-    if (_selected == index) return;
-    HapticFeedback.selectionClick();
-    setState(() => _selected = index);
-    widget.onFilterChanged?.call(index);
-  }
-
-  @override
   Widget build(BuildContext context) {
+    // Only display terrains that actually exist in the saved rides
+    final activeTerrains = terrainCounts.entries
+        .where((e) => e.value > 0)
+        .toList();
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
@@ -49,39 +48,37 @@ class _RideFilterChipsWidgetState extends State<RideFilterChipsWidget> {
         mainAxisSize: MainAxisSize.min,
         children: [
           _LabelChip(
-            label: 'All Rides',
-            count: 24,
-            isSelected: _selected == 0,
-            onTap: () => _select(0),
+            label: 'All rides',
+            count: totalCount,
+            isSelected: selectedTerrain == null,
+            onTap: () {
+              if (selectedTerrain == null) return;
+              HapticFeedback.selectionClick();
+              onTerrainSelected?.call(null);
+              onFilterChanged?.call(0);
+            },
           ),
-          const SizedBox(width: 8),
-          _IconChip(
-            label: 'Passes',
-            icon: Icons.two_wheeler_rounded,
-            isSelected: _selected == 1,
-            onTap: () => _select(1),
-          ),
-          const SizedBox(width: 8),
-          _IconChip(
-            label: 'Rally Tracks',
-            icon: Icons.route_rounded,
-            isSelected: _selected == 2,
-            onTap: () => _select(2),
-          ),
-          const SizedBox(width: 8),
-          // Trailing icon-only chip (explore/compass)
-          _CircleIconChip(
-            icon: Icons.near_me_rounded,
-            isSelected: _selected == 3,
-            onTap: () => _select(3),
-          ),
+          for (int i = 0; i < activeTerrains.length; i++) ...[
+            const SizedBox(width: 8),
+            _LabelChip(
+              label: activeTerrains[i].key,
+              count: activeTerrains[i].value,
+              isSelected: selectedTerrain == activeTerrains[i].key,
+              onTap: () {
+                if (selectedTerrain == activeTerrains[i].key) return;
+                HapticFeedback.selectionClick();
+                onTerrainSelected?.call(activeTerrains[i].key);
+                onFilterChanged?.call(i + 1);
+              },
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-// ── Private chip helpers ────────────────────────────────────────────────────
+// ── Private chip helper ─────────────────────────────────────────────────────
 
 class _LabelChip extends StatelessWidget {
   const _LabelChip({
@@ -99,6 +96,7 @@ class _LabelChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
@@ -111,7 +109,8 @@ class _LabelChip extends StatelessWidget {
             color: isSelected ? Colors.transparent : AppColors.clayDark,
             width: 1.2,
           ),
-          boxShadow: isSelected ? AppColors.orangeGlow : AppColors.skeuRaisedSmall,
+          boxShadow:
+              isSelected ? AppColors.orangeGlow : AppColors.skeuRaisedSmall,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -143,96 +142,6 @@ class _LabelChip extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _IconChip extends StatelessWidget {
-  const _IconChip({
-    required this.label,
-    required this.icon,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        height: 40,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.tacticalOrange : AppColors.clay,
-          borderRadius: BorderRadius.circular(AppColors.radiusPill),
-          border: Border.all(
-            color: isSelected ? Colors.transparent : AppColors.clayDark,
-            width: 1.2,
-          ),
-          boxShadow: isSelected ? AppColors.orangeGlow : AppColors.skeuRaisedSmall,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 15,
-              color: isSelected ? Colors.white : AppColors.mutedText,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: GoogleFonts.manrope(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                color: isSelected ? Colors.white : AppColors.darkCharcoal,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CircleIconChip extends StatelessWidget {
-  const _CircleIconChip({
-    required this.icon,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.tacticalOrange : AppColors.clay,
-          shape: BoxShape.circle,
-          boxShadow: isSelected ? AppColors.orangeGlow : AppColors.skeuRaisedSmall,
-        ),
-        child: Center(
-          child: Icon(
-            icon,
-            size: 17,
-            color: isSelected ? Colors.white : AppColors.mutedText,
-          ),
         ),
       ),
     );

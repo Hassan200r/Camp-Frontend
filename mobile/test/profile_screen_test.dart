@@ -1,12 +1,32 @@
 import 'package:camp/features/dashboard/presentation/screens/profile_screen.dart';
+import 'package:camp/features/maintenance/controllers/post_ride_report_controller.dart';
+import 'package:camp/features/maintenance/domain/post_ride_report.dart';
 import 'package:camp/features/settings/controllers/settings_controller.dart';
 import 'package:camp/features/settings/domain/units_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   setUp(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
     SettingsController.instance.reset();
+    PostRideReportController.instance.resetForTesting();
+    PostRideReportController.instance.addReport(
+      PostRideReport(
+        id: 'test-profile-1',
+        bikeId: 'bike-bmw-1250',
+        distanceKm: 600,
+        durationHours: 6.5,
+        date: DateTime(2026, 5, 1),
+        terrainTags: const ['Mountain'],
+      ),
+    );
+  });
+
+  tearDown(() {
+    PostRideReportController.instance.resetForTesting();
   });
   testWidgets('ProfileScreen renders all sections matching reference screenshots in order',
       (WidgetTester tester) async {

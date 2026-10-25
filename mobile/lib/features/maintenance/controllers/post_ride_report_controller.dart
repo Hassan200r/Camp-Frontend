@@ -11,12 +11,41 @@ import '../domain/post_ride_report.dart';
 /// and pattern insight computations.
 class PostRideReportController extends ChangeNotifier {
   PostRideReportController({RideReportRepository? repository})
-      : _repository = repository ?? AppRepositories.instance.rideReportRepository {
-    _initializeDefaultReports();
-  }
+      : _repository = repository ?? AppRepositories.instance.rideReportRepository;
 
   /// Global singleton instance.
   static PostRideReportController instance = PostRideReportController();
+
+  /// Known IDs of legacy seeded demo rides.
+  static const Set<String> seededRideIds = {
+    'rep-bmw-1',
+    'rep-bmw-2',
+    'rep-bmw-3',
+    'rep-bmw-4',
+    'rep-bmw-5',
+    'demo-latest',
+  };
+
+  /// Exact notes or titles of legacy seeded demo rides.
+  static const Set<String> seededRideNotes = {
+    'Babusar Pass ascent over rocky trail and loose scree.',
+    'Expressway transit leg at steady 110 km/h cruising.',
+    'River valley gravel track and stream ford crossings.',
+    'Urban stop-and-go commute in moderate ambient heat.',
+    'Alpine ridge loop with elevation climb from 1,200m to 3,100m.',
+    'Babusar Pass Summit & Alpine Ridge',
+    'Karakoram High-Altitude Corridor',
+    'Makran Coastal Highway & Mud Volcanoes',
+    'Cholistan Desert Sand Nav Loop',
+  };
+
+  /// Determines whether a report is one of the legacy demo seed rides.
+  static bool isSeededReport(PostRideReport report) {
+    if (seededRideIds.contains(report.id)) return true;
+    final notes = report.notes?.trim();
+    if (notes != null && seededRideNotes.contains(notes)) return true;
+    return false;
+  }
 
   RideReportRepository _repository;
 
@@ -42,6 +71,14 @@ class PostRideReportController extends ChangeNotifier {
     save();
   }
 
+  /// Insert a post-ride report at a specific index (used for undo operations).
+  void insertReport(int index, PostRideReport report) {
+    final clampedIndex = index.clamp(0, _reports.length);
+    _reports.insert(clampedIndex, report);
+    notifyListeners();
+    save();
+  }
+
   /// Remove a specific post-ride report by ID.
   void removeReport(String reportId) {
     final index = _reports.indexWhere((r) => r.id == reportId);
@@ -59,9 +96,9 @@ class PostRideReportController extends ChangeNotifier {
     save();
   }
 
-  /// Reset the controller back to initial default sample reports.
+  /// Reset the controller back to an empty list.
   void reset() {
-    _initializeDefaultReports();
+    _reports.clear();
     notifyListeners();
   }
 
@@ -92,19 +129,28 @@ class PostRideReportController extends ChangeNotifier {
     final isFirst = await repo.isFirstRun();
 
     if (isFirst) {
-      _initializeDefaultReports();
+      _reports.clear();
       await save(repo);
       return;
     }
 
     try {
       final loadedReports = await repo.loadReports();
+      final cleanedReports =
+          loadedReports.where((r) => !isSeededReport(r)).toList();
+      final hadSeeded = cleanedReports.length != loadedReports.length;
+
       _reports.clear();
-      _reports.addAll(loadedReports);
+      _reports.addAll(cleanedReports);
       notifyListeners();
+
+      if (hadSeeded) {
+        // Persist cleaned list to disk to permanently clean test phones
+        await save(repo);
+      }
     } catch (_) {
       // Fallback on corrupt data
-      _initializeDefaultReports();
+      _reports.clear();
       notifyListeners();
     }
   }
@@ -117,58 +163,5 @@ class PostRideReportController extends ChangeNotifier {
     } catch (_) {
       // Ignore background write errors
     }
-  }
-
-  void _initializeDefaultReports() {
-    _reports.clear();
-    final now = DateTime.now();
-
-    // Default sample logs for BMW R 1250 GS (bike-bmw-1250)
-    // 5 rides total: 3 include Off-road (60%), 2 include Mountain (40%)
-    _reports.addAll([
-      PostRideReport(
-        id: 'rep-bmw-1',
-        bikeId: 'bike-bmw-1250',
-        date: now.subtract(const Duration(days: 2)),
-        distanceKm: 215.0,
-        terrainTags: const ['Off-road', 'Mountain'],
-        notes: 'Babusar Pass ascent over rocky trail and loose scree.',
-        flaggedIssues: 'High dust & silt on lower chain links',
-      ),
-      PostRideReport(
-        id: 'rep-bmw-2',
-        bikeId: 'bike-bmw-1250',
-        date: now.subtract(const Duration(days: 6)),
-        distanceKm: 340.0,
-        terrainTags: const ['Highway'],
-        notes: 'Expressway transit leg at steady 110 km/h cruising.',
-      ),
-      PostRideReport(
-        id: 'rep-bmw-3',
-        bikeId: 'bike-bmw-1250',
-        date: now.subtract(const Duration(days: 11)),
-        distanceKm: 185.0,
-        terrainTags: const ['Off-road'],
-        notes: 'River valley gravel track and stream ford crossings.',
-        flaggedIssues: 'Chain tension felt slightly loose near camp',
-      ),
-      PostRideReport(
-        id: 'rep-bmw-4',
-        bikeId: 'bike-bmw-1250',
-        date: now.subtract(const Duration(days: 17)),
-        distanceKm: 85.0,
-        terrainTags: const ['City'],
-        notes: 'Urban stop-and-go commute in moderate ambient heat.',
-      ),
-      PostRideReport(
-        id: 'rep-bmw-5',
-        bikeId: 'bike-bmw-1250',
-        date: now.subtract(const Duration(days: 24)),
-        distanceKm: 260.0,
-        terrainTags: const ['Mountain', 'Off-road'],
-        notes: 'Alpine ridge loop with elevation climb from 1,200m to 3,100m.',
-        flaggedIssues: 'Fine silt build-up around airbox snorkel',
-      ),
-    ]);
   }
 }

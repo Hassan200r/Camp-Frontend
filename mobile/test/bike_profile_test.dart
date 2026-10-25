@@ -3,12 +3,22 @@ import 'package:camp/features/garage/controllers/active_bike_controller.dart';
 import 'package:camp/features/garage/domain/bike_model.dart';
 import 'package:camp/features/garage/presentation/screens/bike_profile_screen.dart';
 import 'package:camp/features/garage/presentation/screens/garage_screen.dart';
+import 'package:camp/features/maintenance/controllers/post_ride_report_controller.dart';
+import 'package:camp/features/maintenance/domain/post_ride_report.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   setUp(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
     ActiveBikeController.instance.reset();
+    PostRideReportController.instance.resetForTesting();
+  });
+
+  tearDown(() {
+    PostRideReportController.instance.resetForTesting();
   });
 
   group('ActiveBikeController Unit Tests', () {
@@ -49,6 +59,15 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
 
       final testBike = ActiveBikeController.instance.activeBike!;
+      PostRideReportController.instance.addReport(
+        PostRideReport(
+          id: 'test-debrief-1',
+          bikeId: testBike.id,
+          distanceKm: 120,
+          date: DateTime(2026, 5, 1),
+          terrainTags: const ['Mountain'],
+        ),
+      );
 
       await tester.pumpWidget(
         MaterialApp(

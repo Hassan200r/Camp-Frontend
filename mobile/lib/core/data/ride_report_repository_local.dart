@@ -1,3 +1,4 @@
+import '../../features/maintenance/controllers/post_ride_report_controller.dart';
 import '../../features/maintenance/domain/post_ride_report.dart';
 import '../storage/local_store.dart';
 import 'ride_report_repository.dart';
@@ -40,6 +41,10 @@ class RideReportRepositoryLocal implements RideReportRepository {
       if (raw is Map) {
         final map = raw is Map<String, dynamic> ? raw : raw.cast<String, dynamic>();
         final report = PostRideReport.fromJson(map);
+        if (PostRideReportController.isSeededReport(report)) {
+          needsMigration = true;
+          continue;
+        }
         if (report.id.isEmpty || map['id'] == null || (map['id'] as String).isEmpty) {
           needsMigration = true;
           reports.add(report.copyWith(id: 'report_${DateTime.now().millisecondsSinceEpoch}_$i'));

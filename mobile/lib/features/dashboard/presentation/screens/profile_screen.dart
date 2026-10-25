@@ -150,18 +150,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     const SizedBox(height: AppColors.cardGap),
 
-                    // 3. Stat Cards (2x2 Grid)
-                    _buildStatsGrid(),
-
-                    const SizedBox(height: AppColors.cardGap),
-
-                    // 4. Touring Tier Progress
-                    _buildTouringTierCard(),
-
-                    const SizedBox(height: AppColors.cardGap),
-
-                    // 5. Earned Trail Badges
-                    _buildTrailBadgesSection(),
+                    // 3, 4, 5. Stat Cards, Touring Tier Progress, and Trail Badges
+                    ListenableBuilder(
+                      listenable: PostRideReportController.instance,
+                      builder: (context, _) {
+                        return Column(
+                          children: [
+                            _buildStatsGrid(),
+                            const SizedBox(height: AppColors.cardGap),
+                            _buildTouringTierCard(),
+                            const SizedBox(height: AppColors.cardGap),
+                            _buildTrailBadgesSection(),
+                          ],
+                        );
+                      },
+                    ),
 
                     const SizedBox(height: AppColors.cardGap),
 

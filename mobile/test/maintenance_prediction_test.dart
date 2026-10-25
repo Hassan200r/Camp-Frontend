@@ -19,15 +19,73 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/maintenance_test_helpers.dart';
 
+void _seedFakeReportsForBmw() {
+  final now = DateTime(2026, 10, 15);
+  final fakeReports = [
+    PostRideReport(
+      id: 'fake-bmw-1',
+      bikeId: 'bike-bmw-1250',
+      date: now.subtract(const Duration(days: 1)),
+      distanceKm: 260,
+      durationHours: 5.0,
+      terrainTags: const ['Mountain', 'Off-road'],
+      notes: 'Alpine loop',
+    ),
+    PostRideReport(
+      id: 'fake-bmw-2',
+      bikeId: 'bike-bmw-1250',
+      date: now.subtract(const Duration(days: 3)),
+      distanceKm: 85,
+      durationHours: 2.0,
+      terrainTags: const ['City'],
+      notes: 'Urban commute',
+    ),
+    PostRideReport(
+      id: 'fake-bmw-3',
+      bikeId: 'bike-bmw-1250',
+      date: now.subtract(const Duration(days: 5)),
+      distanceKm: 185,
+      durationHours: 4.0,
+      terrainTags: const ['Off-road'],
+      notes: 'River gravel',
+    ),
+    PostRideReport(
+      id: 'fake-bmw-4',
+      bikeId: 'bike-bmw-1250',
+      date: now.subtract(const Duration(days: 7)),
+      distanceKm: 310,
+      durationHours: 4.5,
+      terrainTags: const ['Highway'],
+      notes: 'Expressway transit',
+    ),
+    PostRideReport(
+      id: 'fake-bmw-5',
+      bikeId: 'bike-bmw-1250',
+      date: now.subtract(const Duration(days: 9)),
+      distanceKm: 95,
+      durationHours: 2.0,
+      terrainTags: const ['Off-road', 'Mountain'],
+      notes: 'Pass ascent',
+    ),
+  ];
+  for (final r in fakeReports) {
+    PostRideReportController.instance.addReport(r);
+  }
+}
+
 void main() {
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
     ActiveBikeController.instance.reset();
-    PostRideReportController.instance.reset();
+    PostRideReportController.instance.resetForTesting();
     MaintenanceController.instance = MaintenanceController(
       repository: FakeMaintenanceRepository(),
     );
+  });
+
+  tearDown(() {
+    PostRideReportController.instance.resetForTesting();
   });
 
   group('Phase 1 & 2: PostRideReport and MaintenancePredictionEngine Unit Tests', () {
@@ -51,10 +109,18 @@ void main() {
 
     test('PostRideReportController manages reports per bike and supports reset', () {
       final controller = PostRideReportController.instance;
-      expect(controller.reports.isNotEmpty, isTrue);
+      controller.reset();
+      expect(controller.reports, isEmpty);
 
-      final bmwReports = controller.getReportsForBike('bike-bmw-1250');
-      expect(bmwReports.length, 5);
+      final bmwReport = PostRideReport(
+        id: 'rep-test-bmw-1',
+        bikeId: 'bike-bmw-1250',
+        date: DateTime.now(),
+        distanceKm: 200.0,
+        terrainTags: const ['Off-road'],
+      );
+      controller.addReport(bmwReport);
+      expect(controller.getReportsForBike('bike-bmw-1250').length, 1);
 
       final custom = PostRideReport(
         id: 'rep-custom',
@@ -67,11 +133,20 @@ void main() {
       expect(controller.getReportsForBike('bike-rebel-500').length, 1);
 
       controller.reset();
-      expect(controller.getReportsForBike('bike-rebel-500').isEmpty, isTrue);
+      expect(controller.reports, isEmpty);
     });
 
     test('MaintenancePredictionEngine computes deterministic component wear and health index', () async {
       final bike = ActiveBikeController.instance.activeBike!;
+      PostRideReportController.instance.addReport(
+        PostRideReport(
+          id: 'rep-test-bmw-engine',
+          bikeId: bike.id,
+          date: DateTime.now(),
+          distanceKm: 200.0,
+          terrainTags: const ['Off-road', 'Mountain'],
+        ),
+      );
       final reports = PostRideReportController.instance.getReportsForBike(bike.id);
 
       await setScheduleForTest(bike.id, [
@@ -197,9 +272,45 @@ void main() {
 
     test('Phase 3: Computes honest percentage from logged PostRideReports', () {
       final bike = ActiveBikeController.instance.activeBike!;
+      PostRideReportController.instance.clearReportsForBike(bike.id);
+      // 5 rides: 3 off-road (60%), 2 mountain (40%)
+      PostRideReportController.instance.addReport(PostRideReport(
+        id: 'rep-p3-1',
+        bikeId: bike.id,
+        date: DateTime.now().subtract(const Duration(days: 1)),
+        distanceKm: 100.0,
+        terrainTags: const ['Off-road', 'Mountain'],
+      ));
+      PostRideReportController.instance.addReport(PostRideReport(
+        id: 'rep-p3-2',
+        bikeId: bike.id,
+        date: DateTime.now().subtract(const Duration(days: 2)),
+        distanceKm: 100.0,
+        terrainTags: const ['Highway'],
+      ));
+      PostRideReportController.instance.addReport(PostRideReport(
+        id: 'rep-p3-3',
+        bikeId: bike.id,
+        date: DateTime.now().subtract(const Duration(days: 3)),
+        distanceKm: 100.0,
+        terrainTags: const ['Off-road'],
+      ));
+      PostRideReportController.instance.addReport(PostRideReport(
+        id: 'rep-p3-4',
+        bikeId: bike.id,
+        date: DateTime.now().subtract(const Duration(days: 4)),
+        distanceKm: 100.0,
+        terrainTags: const ['City'],
+      ));
+      PostRideReportController.instance.addReport(PostRideReport(
+        id: 'rep-p3-5',
+        bikeId: bike.id,
+        date: DateTime.now().subtract(const Duration(days: 5)),
+        distanceKm: 100.0,
+        terrainTags: const ['Mountain', 'Off-road'],
+      ));
       final reports = PostRideReportController.instance.getReportsForBike(bike.id);
 
-      // Default reports for BMW: 5 rides, 3 off-road (60%), 2 mountain (40%)
       final assessment = MaintenancePredictionEngine.analyze(
         bike: bike,
         rideReports: reports,
@@ -276,6 +387,8 @@ void main() {
           enabled: true,
         ),
       ]);
+
+      _seedFakeReportsForBmw();
 
       await tester.pumpWidget(
         MaterialApp(
@@ -400,6 +513,8 @@ void main() {
       tester.view.physicalSize = const Size(1080, 4000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
+
+      _seedFakeReportsForBmw();
 
       await tester.pumpWidget(
         const MaterialApp(
@@ -1054,6 +1169,18 @@ void main() {
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 4000);
       addTearDown(() => tester.view.resetPhysicalSize());
+
+      for (int i = 0; i < 5; i++) {
+        PostRideReportController.instance.addReport(
+          PostRideReport(
+            id: 'test-clr-$i',
+            bikeId: 'bike-bmw-1250',
+            date: DateTime.now().subtract(Duration(days: i + 1)),
+            distanceKm: 100.0,
+            terrainTags: const ['Off-road'],
+          ),
+        );
+      }
 
       await tester.pumpWidget(
         const MaterialApp(

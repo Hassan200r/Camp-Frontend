@@ -40,7 +40,7 @@ void main() {
       expect(ActiveBikeController.instance.bikes.isNotEmpty, isTrue);
       expect(ActiveBikeController.instance.activeBikeId, 'bike-bmw-1250');
       expect(SettingsController.instance.units, UnitsSystem.metric);
-      expect(PostRideReportController.instance.reports.isNotEmpty, isTrue);
+      expect(PostRideReportController.instance.reports, isEmpty);
       expect(TripBudgetController.instance.budget.tripName, 'Alpine Ridge Tour');
       expect(TripBudgetController.instance.expenses.isNotEmpty, isTrue);
 
@@ -364,7 +364,7 @@ void main() {
 
       expect(ActiveBikeController.instance.bikes.isNotEmpty, isTrue);
       expect(SettingsController.instance.units, UnitsSystem.metric);
-      expect(PostRideReportController.instance.reports.isNotEmpty, isTrue);
+      expect(PostRideReportController.instance.reports, isEmpty);
       expect(TripBudgetController.instance.budget.tripName, 'Alpine Ridge Tour');
     });
 
@@ -388,7 +388,7 @@ void main() {
 
       expect(SettingsController.instance.units, UnitsSystem.metric);
       expect(ActiveBikeController.instance.bikes.first.id, 'bike-bmw-1250');
-      expect(PostRideReportController.instance.reports.isNotEmpty, isTrue);
+      expect(PostRideReportController.instance.reports, isEmpty);
       expect(TripBudgetController.instance.budget.tripName, 'Alpine Ridge Tour');
     });
 
