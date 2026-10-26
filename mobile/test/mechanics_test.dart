@@ -972,5 +972,206 @@ void main() {
       expect(status.displayText, '');
     });
   });
+
+  group('Mechanics Screen Filter Chips and Header Honesty Tests', () {
+    Widget noAnimApp(Widget home) {
+      return MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: MaterialApp(home: home),
+      );
+    }
+
+    testWidgets('Header has no GPS LOCKED or Location off pill', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      MechanicController.instance.resetForTesting();
+      await tester.pumpWidget(noAnimApp(const MechanicsHomeScreen()));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byType(CustomAppBar), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+      expect(find.text('GPS LOCKED'), findsNothing);
+      expect(find.text('Location off'), findsNothing);
+    });
+
+    testWidgets('Filter row has exactly three chips and removed chips are gone', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      MechanicController.instance.resetForTesting();
+      await tester.pumpWidget(noAnimApp(const MechanicsHomeScreen()));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // The 3 required chips are present
+      expect(find.text('All'), findsOneWidget);
+      expect(find.text('Open now'), findsOneWidget);
+      expect(find.text('Emergency Pitstop'), findsOneWidget);
+
+      // Removed chips must NOT exist
+      expect(find.text('Verified Only'), findsNothing);
+      expect(find.text('BMW Certified'), findsNothing);
+      expect(find.text('KTM Adventure'), findsNothing);
+      expect(find.text('Yamaha'), findsNothing);
+    });
+
+    testWidgets('All count equals the number of saved mechanics (0 on empty, N when saved)',
+        (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      MechanicController.instance.resetForTesting();
+      await tester.pumpWidget(noAnimApp(const MechanicsHomeScreen()));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // 0 on empty list
+      expect(find.text('0'), findsWidgets);
+
+      // Add 2 mechanics
+      MechanicController.instance.addMechanic(const Mechanic(
+        id: 'mech-c1',
+        name: 'Shop 1',
+        durationOrLocation: 'Town',
+        badgeType: BadgeType.verified,
+        openDays: [],
+      ));
+      MechanicController.instance.addMechanic(const Mechanic(
+        id: 'mech-c2',
+        name: 'Shop 2',
+        durationOrLocation: 'Town',
+        badgeType: BadgeType.emergency,
+        openDays: [],
+      ));
+
+      await tester.pumpWidget(noAnimApp(const MechanicsHomeScreen()));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // All count equals 2
+      expect(find.text('2'), findsOneWidget);
+      // Emergency count equals 1
+      expect(find.text('1'), findsOneWidget);
+    });
+
+    testWidgets(
+        'Open now matches shop open at fixed test time, excludes closed, excludes no hours, handles 24h and overnight',
+        (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      MechanicController.instance.resetForTesting();
+
+      // Wednesday 2:00 PM (14:00, 840 min)
+      final wednesday2Pm = DateTime(2026, 10, 21, 14, 0);
+
+      // 1. Regular shop open Mon-Fri 9:00 AM - 5:00 PM (540 - 1020 min) -> OPEN at 2 PM
+      MechanicController.instance.addMechanic(const Mechanic(
+        id: 'shop-regular',
+        name: 'Regular Day Shop',
+        durationOrLocation: 'Valley',
+        openDays: [1, 2, 3, 4, 5],
+        openMinutes: 540,
+        closeMinutes: 1020,
+      ));
+
+      // 2. Closed shop Mon-Fri 8:00 AM - 12:00 PM (480 - 720 min) -> CLOSED at 2 PM
+      MechanicController.instance.addMechanic(const Mechanic(
+        id: 'shop-morning',
+        name: 'Morning Only Shop',
+        durationOrLocation: 'Town',
+        openDays: [1, 2, 3, 4, 5],
+        openMinutes: 480,
+        closeMinutes: 720,
+      ));
+
+      // 3. Shop with no hours saved -> NEVER matches
+      MechanicController.instance.addMechanic(const Mechanic(
+        id: 'shop-no-hours',
+        name: 'No Hours Saved Shop',
+        durationOrLocation: 'Remote',
+        openDays: [],
+      ));
+
+      // 4. 24-hour shop -> OPEN
+      MechanicController.instance.addMechanic(const Mechanic(
+        id: 'shop-24h',
+        name: 'Always Open 24H Shop',
+        durationOrLocation: 'Highway',
+        open24Hours: true,
+        openDays: [1, 2, 3, 4, 5, 6, 7],
+      ));
+
+      // 5. Overnight shop Wed-Fri 8:00 PM - 4:00 AM (1200 - 240 min) -> CLOSED at 2 PM
+      MechanicController.instance.addMechanic(const Mechanic(
+        id: 'shop-overnight',
+        name: 'Night Owls Moto Garage',
+        durationOrLocation: 'Pass',
+        openDays: [3, 4, 5],
+        openMinutes: 1200,
+        closeMinutes: 240,
+      ));
+
+      // Launch screen at Wednesday 2:00 PM
+      await tester.pumpWidget(noAnimApp(MechanicsHomeScreen(currentDateTime: wednesday2Pm)));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Tap "Open now" chip
+      await tester.tap(find.text('Open now'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Matches open shops at 2 PM:
+      expect(find.text('Regular Day Shop'), findsOneWidget);
+      expect(find.text('Always Open 24H Shop'), findsOneWidget);
+
+      // Excludes closed shops at 2 PM:
+      expect(find.text('Morning Only Shop'), findsNothing);
+      expect(find.text('No Hours Saved Shop'), findsNothing);
+      expect(find.text('Night Owls Moto Garage'), findsNothing);
+
+      // Now re-launch at Wednesday 10:00 PM (22:00) during overnight shift
+      final wednesday10Pm = DateTime(2026, 10, 21, 22, 0);
+      await tester.pumpWidget(noAnimApp(MechanicsHomeScreen(currentDateTime: wednesday10Pm)));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Tap "Open now" chip
+      await tester.tap(find.text('Open now'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Overnight shop is OPEN at 10 PM
+      expect(find.text('Night Owls Moto Garage'), findsOneWidget);
+      expect(find.text('Always Open 24H Shop'), findsOneWidget);
+      // Regular shop is CLOSED at 10 PM
+      expect(find.text('Regular Day Shop'), findsNothing);
+      expect(find.text('Morning Only Shop'), findsNothing);
+      expect(find.text('No Hours Saved Shop'), findsNothing);
+
+      // Now re-launch at Thursday 2:00 AM (02:00) during the overnight shift that started Wednesday
+      final thursday2Am = DateTime(2026, 10, 22, 2, 0);
+      await tester.pumpWidget(noAnimApp(MechanicsHomeScreen(currentDateTime: thursday2Am)));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Tap "Open now" chip
+      await tester.tap(find.text('Open now'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Overnight shift from Wednesday is STILL OPEN at Thu 2 AM
+      expect(find.text('Night Owls Moto Garage'), findsOneWidget);
+      expect(find.text('Always Open 24H Shop'), findsOneWidget);
+      expect(find.text('Regular Day Shop'), findsNothing);
+    });
+  });
 }
 

@@ -2,12 +2,12 @@
 
 [![Flutter](https://img.shields.io/badge/Flutter-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart_%5E3.13.4-0175C2?logo=dart&logoColor=white)](https://dart.dev)
-[![Tests](https://img.shields.io/badge/Tests-372%20passing-22C55E)](mobile/test/)
+[![Tests](https://img.shields.io/badge/Tests-415%20passing-22C55E)](mobile/test/)
 [![Analyze](https://img.shields.io/badge/flutter%20analyze-0%20issues-22C55E)](mobile/analysis_options.yaml)
 
 CAMP Mobile is a Flutter rider cockpit for managing a motorcycle fleet, logging post-ride reports, tracking predictive maintenance and trip finances, navigating with offline maps, finding mechanics, and managing rider settings. The implementation uses a tactical **skeuomorphic clay** design system, reactive singleton `ChangeNotifier` state management, and fully offline-first `SharedPreferences` persistence.
 
-> **100% Software-Based Architecture** — CAMP operates on rider-logged data (odometer readings, service records, terrain tags) and standard smartphone GPS. There is **no OBD-II, no ECU polling, no hardware sensor pairing, and no live telemetry hardware**. All wear indicators, service warnings, and carburetor guidance are deterministic software calculations derived from user input.
+> **100% Software-Based Architecture** — CAMP operates on rider-logged data (odometer readings, service records, terrain tags) and standard smartphone GPS. There is **no OBD-II, no ECU polling, no hardware sensor pairing, no fake detection, and no live telemetry hardware**. All wear indicators, service warnings, straight-line distance calculations (Haversine formula), and carburetor guidance are deterministic software calculations derived from user input or GPS.
 
 ---
 
@@ -22,7 +22,7 @@ flutter run
 ### Static Analysis & Tests
 ```bash
 flutter analyze    # 0 issues expected
-flutter test       # 372 / 372 passing
+flutter test       # 415 / 415 passing
 ```
 
 ---
@@ -163,14 +163,20 @@ All route strings are declared as constants in [`lib/app/routes.dart`](lib/app/r
   - Trip budget (`TripBudgetController`) + maintenance item list with rollback protection on disk errors.
   - Refill sheet calculates dynamically across any two of litres, price per litre, and total paid in PKR.
 
+### Bike Scan & Optical Onboarding (`features/bike_scan/`)
+- **AddMotorcycleScreen** — photo picker ("Take Bike Photo") and manual entry.
+- **BikeDetailsScreen** — manual entry form (make, model, year, plate, odometer, fuel average, fuel system); photo card with preview, change, and remove. No fake detection banner or hardcoded defaults.
+- **Typed Recognition Plug-in Point** — `BikeRecognitionResult` and `BikeRecognitionService` interface (cleanly parked for backend Firebase AI Logic with Gemini without any local mock). `populateFromRecognition` fills only detected fields and leaves odometer, fuel level, VIN, nickname, and fuel system unassigned.
+
 ### Navigation (`features/navigation/`)
 - **NavigationMapScreen** — OSM vector map (`flutter_map`), OSRM routing, Nominatim geocoding, GPS position stream, wakelock during active guidance, topo/standard layer toggle, POI markers (mechanic · fuel · rest stop).
 - **NavigationController** states: `idle → previewing → navigating → arrived`. Off-route detection (>50 m from polyline for 3 consecutive fixes) triggers reroute (throttled to 1 per 10 s). Includes safe disposal lifecycle guard.
-- **RoutePacksScreen** — offline route packs with trail difficulty ratings and storage management.
+- **RoutePacksScreen** — offline route packs displaying honest "Coming soon" status. Clean header without unbacked "Topo V4.8" sync buttons. Persistent Wi-Fi auto-update preference toggle via `SettingsRepository`.
 
 ### Mechanics (`features/mechanics/`)
-- **MechanicsHomeScreen** — searchable, filterable directory with verified hours and emergency callout support. Real opening/closing hours calculations.
-- **AddMechanicScreen** — workshop registration form with photo picker and persistent storage.
+- **MechanicsHomeScreen** — directory with honest straight-line distance via Haversine formula ($R = 6371.0\text{ km}$, only displayed when shop coordinates and user phone GPS are present). Pull-to-refresh reload. Clean header without unbacked "GPS LOCKED" pill.
+- **Real Filter Chips** — exactly 3 filter chips ("All", "Open now", "Emergency Pitstop") with live, non-fabricated counts. "Open now" derives from deterministic opening-hours arithmetic (days, hours, 24h, overnight shifts).
+- **AddMechanicScreen** — workshop registration form with photo picker, latitude/longitude coordinates, opening hours builder, and persistent local storage.
 
 ### Emergency SOS (`features/emergency_sos/`)
 - Emergency number selector (1122, 15, 115, custom).
@@ -180,7 +186,7 @@ All route strings are declared as constants in [`lib/app/routes.dart`](lib/app/r
 
 ## Test Suite
 
-20+ test files · **372 tests · 0 failures · 0 lints**
+20+ test files · **415 tests · 0 failures · 0 lints**
 
 | File | What It Covers |
 |---|---|
@@ -198,15 +204,15 @@ All route strings are declared as constants in [`lib/app/routes.dart`](lib/app/r
 | `home_honesty_pass_test.dart` | Home screen service alert and status card agreement with schedule |
 | `maintenance_prediction_test.dart` | Prediction math, 7-day ride debrief thresholds, debrief screen navigation |
 | `maintenance_test.dart` | MaintenanceScreen tab switching, EFI carburetor fallback |
-| `bike_scan_test.dart` | BikeScanScreen 8s camera timeout, manual-entry fallback |
+| `bike_scan_test.dart` | BikeScanScreen no-camera fallback, honest manual entry, photo preservation, typed `populateFromRecognition` (full & partial) |
 | `bike_profile_test.dart` | BikeProfileScreen renders, active bike toggle |
-| `bike_details_test.dart` | BikeDetailsScreen form validation and save |
-| `add_motorcycle_test.dart` | AddMotorcycleScreen entry point routing |
+| `bike_details_test.dart` | BikeDetailsScreen form validation, photo card, save bike |
+| `add_motorcycle_test.dart` | AddMotorcycleScreen entry point routing, "Take Bike Photo" card |
 | `settings_screen_test.dart` | SettingsScreen toggles, SettingsController persistence |
 | `profile_screen_test.dart` | ProfileScreen renders with active bike data |
 | `ride_history_test.dart` | RideHistoryScreen renders expedition list |
-| `route_packs_test.dart` | RoutePacksScreen renders route cards |
-| `mechanics_test.dart` | Mechanics directory filtering, hours, and empty states |
+| `route_packs_test.dart` | RoutePacksScreen "Coming soon" honesty, Wi-Fi auto-update persistence, absence of Topo V4.8 button |
+| `mechanics_test.dart` | Mechanics directory filtering (All, Open now, Emergency Pitstop), real counts, Haversine distance, opening hours, header honesty (no GPS LOCKED pill), seeded mechanics cleanup |
 | `safety_and_honesty_test.dart` | Emergency contact card, dialer launch, and real QR generation |
 
 ---
@@ -215,7 +221,8 @@ All route strings are declared as constants in [`lib/app/routes.dart`](lib/app/r
 
 The project uses a comprehensive **119-issue tracking matrix** documented in [`CODE_REVIEW_REPORT.md`](CODE_REVIEW_REPORT.md).
 
-- **Current Progress**: **71 Done / 119 Tracked (59.7% Complete)**
+- **Current Progress**: **76 Done / 119 Tracked (63.9% Complete)**
 - **Critical Defects 1–4**: All resolved and verified in automated tests.
+- **Batch E (Scanner, Mechanics, Route Packs)**: Fully complete.
 - **Next Development Focus**: **Batch D** (Maintenance & Finances shared repository, bikeId on expenses/refills, per-bike pre-ride checks).
 

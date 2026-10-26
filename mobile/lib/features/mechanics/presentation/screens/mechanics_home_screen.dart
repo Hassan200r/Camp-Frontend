@@ -20,7 +20,13 @@ import '../widgets/view_toggle_widget.dart';
 import 'add_mechanic_screen.dart';
 
 class MechanicsHomeScreen extends StatefulWidget {
-  const MechanicsHomeScreen({super.key});
+  const MechanicsHomeScreen({
+    super.key,
+    this.currentDateTime,
+  });
+
+  /// Optional fixed time for deterministic testing of opening hours.
+  final DateTime? currentDateTime;
 
   @override
   State<MechanicsHomeScreen> createState() => _MechanicsHomeScreenState();
@@ -43,30 +49,33 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
   final TextEditingController _searchController = TextEditingController();
   double? _userLatitude;
   double? _userLongitude;
+  late DateTime _screenNow;
+
+  int get _openNowCount {
+    return MechanicController.instance.mechanics.where((m) {
+      return mechanicOpenStatus(m, _screenNow).isOpen;
+    }).length;
+  }
+
+  int get _emergencyCount {
+    return MechanicController.instance.mechanics.where((m) {
+      return m.badgeType == BadgeType.emergency;
+    }).length;
+  }
 
   List<Mechanic> get _filteredMechanics {
     final allMechanics = MechanicController.instance.mechanics;
     return allMechanics.where((mechanic) {
       // Filter logic
-      if (_selectedFilter == 'verified' &&
-          mechanic.badgeType != BadgeType.verified) {
-        return false;
-      }
-      if (_selectedFilter == 'emergency' &&
-          mechanic.badgeType != BadgeType.emergency) {
-        return false;
-      }
-      if (_selectedFilter == 'bmw' &&
-          !mechanic.tags1.any((t) => t.toLowerCase().contains('bmw'))) {
-        return false;
-      }
-      if (_selectedFilter == 'ktm' &&
-          !mechanic.tags1.any((t) => t.toLowerCase().contains('ktm'))) {
-        return false;
-      }
-      if (_selectedFilter == 'yamaha' &&
-          !mechanic.tags1.any((t) => t.toLowerCase().contains('yamaha'))) {
-        return false;
+      if (_selectedFilter == 'open_now') {
+        final status = mechanicOpenStatus(mechanic, _screenNow);
+        if (!status.isOpen) {
+          return false;
+        }
+      } else if (_selectedFilter == 'emergency') {
+        if (mechanic.badgeType != BadgeType.emergency) {
+          return false;
+        }
       }
 
       // Search query logic
@@ -87,8 +96,17 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
   @override
   void initState() {
     super.initState();
+    _screenNow = widget.currentDateTime ?? DateTime.now();
     WidgetsBinding.instance.addObserver(this);
     _fetchLocation();
+  }
+
+  Future<void> _handleRefresh() async {
+    setState(() {
+      _screenNow = widget.currentDateTime ?? DateTime.now();
+    });
+    await _fetchLocation();
+    await MechanicController.instance.load();
   }
 
   Future<void> _fetchLocation() async {
@@ -110,6 +128,14 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
   }
 
   @override
+  void didUpdateWidget(covariant MechanicsHomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.currentDateTime != oldWidget.currentDateTime) {
+      _screenNow = widget.currentDateTime ?? DateTime.now();
+    }
+  }
+
+  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
@@ -119,7 +145,9 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      setState(() {});
+      setState(() {
+        _screenNow = widget.currentDateTime ?? DateTime.now();
+      });
     }
   }
 
@@ -294,7 +322,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
             ),
             Builder(
               builder: (context) {
-                final status = mechanicOpenStatus(mechanic, DateTime.now());
+                final status = mechanicOpenStatus(mechanic, _screenNow);
                 final scheduleText = formatMechanicSchedule(mechanic);
                 final text = !status.isNotSet
                     ? status.displayText
@@ -539,6 +567,9 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
                     // Filter Chips
                     FilterChipsWidget(
                       selectedFilter: _selectedFilter,
+                      allCount: MechanicController.instance.mechanics.length,
+                      openNowCount: _openNowCount,
+                      emergencyCount: _emergencyCount,
                       onFilterSelected: (filterId) {
                         setState(() {
                           _selectedFilter = filterId;
@@ -632,46 +663,57 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
     final mechanics = _filteredMechanics;
 
     if (mechanics.isEmpty) {
-      return Center(
-        child: Padding(
+      return RefreshIndicator(
+        color: AppColors.tacticalOrange,
+        onRefresh: _handleRefresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: CampEmptyState(
-            icon: Icons.handyman_rounded,
-            message: _searchQuery.isNotEmpty
-                ? 'No mechanics match "$_searchQuery"'
-                : 'No mechanics saved yet',
-            ctaLabel: '+ Add Mechanic',
-            onCta: _navigateToAddMechanic,
-          ),
+          children: [
+            const SizedBox(height: 60),
+            CampEmptyState(
+              icon: Icons.handyman_rounded,
+              message: _searchQuery.isNotEmpty
+                  ? 'No mechanics match "$_searchQuery"'
+                  : 'No mechanics saved yet',
+              ctaLabel: '+ Add Mechanic',
+              onCta: _navigateToAddMechanic,
+            ),
+          ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 180),
-      itemCount: mechanics.length,
-      itemBuilder: (context, index) {
-        final mechanic = mechanics[index];
-        return MechanicCard(
-          mechanic: mechanic,
-          userLatitude: _userLatitude,
-          userLongitude: _userLongitude,
-          onTap: () => showMechanicDetailSheet(
-            context,
-            mechanic,
+    return RefreshIndicator(
+      color: AppColors.tacticalOrange,
+      onRefresh: _handleRefresh,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 180),
+        itemCount: mechanics.length,
+        itemBuilder: (context, index) {
+          final mechanic = mechanics[index];
+          return MechanicCard(
+            mechanic: mechanic,
             userLatitude: _userLatitude,
             userLongitude: _userLongitude,
+            onTap: () => showMechanicDetailSheet(
+              context,
+              mechanic,
+              userLatitude: _userLatitude,
+              userLongitude: _userLongitude,
+              onCallShop: () => _showCallModal(mechanic),
+              onRouteGps: () => _showRouteModal(mechanic),
+              onEdit: () => _navigateToEditMechanic(mechanic),
+              onDelete: () => _confirmDeleteMechanic(mechanic),
+            ),
             onCallShop: () => _showCallModal(mechanic),
             onRouteGps: () => _showRouteModal(mechanic),
             onEdit: () => _navigateToEditMechanic(mechanic),
             onDelete: () => _confirmDeleteMechanic(mechanic),
-          ),
-          onCallShop: () => _showCallModal(mechanic),
-          onRouteGps: () => _showRouteModal(mechanic),
-          onEdit: () => _navigateToEditMechanic(mechanic),
-          onDelete: () => _confirmDeleteMechanic(mechanic),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 

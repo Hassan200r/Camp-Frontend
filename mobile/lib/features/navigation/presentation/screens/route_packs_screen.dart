@@ -155,11 +155,7 @@ class _RoutePacksScreenState extends State<RoutePacksScreen> {
                   const SizedBox(height: 14),
 
                   // ── 2. Title Block ─────────────────────────────────────────
-                  RoutePacksTitleWidget(
-                    version: 'Topo V4.8',
-                    onVersionTap: () =>
-                        _showNotification('Topographic Mesh V4.8'),
-                  ),
+                  const RoutePacksTitleWidget(),
 
                   const SizedBox(height: AppColors.cardGap),
 

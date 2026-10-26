@@ -69,8 +69,11 @@ void main() {
       expect(find.textContaining('Alps'), findsNothing);
       expect(find.textContaining('Cascades'), findsNothing);
 
-      // 6. Header is honest and displays Route Packs
+      // 6. Header is honest and displays Route Packs without Topo V4.8 button
       expect(find.text('ROUTE PACKS'), findsOneWidget);
+      expect(find.text('Topo V4.8'), findsNothing);
+      expect(find.textContaining('Topo V4.8'), findsNothing);
+      expect(find.byIcon(Icons.sync_rounded), findsNothing);
 
       // No overflows occurred
       expect(tester.takeException(), isNull);

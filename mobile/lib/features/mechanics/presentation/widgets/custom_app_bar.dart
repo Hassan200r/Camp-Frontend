@@ -1,94 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_theme.dart';
 
-class CustomAppBar extends StatefulWidget {
+class CustomAppBar extends StatelessWidget {
   const CustomAppBar({
     super.key,
     this.onBackTap,
-    this.onGpsTap,
-    this.isLocationAvailable,
   });
 
   final VoidCallback? onBackTap;
-  final VoidCallback? onGpsTap;
-  final bool? isLocationAvailable;
-
-  @override
-  State<CustomAppBar> createState() => _CustomAppBarState();
-}
-
-class _CustomAppBarState extends State<CustomAppBar>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
-  bool _isLocationAvailable = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _isLocationAvailable = widget.isLocationAvailable ?? false;
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    );
-    _pulseAnimation = Tween<double>(begin: 0.8, end: 1.3).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-
-    if (widget.isLocationAvailable == null) {
-      _checkLocation();
-    }
-  }
-
-  Future<void> _checkLocation() async {
-    try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        if (mounted) setState(() => _isLocationAvailable = false);
-        return;
-      }
-      final permission = await Geolocator.checkPermission();
-      final hasPermission = permission == LocationPermission.always ||
-          permission == LocationPermission.whileInUse;
-      if (mounted) {
-        setState(() => _isLocationAvailable = hasPermission);
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() => _isLocationAvailable = false);
-      }
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant CustomAppBar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isLocationAvailable != null &&
-        widget.isLocationAvailable != oldWidget.isLocationAvailable) {
-      setState(() {
-        _isLocationAvailable = widget.isLocationAvailable!;
-      });
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Respect system-level "disable animations" setting (also set by tests).
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _pulseController.value = 1.0;
-    } else if (!_pulseController.isAnimating) {
-      _pulseController.repeat(reverse: true);
-    }
-  }
-
-  @override
-  void dispose() {
-    _pulseController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +19,7 @@ class _CustomAppBarState extends State<CustomAppBar>
           // Circular Back Button
           GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: widget.onBackTap,
+            onTap: onBackTap,
             child: Container(
               width: 44,
               height: 44,
@@ -117,88 +36,6 @@ class _CustomAppBarState extends State<CustomAppBar>
                   color: AppColors.darkCharcoal,
                 ),
               ),
-            ),
-          ),
-
-          const SizedBox.shrink(),
-
-          // Status Badge with Pulsing Dot or Location Off
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: widget.onGpsTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-              decoration: BoxDecoration(
-                color: AppColors.clay,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.clayDark, width: 1.2),
-                boxShadow: AppColors.skeuRaisedSmall,
-              ),
-              child: _isLocationAvailable
-                  ? Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        AnimatedBuilder(
-                          animation: _pulseAnimation,
-                          builder: (context, child) {
-                            return Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                Container(
-                                  width: 10 * _pulseAnimation.value,
-                                  height: 10 * _pulseAnimation.value,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: AppColors.statusGreen.withValues(
-                                      alpha: (0.35 * (1.4 - (_pulseAnimation.value - 0.8))).clamp(0.0, 1.0),
-                                    ),
-                                  ),
-                                ),
-                                Container(
-                                  width: 7,
-                                  height: 7,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: AppColors.statusGreen,
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'GPS LOCKED',
-                          style: AppTextStyles.overline.copyWith(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.darkCharcoal,
-                          ),
-                        ),
-                      ],
-                    )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 7,
-                          height: 7,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.mutedText,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Location off',
-                          style: AppTextStyles.overline.copyWith(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.mutedText,
-                          ),
-                        ),
-                      ],
-                    ),
             ),
           ),
         ],
