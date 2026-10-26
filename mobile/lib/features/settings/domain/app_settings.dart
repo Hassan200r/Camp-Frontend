@@ -21,6 +21,7 @@ class AppSettings {
     this.recentActivityClearedAt,
     this.dismissedAlertItemId,
     this.dismissedAlertStatus,
+    this.wifiAutoUpdateRoutePacks = true,
   })  : id = id ?? 'settings-default',
         createdAt = (createdAt ?? DateTime.now()).toUtc(),
         updatedAt = (updatedAt ?? DateTime.now()).toUtc();
@@ -55,6 +56,8 @@ class AppSettings {
       recentActivityClearedAt: parseUtc(json['recentActivityClearedAt']),
       dismissedAlertItemId: json['dismissedAlertItemId'] as String?,
       dismissedAlertStatus: json['dismissedAlertStatus'] as String?,
+      wifiAutoUpdateRoutePacks:
+          json['wifiAutoUpdateRoutePacks'] as bool? ?? true,
     );
   }
 
@@ -78,6 +81,7 @@ class AppSettings {
   final DateTime? recentActivityClearedAt;
   final String? dismissedAlertItemId;
   final String? dismissedAlertStatus;
+  final bool wifiAutoUpdateRoutePacks;
 
   AppSettings copyWith({
     String? id,
@@ -98,6 +102,7 @@ class AppSettings {
     String? dismissedAlertItemId,
     String? dismissedAlertStatus,
     bool clearDismissedAlert = false,
+    bool? wifiAutoUpdateRoutePacks,
   }) {
     return AppSettings(
       id: id ?? this.id,
@@ -124,6 +129,8 @@ class AppSettings {
       dismissedAlertStatus: clearDismissedAlert
           ? null
           : (dismissedAlertStatus ?? this.dismissedAlertStatus),
+      wifiAutoUpdateRoutePacks:
+          wifiAutoUpdateRoutePacks ?? this.wifiAutoUpdateRoutePacks,
     );
   }
 
@@ -145,6 +152,7 @@ class AppSettings {
             recentActivityClearedAt?.toUtc().toIso8601String(),
         'dismissedAlertItemId': dismissedAlertItemId,
         'dismissedAlertStatus': dismissedAlertStatus,
+        'wifiAutoUpdateRoutePacks': wifiAutoUpdateRoutePacks,
       };
 
   @override
@@ -165,7 +173,8 @@ class AppSettings {
           showBikeOnEmergencyQr == other.showBikeOnEmergencyQr &&
           recentActivityClearedAt == other.recentActivityClearedAt &&
           dismissedAlertItemId == other.dismissedAlertItemId &&
-          dismissedAlertStatus == other.dismissedAlertStatus;
+          dismissedAlertStatus == other.dismissedAlertStatus &&
+          wifiAutoUpdateRoutePacks == other.wifiAutoUpdateRoutePacks;
 
   @override
   int get hashCode => Object.hash(
@@ -181,7 +190,6 @@ class AppSettings {
         fuelPricePerLiter,
         showBikeOnEmergencyQr,
         recentActivityClearedAt,
-        dismissedAlertItemId,
-        dismissedAlertStatus,
+        Object.hash(dismissedAlertItemId, dismissedAlertStatus, wifiAutoUpdateRoutePacks),
       );
 }

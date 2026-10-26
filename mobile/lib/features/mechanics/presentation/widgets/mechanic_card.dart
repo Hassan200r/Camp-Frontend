@@ -11,6 +11,8 @@ class MechanicCard extends StatelessWidget {
   const MechanicCard({
     required this.mechanic,
     super.key,
+    this.userLatitude,
+    this.userLongitude,
     this.onTap,
     this.onCallShop,
     this.onRouteGps,
@@ -19,6 +21,8 @@ class MechanicCard extends StatelessWidget {
   });
 
   final Mechanic mechanic;
+  final double? userLatitude;
+  final double? userLongitude;
   final VoidCallback? onTap;
   final VoidCallback? onCallShop;
   final VoidCallback? onRouteGps;
@@ -31,8 +35,20 @@ class MechanicCard extends StatelessWidget {
     colors: [AppColors.tacticalOrangeLight, AppColors.tacticalOrange],
   );
 
-  bool get _isSample => Mechanic.sampleMechanics.any((s) => s.id == mechanic.id);
-  bool get _isUserAdded => !_isSample;
+  /// Computes straight-line distance if and only if shop has coordinates
+  /// AND user phone location is available.
+  String? get _displayDistance {
+    if (mechanic.hasCoordinates && userLatitude != null && userLongitude != null) {
+      final km = computeStraightLineDistanceKm(
+        lat1: userLatitude!,
+        lon1: userLongitude!,
+        lat2: mechanic.latitude!,
+        lon2: mechanic.longitude!,
+      );
+      return formatDistance(km);
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,63 +95,53 @@ class MechanicCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 5),
 
-                      // Location & Distance line
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on_outlined,
-                            size: 14,
-                            color: AppColors.tacticalOrange,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              '${mechanic.distance}  •  ${mechanic.durationOrLocation}',
-                              style: AppTextStyles.bodySecondary.copyWith(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                      // Location & Distance line (distance only when shop has coordinates and phone GPS is available)
+                      Builder(
+                        builder: (context) {
+                          final dist = _displayDistance;
+                          final loc = (mechanic.address != null && mechanic.address!.isNotEmpty)
+                              ? mechanic.address!
+                              : (mechanic.durationOrLocation.isNotEmpty &&
+                                      mechanic.durationOrLocation != 'Nearby' &&
+                                      mechanic.durationOrLocation != 'Local Workshop' &&
+                                      !mechanic.durationOrLocation.contains('min')
+                                  ? mechanic.durationOrLocation
+                                  : null);
+                          final parts = [?dist, ?loc];
+                          if (parts.isEmpty) return const SizedBox.shrink();
+
+                          return Row(
+                            children: [
+                              const Icon(
+                                Icons.location_on_outlined,
+                                size: 14,
+                                color: AppColors.tacticalOrange,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  parts.join('  •  '),
+                                  style: AppTextStyles.bodySecondary.copyWith(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                       const SizedBox(height: 6),
 
-                      // Badge & Beacon Status (Wrap prevents overflow on narrow screens)
+                      // Badge: Honest rider-added tag
                       Wrap(
                         spacing: 8,
                         runSpacing: 4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          if (_isUserAdded)
-                            _buildAddedByYouTag()
-                          else if (mechanic.badgeLabel.isNotEmpty)
-                            _buildBadge(),
-                          if (!_isUserAdded && mechanic.beaconStatus.isNotEmpty)
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 6,
-                                  height: 6,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: mechanic.beaconColor,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  mechanic.beaconStatus,
-                                  style: AppTextStyles.caption.copyWith(
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: mechanic.beaconColor,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          _buildAddedByYouTag(),
                         ],
                       ),
                     ],
@@ -194,80 +200,8 @@ class MechanicCard extends StatelessWidget {
               const SizedBox(height: 12),
             ],
 
-            // Rating & Open Status (Honest Badges: Show only for sample data or when real values exist)
-            if (!_isUserAdded) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.star_rounded,
-                        size: 18,
-                        color: AppColors.statusYellow,
-                      ),
-                      const SizedBox(width: 4),
-                      RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: '${mechanic.rating} ',
-                              style: AppTextStyles.body.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            TextSpan(
-                              text: '(${mechanic.reviewCount} reviews)',
-                              style: AppTextStyles.caption.copyWith(
-                                color: AppColors.mutedLight,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (!status.isNotSet) ...[
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 7,
-                            height: 7,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: status.isOpen
-                                  ? AppColors.statusGreen
-                                  : AppColors.mutedText,
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          Flexible(
-                            child: Text(
-                              status.displayText,
-                              style: AppTextStyles.caption.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: status.isOpen
-                                    ? AppColors.statusGreen
-                                    : AppColors.mutedText,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 16),
-            ] else if (!status.isNotSet) ...[
-              // If real custom hours are set on user-added shop
+            // Open Status (Show only when real hours are set on shop)
+            if (!status.isNotSet) ...[
               Row(
                 children: [
                   Container(
@@ -452,70 +386,6 @@ class MechanicCard extends StatelessWidget {
     );
   }
 
-  Widget _buildBadge() {
-    if (mechanic.badgeType == BadgeType.verified) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF0DB),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0x33F56500), width: 1.2),
-          boxShadow: AppColors.skeuRaisedSmall,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.check_circle_outline_rounded,
-              size: 13,
-              color: AppColors.tacticalOrangeDark,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              mechanic.badgeLabel,
-              style: AppTextStyles.caption.copyWith(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w800,
-                color: AppColors.tacticalOrangeDark,
-              ),
-            ),
-          ],
-        ),
-      );
-    } else {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-        decoration: BoxDecoration(
-          color: AppColors.alertRedBg,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: AppColors.alertRed.withValues(alpha: 0.3),
-            width: 1.2,
-          ),
-          boxShadow: AppColors.skeuRaisedSmall,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.bolt_rounded,
-              size: 13,
-              color: AppColors.alertRed,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              mechanic.badgeLabel,
-              style: AppTextStyles.caption.copyWith(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w800,
-                color: AppColors.alertRed,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-  }
 
   Widget _buildAddedByYouTag() {
     return Container(
@@ -642,6 +512,8 @@ class MechanicCard extends StatelessWidget {
 void showMechanicDetailSheet(
   BuildContext context,
   Mechanic mechanic, {
+  double? userLatitude,
+  double? userLongitude,
   VoidCallback? onCallShop,
   VoidCallback? onRouteGps,
   VoidCallback? onEdit,
@@ -655,6 +527,27 @@ void showMechanicDetailSheet(
       final photo = mechanic.photoPath;
       final file = photo != null && photo.isNotEmpty ? File(photo) : null;
       final hasPhoto = file != null && file.existsSync();
+
+      String? distStr;
+      if (mechanic.hasCoordinates && userLatitude != null && userLongitude != null) {
+        final km = computeStraightLineDistanceKm(
+          lat1: userLatitude,
+          lon1: userLongitude,
+          lat2: mechanic.latitude!,
+          lon2: mechanic.longitude!,
+        );
+        distStr = formatDistance(km);
+      }
+
+      final locStr = (mechanic.address != null && mechanic.address!.isNotEmpty)
+          ? mechanic.address!
+          : (mechanic.durationOrLocation.isNotEmpty &&
+                  mechanic.durationOrLocation != 'Nearby' &&
+                  mechanic.durationOrLocation != 'Local Workshop' &&
+                  !mechanic.durationOrLocation.contains('min')
+              ? mechanic.durationOrLocation
+              : null);
+      final locationParts = [?distStr, ?locStr];
 
       return Container(
         decoration: BoxDecoration(
@@ -735,28 +628,29 @@ void showMechanicDetailSheet(
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.location_on_outlined,
-                              size: 15,
-                              color: AppColors.tacticalOrange,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                mechanic.address ??
-                                    mechanic.durationOrLocation,
-                                style: AppTextStyles.caption.copyWith(
-                                  color: AppColors.mutedText,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                        if (locationParts.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.location_on_outlined,
+                                size: 15,
+                                color: AppColors.tacticalOrange,
                               ),
-                            ),
-                          ],
-                        ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  locationParts.join('  •  '),
+                                  style: AppTextStyles.caption.copyWith(
+                                    color: AppColors.mutedText,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),

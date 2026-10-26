@@ -31,6 +31,8 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _phoneController;
   late final TextEditingController _addressController;
+  late final TextEditingController _latitudeController;
+  late final TextEditingController _longitudeController;
   late final TextEditingController _specialityController;
   late final TextEditingController _notesController;
 
@@ -55,6 +57,12 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
     _addressController = TextEditingController(
       text: mech?.address ?? (mech?.durationOrLocation ?? ''),
     );
+    _latitudeController = TextEditingController(
+      text: mech?.latitude != null ? mech!.latitude.toString() : '',
+    );
+    _longitudeController = TextEditingController(
+      text: mech?.longitude != null ? mech!.longitude.toString() : '',
+    );
     _specialityController = TextEditingController(
       text: mech != null && mech.tags1.isNotEmpty ? mech.tags1.join(', ') : '',
     );
@@ -74,6 +82,8 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
     _nameController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
+    _latitudeController.dispose();
+    _longitudeController.dispose();
     _specialityController.dispose();
     _notesController.dispose();
     super.dispose();
@@ -270,24 +280,29 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
       tags2 = existing?.tags2 ?? const ['Local Area'];
     }
 
+    final lat = double.tryParse(_latitudeController.text.trim());
+    final lon = double.tryParse(_longitudeController.text.trim());
+
     final newMech = Mechanic(
       id: id,
       name: name,
-      distance: existing?.distance ?? 'Local Workshop',
+      distance: null,
+      latitude: lat,
+      longitude: lon,
       durationOrLocation: address.isNotEmpty
           ? address
-          : (existing?.durationOrLocation ?? 'Added by Rider'),
-      badgeType: existing?.badgeType ?? BadgeType.verified,
-      badgeLabel: existing?.badgeLabel ?? 'Added by you',
-      beaconStatus: existing?.beaconStatus ?? 'Active',
-      beaconColor: existing?.beaconColor ?? AppColors.statusGreen,
+          : (existing?.durationOrLocation ?? ''),
+      badgeType: BadgeType.verified,
+      badgeLabel: 'Added by you',
+      beaconStatus: '',
+      beaconColor: AppColors.statusGreen,
       categoryTitle1: 'SPECIALTIES',
       tags1: tags1,
       categoryTitle2: 'LOCATION',
       tags2: tags2,
-      rating: existing?.rating ?? 5.0,
-      reviewCount: existing?.reviewCount ?? 1,
-      openStatus: existing?.openStatus ?? '',
+      rating: 0.0,
+      reviewCount: 0,
+      openStatus: '',
       phoneNumber: phone.isNotEmpty ? phone : null,
       address: address.isNotEmpty ? address : null,
       notes: notes.isNotEmpty ? notes : null,
@@ -398,6 +413,36 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
                           controller: _addressController,
                           placeholder: 'e.g. 42 Timberline Rd, Babusar Valley',
                           trailingIcon: Icons.location_on_outlined,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // GPS Coordinates (optional)
+                        Row(
+                          children: [
+                            Expanded(
+                              child: LabeledTextField(
+                                label: 'Latitude (optional)',
+                                controller: _latitudeController,
+                                placeholder: 'e.g. 35.1234',
+                                keyboardType: const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                  signed: true,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: LabeledTextField(
+                                label: 'Longitude (optional)',
+                                controller: _longitudeController,
+                                placeholder: 'e.g. 74.5678',
+                                keyboardType: const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                  signed: true,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
 

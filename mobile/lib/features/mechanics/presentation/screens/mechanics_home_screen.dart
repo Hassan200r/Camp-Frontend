@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/routes.dart';
@@ -40,6 +41,8 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
   String _searchQuery = '';
   CampTab _currentTab = CampTab.mechanics;
   final TextEditingController _searchController = TextEditingController();
+  double? _userLatitude;
+  double? _userLongitude;
 
   List<Mechanic> get _filteredMechanics {
     final allMechanics = MechanicController.instance.mechanics;
@@ -85,6 +88,25 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _fetchLocation();
+  }
+
+  Future<void> _fetchLocation() async {
+    try {
+      final enabled = await Geolocator.isLocationServiceEnabled();
+      if (!enabled) return;
+      final perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
+        return;
+      }
+      final pos = await Geolocator.getLastKnownPosition();
+      if (pos != null && mounted) {
+        setState(() {
+          _userLatitude = pos.latitude;
+          _userLongitude = pos.longitude;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -389,24 +411,51 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
                     color: AppColors.tacticalOrange,
                   ),
                   const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        mechanic.distance,
-                        style: AppTextStyles.body.copyWith(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                          color: AppColors.darkCharcoal,
-                        ),
-                      ),
-                      Text(
-                        'Location: ${mechanic.durationOrLocation}',
-                        style: AppTextStyles.caption.copyWith(
-                          color: AppColors.mutedText,
-                        ),
-                      ),
-                    ],
+                  Expanded(
+                    child: Builder(
+                      builder: (context) {
+                        String? distStr;
+                        if (mechanic.hasCoordinates &&
+                            _userLatitude != null &&
+                            _userLongitude != null) {
+                          final km = computeStraightLineDistanceKm(
+                            lat1: _userLatitude!,
+                            lon1: _userLongitude!,
+                            lat2: mechanic.latitude!,
+                            lon2: mechanic.longitude!,
+                          );
+                          distStr = formatDistance(km);
+                        }
+                        final loc = mechanic.address ??
+                            (mechanic.durationOrLocation.isNotEmpty &&
+                                    mechanic.durationOrLocation != 'Nearby' &&
+                                    mechanic.durationOrLocation != 'Local Workshop' &&
+                                    !mechanic.durationOrLocation.contains('min')
+                                ? mechanic.durationOrLocation
+                                : null);
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (distStr != null)
+                              Text(
+                                distStr,
+                                style: AppTextStyles.body.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
+                                  color: AppColors.darkCharcoal,
+                                ),
+                              ),
+                            if (loc != null)
+                              Text(
+                                'Location: $loc',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.mutedText,
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -605,9 +654,13 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
         final mechanic = mechanics[index];
         return MechanicCard(
           mechanic: mechanic,
+          userLatitude: _userLatitude,
+          userLongitude: _userLongitude,
           onTap: () => showMechanicDetailSheet(
             context,
             mechanic,
+            userLatitude: _userLatitude,
+            userLongitude: _userLongitude,
             onCallShop: () => _showCallModal(mechanic),
             onRouteGps: () => _showRouteModal(mechanic),
             onEdit: () => _navigateToEditMechanic(mechanic),

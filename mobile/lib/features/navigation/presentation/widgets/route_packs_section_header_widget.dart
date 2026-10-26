@@ -4,13 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 
-/// Section header displaying the "OFFLINE TELEMETRY & TOPO PACKS" eyebrow
-/// and trailing orange "5 Regions Available" label.
+/// Section header displaying the "ROUTE PACKS" eyebrow
+/// and trailing "Coming soon" label (no unbacked region claims).
 class RoutePacksSectionHeaderWidget extends StatelessWidget {
   const RoutePacksSectionHeaderWidget({
     super.key,
-    this.eyebrow = 'OFFLINE TELEMETRY & TOPO PACKS',
-    this.trailingLabel = '5 Regions Available',
+    this.eyebrow = 'ROUTE PACKS',
+    this.trailingLabel = 'Coming soon',
   });
 
   final String eyebrow;

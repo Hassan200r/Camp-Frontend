@@ -229,6 +229,62 @@ void main() {
       expect(MechanicController.instance.mechanics.first.phone, '+92 333 9999999');
       expect(MechanicController.instance.mechanics.first.photoPath, '/new/path/signboard.jpg');
     });
+
+    test('Fresh launch starts empty (no demo mechanics seeded in debug or release)', () async {
+      await store.markFirstRunCompleted();
+      MechanicController.instance.resetForTesting();
+      await MechanicController.instance.load(store);
+
+      expect(MechanicController.instance.mechanics, isEmpty);
+    });
+
+    test('One-time cleanup removes saved mechanics with seeded IDs or names, preserving rider mechanics', () async {
+      await store.markFirstRunCompleted();
+      // Simulate previously saved mechanics on test phone containing both seeded and user-added
+      final dirtySavedList = [
+        {
+          'id': '1',
+          'name': 'Peak Moto & Adventure Rig Prep',
+          'distance': '4.2 km away',
+          'badgeType': 'verified',
+          'badgeLabel': 'CAMP Verified',
+        },
+        {
+          'id': 'seeded-custom-id',
+          'name': 'Highland Moto Rescue & Spares',
+          'distance': '18.6 km away',
+        },
+        {
+          'id': '3',
+          'name': 'Different Name But Seeded ID 3',
+        },
+        {
+          'id': 'rider-shop-real-007',
+          'name': 'Genuine Rider Workshop',
+          'phone': '+92 300 9876543',
+          'address': 'Gilgit Bazar',
+          'badgeType': 'userAdded',
+        },
+      ];
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(LocalStore.keyMechanics, jsonEncode(dirtySavedList));
+
+      // Reload via controller / repository
+      MechanicController.instance.resetForTesting();
+      await MechanicController.instance.load(store);
+
+      // Only rider mechanic survived
+      expect(MechanicController.instance.mechanics.length, 1);
+      final surviving = MechanicController.instance.mechanics.first;
+      expect(surviving.id, 'rider-shop-real-007');
+      expect(surviving.name, 'Genuine Rider Workshop');
+
+      // Assert that cleaned list was persisted back to storage
+      final cleanedRaw = await store.readJson(LocalStore.keyMechanics) as List<dynamic>;
+      expect(cleanedRaw.length, 1);
+      expect(cleanedRaw.first['id'], 'rider-shop-real-007');
+    });
   });
 
   group('Mechanic Widget & Screen Tests', () {
@@ -464,17 +520,105 @@ void main() {
       expect(find.text('OPEN NOW'), findsNothing);
       expect(find.text('Active'), findsNothing);
 
-      // Sample mechanics MUST show verified badge and ratings
-      final sampleMech = Mechanic.sampleMechanics.first;
+    });
+
+    testWidgets('Distance shows only with coordinates and phone location, hidden otherwise',
+        (tester) async {
+      // 1. Shop with coordinates and phone location available -> shows "about X.X km away"
+      const shopWithCoords = Mechanic(
+        id: 'shop-with-coords',
+        name: 'Haversine Peak Garage',
+        durationOrLocation: 'Pass Summit',
+        latitude: 35.8812,
+        longitude: 74.4512,
+        badgeType: BadgeType.verified,
+        badgeLabel: 'Community Added',
+        beaconStatus: '',
+        beaconColor: AppColors.statusGreen,
+        categoryTitle1: 'SERVICES',
+        tags1: ['Brake Service'],
+        categoryTitle2: 'LOCATION',
+        tags2: ['Pass'],
+        rating: 0.0,
+        reviewCount: 0,
+        openStatus: 'OPEN',
+        phone: '123',
+      );
+
+      // Distance between (35.8812, 74.4512) and (35.8600, 74.4300) is ~3.0 km
       await tester.pumpWidget(
-        noAnimApp(Scaffold(body: MechanicCard(mechanic: sampleMech))),
+        noAnimApp(
+          const Scaffold(
+            body: MechanicCard(
+              mechanic: shopWithCoords,
+              userLatitude: 35.8600,
+              userLongitude: 74.4300,
+            ),
+          ),
+        ),
       );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('Added by you'), findsNothing);
-      expect(find.text(sampleMech.badgeLabel), findsWidgets);
-      expect(find.byIcon(Icons.star_rounded), findsWidgets);
+      expect(find.textContaining('about '), findsOneWidget);
+      expect(find.textContaining('km away'), findsOneWidget);
+
+      // 2. Shop with coordinates but phone location unavailable (null) -> NO distance
+      await tester.pumpWidget(
+        noAnimApp(
+          const Scaffold(
+            body: MechanicCard(
+              mechanic: shopWithCoords,
+              userLatitude: null,
+              userLongitude: null,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.textContaining('about '), findsNothing);
+      expect(find.textContaining('km away'), findsNothing);
+
+      // 3. Shop without coordinates even if phone location is available -> NO distance
+      const shopWithoutCoords = Mechanic(
+        id: 'shop-no-coords',
+        name: 'No Coords Garage',
+        distance: '4.2 km away', // Legacy hardcoded string must NOT be used as distance
+        durationOrLocation: 'Town',
+        latitude: null,
+        longitude: null,
+        badgeType: BadgeType.verified,
+        badgeLabel: 'Community Added',
+        beaconStatus: '',
+        beaconColor: AppColors.statusGreen,
+        categoryTitle1: 'SERVICES',
+        tags1: ['Tire Repair'],
+        categoryTitle2: 'LOCATION',
+        tags2: ['Town'],
+        rating: 0.0,
+        reviewCount: 0,
+        openStatus: 'OPEN',
+        phone: '123',
+      );
+
+      await tester.pumpWidget(
+        noAnimApp(
+          const Scaffold(
+            body: MechanicCard(
+              mechanic: shopWithoutCoords,
+              userLatitude: 35.8600,
+              userLongitude: 74.4300,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.textContaining('about '), findsNothing);
+      expect(find.textContaining('4.2 km away'), findsNothing);
     });
 
     testWidgets('360 px width layout has no overflow warnings and header/buttons do not overlap',
@@ -531,9 +675,40 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       MechanicController.instance.resetForTesting();
-      for (final mech in Mechanic.sampleMechanics) {
-        MechanicController.instance.addMechanic(mech);
-      }
+      MechanicController.instance.addMechanic(const Mechanic(
+        id: 'test-fake-1',
+        name: 'Test Workshop 1',
+        durationOrLocation: 'Town',
+        badgeType: BadgeType.verified,
+        badgeLabel: 'Community Added',
+        beaconStatus: '',
+        beaconColor: AppColors.statusGreen,
+        categoryTitle1: 'SERVICES',
+        tags1: ['Repairs'],
+        categoryTitle2: 'LOCATION',
+        tags2: ['Town'],
+        rating: 0.0,
+        reviewCount: 0,
+        openStatus: 'OPEN',
+        phone: '111',
+      ));
+      MechanicController.instance.addMechanic(const Mechanic(
+        id: 'test-fake-2',
+        name: 'Test Workshop 2',
+        durationOrLocation: 'Pass',
+        badgeType: BadgeType.verified,
+        badgeLabel: 'Community Added',
+        beaconStatus: '',
+        beaconColor: AppColors.statusGreen,
+        categoryTitle1: 'SERVICES',
+        tags1: ['Welding'],
+        categoryTitle2: 'LOCATION',
+        tags2: ['Pass'],
+        rating: 0.0,
+        reviewCount: 0,
+        openStatus: 'OPEN',
+        phone: '222',
+      ));
 
       await tester.pumpWidget(noAnimApp(const MechanicsHomeScreen()));
       await tester.pump();

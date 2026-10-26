@@ -804,53 +804,6 @@ class _TopographicMapCanvasState extends State<TopographicMapCanvas>
               ),
             ),
 
-            // 4. Live Distress Beacon Status Pill (Bottom Left of map)
-            Positioned(
-              bottom: 124,
-              left: 14,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF181513).withValues(alpha: 0.92),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: Colors.white12,
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.4),
-                      blurRadius: 8,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.statusGreen,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${widget.mechanics.length} RESCUE UNITS • ${widget.strandedIncidents.length} SOS ACTIVE',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
             // 5. Official OpenStreetMap Attribution Badge (Bottom Right)
             Positioned(
               bottom: 124,

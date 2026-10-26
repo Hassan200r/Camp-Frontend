@@ -14,6 +14,23 @@ class MechanicRepositoryLocal implements MechanicRepository {
   @override
   Future<void> markFirstRunCompleted() => _store.markFirstRunCompleted();
 
+  /// Seeded mechanic IDs from the initial demo dataset.
+  static const Set<String> seededIds = {'1', '2', '3'};
+
+  /// Exact names of the seeded demo mechanics.
+  static const Set<String> seededNames = {
+    'Peak Moto & Adventure Rig Prep',
+    'Highland Moto Rescue & Spares',
+    'Alpine Rally Works & Garage',
+  };
+
+  /// Returns true if a mechanic matches the seeded demo records.
+  static bool isSeeded(String? id, String? name) {
+    if (id != null && seededIds.contains(id.trim())) return true;
+    if (name != null && seededNames.contains(name.trim())) return true;
+    return false;
+  }
+
   @override
   Future<List<Mechanic>> loadMechanics() async {
     final json = await _store.readJson(LocalStore.keyMechanics);
@@ -21,27 +38,37 @@ class MechanicRepositoryLocal implements MechanicRepository {
       return [];
     }
 
-    bool needsMigration = false;
+    bool needsSave = false;
     final mechanics = <Mechanic>[];
 
     for (int i = 0; i < json.length; i++) {
       final raw = json[i];
       if (raw is Map) {
         final map = raw is Map<String, dynamic> ? raw : raw.cast<String, dynamic>();
+        final id = map['id']?.toString();
+        final name = map['name']?.toString();
+
+        // One-time cleanup: remove saved mechanics with the seeded IDs or exact names.
+        // Mechanics the rider added are never touched.
+        if (isSeeded(id, name)) {
+          needsSave = true;
+          continue;
+        }
+
         final mechanic = Mechanic.fromJson(map);
         if (mechanic.id.isEmpty || map['id'] == null || (map['id'] as String).isEmpty) {
-          needsMigration = true;
+          needsSave = true;
           mechanics.add(mechanic.copyWith(id: 'mechanic_${DateTime.now().millisecondsSinceEpoch}_$i'));
         } else {
           if (map['createdAt'] == null || map['updatedAt'] == null) {
-            needsMigration = true;
+            needsSave = true;
           }
           mechanics.add(mechanic);
         }
       }
     }
 
-    if (needsMigration) {
+    if (needsSave) {
       await saveMechanics(mechanics);
     }
 

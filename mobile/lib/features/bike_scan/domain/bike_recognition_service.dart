@@ -1,47 +1,29 @@
-import 'dart:io';
-
-/// Confidence level for a bike recognition result.
-enum RecognitionConfidence { high, medium, low }
-
-/// Result returned by a [BikeRecognitionService] implementation.
+/// Data model representing the typed result of motorcycle image recognition.
+/// Contains only the physical specifications identified by recognition.
 class BikeRecognitionResult {
   const BikeRecognitionResult({
-    required this.make,
-    required this.model,
-    required this.confidence,
+    this.make,
+    this.model,
     this.year,
     this.displacementCc,
-    this.bikeType,
-    this.fuelTankLiters,
+    this.tankCapacityLiters,
+    this.category,
+    this.confidence,
   });
 
-  final String make;
-  final String model;
-  final RecognitionConfidence confidence;
-
-  /// Optional year — only include when the classifier is highly confident.
+  final String? make;
+  final String? model;
   final int? year;
-
-  /// Engine displacement in cc, e.g. 1254.
   final int? displacementCc;
-
-  /// Category, e.g. "Adventure", "Sport", "Commuter".
-  final String? bikeType;
-
-  /// Fuel tank size in litres.
-  final double? fuelTankLiters;
+  final double? tankCapacityLiters;
+  final String? category;
+  final double? confidence;
 }
 
-/// Abstract interface for on-device or cloud-based bike image recognition.
+/// Abstract interface for motorcycle image recognition services.
 ///
-/// Implementations:
-///   - [MockBikeRecognitionService] — demo only, returns hard-coded data.
-///   - (Future) TFLite on-device classifier — swap in [BikeRecognitionProvider].
+/// Note: A real implementation needs a backend call (Firebase AI Logic with Gemini),
+/// parked for the Firebase phase. No mock service or fake detection is retained in production code.
 abstract class BikeRecognitionService {
-  const BikeRecognitionService();
-
-  /// Attempts to identify the motorcycle in [image].
-  ///
-  /// Returns [BikeRecognitionResult] on success, or `null` if unrecognized.
-  Future<BikeRecognitionResult?> identify(File image);
+  Future<BikeRecognitionResult?> recognize(String imagePath);
 }

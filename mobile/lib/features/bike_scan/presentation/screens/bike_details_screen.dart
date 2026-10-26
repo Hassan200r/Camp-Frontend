@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,11 +8,13 @@ import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/constants/bike_makes.dart';
+import '../../../../core/utils/image_storage_helper.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../dashboard/presentation/widgets/app_drawer_widget.dart';
 import '../../../garage/controllers/active_bike_controller.dart';
 import '../../../garage/domain/bike_model.dart';
 import '../../controllers/bike_onboarding_controller.dart';
+import '../../utils/gallery_picker_helper.dart';
 
 /// CAMP Bike Details Screen (Step 2 of the Add Bike onboarding journey).
 /// Captures core mechanical specs, telemetry baseline, and fuel system configuration.
@@ -45,15 +49,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
   late TextEditingController _nicknameController;
   late TextEditingController _plateNumberController;
   late TextEditingController _colorController;
-
   bool _submittedOnce = false;
-
-  // ── Auto-fill tracking ────────────────────────────────────────────────────
-  // Tracks which fields were pre-filled from the recognition result.
-  // A field is removed from the set the first time the user edits it.
-  final Set<String> _autoFilledFields = {};
-
-  // Makes list moved to lib/core/constants/bike_makes.dart (kCanonicalBikeMakes).
 
   static final List<int> _years = List.generate(
     47,
@@ -93,15 +89,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
       _controller.setNickname(b.nickname);
       _controller.setPlateNumber(b.plateNumber);
       _controller.setColor(b.color);
-    }
-
-    // Track which fields came from the recognition result so we can show tags.
-    if (widget.prefilled) {
-      if (_controller.make.isNotEmpty) _autoFilledFields.add('make');
-      if (_controller.modelName.isNotEmpty) _autoFilledFields.add('modelName');
-      if (_controller.displacement != null) _autoFilledFields.add('displacement');
-      if (_controller.bikeType.isNotEmpty) _autoFilledFields.add('bikeType');
-      if (_controller.fuelTankCapacityLiters != null) _autoFilledFields.add('fuelTank');
+      _controller.setImagePath(b.imagePath);
     }
 
     _modelNameController =
@@ -319,13 +307,6 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
 
-                    // 2. Auto-filled banner (only when coming from photo scan)
-                    if (widget.prefilled && _autoFilledFields.isNotEmpty)
-                      _buildAutoFilledBanner(),
-
-                    if (widget.prefilled && _autoFilledFields.isNotEmpty)
-                      const SizedBox(height: 14),
-
                     // 3. Progress Row
                     _buildProgressRow(),
 
@@ -343,6 +324,11 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
                     ),
 
                     const SizedBox(height: 22),
+
+                    // ── Photo Card ───────────────────────────────────────────
+                    _buildPhotoCard(),
+
+                    const SizedBox(height: AppColors.cardGap),
 
                     // ── Card 1: Basic Information ───────────────────────────
                     _buildBasicInfoCard(isModelNameEmpty),
@@ -455,62 +441,159 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
     );
   }
 
-  // ── Auto-filled banner ────────────────────────────────────────────────────
-  Widget _buildAutoFilledBanner() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.tacticalOrange.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AppColors.radiusCard),
-        border: Border.all(
-          color: AppColors.tacticalOrange.withValues(alpha: 0.30),
-          width: 1,
-        ),
-      ),
-      child: Row(
+  // ── Motorcycle Photo Card ────────────────────────────────────────────────
+  Widget _buildPhotoCard() {
+    final imagePath = _controller.imagePath;
+    final hasImage = imagePath != null && imagePath.isNotEmpty && File(imagePath).existsSync();
+
+    return CampCard(
+      padding: const EdgeInsets.all(AppColors.cardPadding),
+      borderRadius: AppColors.radiusCard,
+      color: AppColors.clay,
+      shadows: AppColors.skeuRaised,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.auto_awesome_rounded,
-              color: AppColors.tacticalOrange, size: 16),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Text(
-              'Sample suggestion, please check the details',
-              style: AppTextStyles.bodySecondary.copyWith(
-                color: AppColors.terracotta,
-                fontWeight: FontWeight.w600,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'MOTORCYCLE PHOTO',
+                style: GoogleFonts.manrope(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.1,
+                  color: AppColors.mutedText,
+                ),
+              ),
+              if (hasImage)
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    _controller.setImagePath(null);
+                  },
+                  child: Text(
+                    'Remove',
+                    style: GoogleFonts.manrope(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.alertRed,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (hasImage)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppColors.radiusTile),
+              child: Stack(
+                children: [
+                  Image.file(
+                    File(imagePath),
+                    height: 160,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                  Positioned(
+                    right: 8,
+                    bottom: 8,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _pickBikePhoto,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.65),
+                          borderRadius: BorderRadius.circular(AppColors.radiusPill),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.edit_rounded, size: 14, color: Colors.white),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Change',
+                              style: GoogleFonts.manrope(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _pickBikePhoto,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.clayDark.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(AppColors.radiusTile),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.add_a_photo_rounded,
+                      color: AppColors.tacticalOrange,
+                      size: 28,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Attach Bike Photo',
+                      style: GoogleFonts.manrope(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.darkCharcoal,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Pick from gallery or take a picture',
+                      style: GoogleFonts.manrope(
+                        fontSize: 11,
+                        color: AppColors.mutedText,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  /// A small "Suggested" tag shown next to pre-populated fields.
-  /// Disappears once the user edits that field ([fieldKey] removed from [_autoFilledFields]).
-  Widget _autoFilledTag(String fieldKey) {
-    if (!_autoFilledFields.contains(fieldKey)) return const SizedBox.shrink();
-    return Container(
-      margin: const EdgeInsets.only(top: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: AppColors.tacticalOrange.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppColors.radiusPill),
-        border: Border.all(
-          color: AppColors.tacticalOrange.withValues(alpha: 0.28),
-          width: 1,
-        ),
-      ),
-      child: Text(
-        'Suggested',
-        style: GoogleFonts.manrope(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: AppColors.terracotta,
-          letterSpacing: 0.3,
-        ),
-      ),
+  Future<void> _pickBikePhoto() async {
+    final image = await GalleryPickerHelper.pickImageFromGallery(
+      onError: (msg) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: AppColors.darkCharcoal,
+          ),
+        );
+      },
     );
+    if (image != null && mounted) {
+      final savedPath = await persistBikePhoto(image.path);
+      _controller.setImagePath(savedPath);
+    }
   }
 
   // ── Top Navigation Bar ────────────────────────────────────────────────────
@@ -652,8 +735,6 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
             initialValue: _controller.make,
             isError: isMakeInvalid,
             errorText: isMakeInvalid ? makeError : null,
-            rightLabelWidget: _autoFilledTag('make'),
-            onUserEdited: () => setState(() => _autoFilledFields.remove('make')),
             onChanged: (val) {
               final canonical = canonicaliseMake(val);
               _controller.setMake(canonical);
@@ -671,12 +752,8 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
             errorLabel: isModelNameEmpty ? '!' : null,
             onChanged: (val) {
               _controller.setModelName(val);
-              if (_autoFilledFields.contains('modelName')) {
-                setState(() => _autoFilledFields.remove('modelName'));
-              }
             },
           ),
-          _autoFilledTag('modelName'),
           const SizedBox(height: 14),
 
           // Row: Model Year + Displacement
@@ -697,25 +774,16 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    LabeledTextField(
-                      label: 'Displacement',
-                      controller: _displacementController,
-                      placeholder: '1100',
-                      suffixText: 'cc',
-                      keyboardType: TextInputType.number,
-                      onChanged: (val) {
-                        final parsed = int.tryParse(val.trim());
-                        _controller.setDisplacement(parsed);
-                        if (_autoFilledFields.contains('displacement')) {
-                          setState(() => _autoFilledFields.remove('displacement'));
-                        }
-                      },
-                    ),
-                    _autoFilledTag('displacement'),
-                  ],
+                child: LabeledTextField(
+                  label: 'Displacement',
+                  controller: _displacementController,
+                  placeholder: '1100',
+                  suffixText: 'cc',
+                  keyboardType: TextInputType.number,
+                  onChanged: (val) {
+                    final parsed = int.tryParse(val.trim());
+                    _controller.setDisplacement(parsed);
+                  },
                 ),
               ),
             ],
@@ -779,7 +847,6 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
               _buildTypeChip(_bikeTypes[5]),
             ],
           ),
-          _autoFilledTag('bikeType'),
         ],
       ),
     );
@@ -796,9 +863,6 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
         onTap: () {
           HapticFeedback.selectionClick();
           _controller.setBikeType(name);
-          if (_autoFilledFields.contains('bikeType')) {
-            setState(() => _autoFilledFields.remove('bikeType'));
-          }
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),

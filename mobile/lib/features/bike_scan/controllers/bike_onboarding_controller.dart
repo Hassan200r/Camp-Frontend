@@ -184,77 +184,6 @@ class BikeOnboardingController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Populate fields from a typed [BikeRecognitionResult].
-  /// Only pre-fills what the recognition service provided; leaves
-  /// odometer, fuel level, service history, terrain, VIN and nickname blank.
-  void populateFromRecognition(BikeRecognitionResult result) {
-    _make = result.make;
-    _modelName = result.model;
-    if (result.year != null) _modelYear = result.year!;
-    if (result.displacementCc != null) _displacement = result.displacementCc;
-    if (result.bikeType != null) _bikeType = result.bikeType!;
-    if (result.fuelTankLiters != null) {
-      _fuelTankCapacityLiters = result.fuelTankLiters;
-    }
-    // Leave odometer, currentFuel, service records, VIN, nickname blank.
-    notifyListeners();
-  }
-
-  /// Populate fields from an optical scan or photo analysis result.
-  void populateFromScan({
-    required String rawModel,
-    required String rawVin,
-    required String rawMileage,
-    required String rawDisplacement,
-  }) {
-    // Attempt parse make from rawModel
-    const knownMakes = [
-      'Honda',
-      'BMW',
-      'Ducati',
-      'KTM',
-      'Yamaha',
-      'Kawasaki',
-      'Suzuki',
-      'Triumph',
-      'Harley-Davidson',
-      'Royal Enfield',
-    ];
-
-    String detectedMake = _make;
-    String detectedModel = rawModel.trim();
-
-    for (final make in knownMakes) {
-      if (rawModel.toLowerCase().startsWith(make.toLowerCase())) {
-        detectedMake = make;
-        detectedModel = rawModel.substring(make.length).trim();
-        break;
-      }
-    }
-
-    _make = detectedMake;
-    _modelName = detectedModel.isNotEmpty ? detectedModel : rawModel;
-
-    // Parse displacement (e.g. "1254 cc" or "1100")
-    final dispDigits = RegExp(r'\d+').firstMatch(rawDisplacement)?.group(0);
-    if (dispDigits != null) {
-      _displacement = int.tryParse(dispDigits) ?? _displacement;
-    }
-
-    // Parse mileage (e.g. "14,820 km" -> 14820)
-    final cleanMileage = rawMileage.replaceAll(RegExp(r'[^\d]'), '');
-    if (cleanMileage.isNotEmpty) {
-      _odometerKm = int.tryParse(cleanMileage) ?? _odometerKm;
-    }
-
-    if (rawVin.isNotEmpty && rawVin != 'N/A') {
-      _vin = rawVin;
-    }
-
-    _fuelSystem = FuelSystem.efi;
-    notifyListeners();
-  }
-
   /// Construct the immutable Bike model from current form state.
   Bike buildBike({String? id}) {
     return Bike(
@@ -278,6 +207,44 @@ class BikeOnboardingController extends ChangeNotifier {
       color: _color,
       imagePath: _imagePath,
     );
+  }
+
+  /// Populates onboarding form fields from a typed recognition result.
+  ///
+  /// Fills only the fields the result provides and leaves odometer, fuel level,
+  /// VIN, and nickname blank. Never sets the fuel system (the rider chooses).
+  ///
+  /// Note: A real implementation needs a backend call (Firebase AI Logic with Gemini),
+  /// parked for the Firebase phase.
+  void populateFromRecognition(BikeRecognitionResult result) {
+    if (result.make != null && result.make!.isNotEmpty) {
+      _make = result.make!;
+    }
+    if (result.model != null && result.model!.isNotEmpty) {
+      _modelName = result.model!;
+    }
+    if (result.year != null && result.year! > 1900) {
+      _modelYear = result.year!;
+    }
+    if (result.displacementCc != null) {
+      _displacement = result.displacementCc;
+    }
+    if (result.tankCapacityLiters != null) {
+      _fuelTankCapacityLiters = result.tankCapacityLiters;
+    }
+    if (result.category != null && result.category!.isNotEmpty) {
+      _bikeType = result.category!;
+    }
+
+    // Leave odometer, fuel level, VIN, and nickname blank
+    _odometerKm = null;
+    _currentFuelLiters = null;
+    _vin = null;
+    _nickname = null;
+
+    // Never sets the fuel system (the rider chooses).
+
+    notifyListeners();
   }
 
   /// Reset form state to defaults.

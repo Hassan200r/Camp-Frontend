@@ -29,14 +29,14 @@ void main() {
     // Verify Title & Subtitle
     expect(find.text('Add a Motorcycle'), findsOneWidget);
     expect(
-      find.text('Scan your bike or open your garage.'),
+      find.text('Add a photo or enter details manually.'),
       findsOneWidget,
     );
 
-    // Verify Option 1: Scan Bike Card
-    expect(find.text('Scan Bike'), findsOneWidget);
+    // Verify Option 1: Take Bike Photo Card
+    expect(find.text('Take Bike Photo'), findsOneWidget);
     expect(
-      find.text("Take a photo and we'll fill in the details"),
+      find.text('Take or choose a photo of your motorcycle'),
       findsOneWidget,
     );
     expect(find.byIcon(Icons.camera_alt_rounded), findsOneWidget);
@@ -67,7 +67,7 @@ void main() {
     expect(find.textContaining('AI Vision', findRichText: true), findsNothing);
   });
 
-  testWidgets('Tapping Scan Bike navigates to the bike scan route',
+  testWidgets('Tapping Take Bike Photo navigates to the bike scan route',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.0;
@@ -85,8 +85,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Tap Scan Bike card
-    final scanCard = find.text('Scan Bike');
+    // Tap Take Bike Photo card
+    final scanCard = find.text('Take Bike Photo');
     expect(scanCard, findsOneWidget);
     await tester.tap(scanCard);
     await tester.pumpAndSettle();

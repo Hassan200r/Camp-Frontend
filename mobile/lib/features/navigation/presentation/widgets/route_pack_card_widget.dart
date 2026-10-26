@@ -5,9 +5,11 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/route_pack_model.dart';
 
-/// Card representing a single offline topographic route pack.
-/// Renders title, size & category, status badge, description, InsetTile note/progress,
-/// and contextual action button (Sync Update, Pause, or Download Pack).
+/// Card representing a route pack.
+/// Conforms to CAMP honesty rules:
+/// - Every pack shows "Coming soon"
+/// - No sizes (MB/GB), download buttons, progress bars, or "downloaded" states
+/// - Clean layout preserving card typography and design hierarchy
 class RoutePackCardWidget extends StatelessWidget {
   const RoutePackCardWidget({
     required this.pack,
@@ -25,7 +27,7 @@ class RoutePackCardWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header: Title, Specs & Status Badge ───────────────────────────
+          // ── Header: Title, Category & "Coming soon" Badge ──────────────────
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -44,7 +46,7 @@ class RoutePackCardWidget extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${pack.sizeMb} MB • ${pack.category}',
+                      pack.category,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.manrope(
@@ -57,7 +59,7 @@ class RoutePackCardWidget extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              _buildStatusBadge(),
+              _buildComingSoonBadge(),
             ],
           ),
 
@@ -74,8 +76,8 @@ class RoutePackCardWidget extends StatelessWidget {
             ),
           ),
 
-          // ── Note row in InsetTile ─────────────────────────────────────────
-          if (pack.note != null) ...[
+          // ── Note row in InsetTile (only if non-empty and honest) ──────────
+          if (pack.note != null && pack.note!.isNotEmpty) ...[
             const SizedBox(height: 10),
             InsetTile(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -84,9 +86,7 @@ class RoutePackCardWidget extends StatelessWidget {
                   Icon(
                     pack.noteIcon ?? Icons.info_outline_rounded,
                     size: 15,
-                    color: pack.status == RoutePackStatus.saved
-                        ? AppColors.tacticalOrange
-                        : AppColors.mutedText,
+                    color: AppColors.mutedText,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -97,9 +97,7 @@ class RoutePackCardWidget extends StatelessWidget {
                       style: GoogleFonts.manrope(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
-                        color: pack.status == RoutePackStatus.saved
-                            ? AppColors.tacticalOrangeDark
-                            : AppColors.darkCharcoal,
+                        color: AppColors.darkCharcoal,
                       ),
                     ),
                   ),
@@ -107,192 +105,27 @@ class RoutePackCardWidget extends StatelessWidget {
               ),
             ),
           ],
-
-          // ── Downloading progress in InsetTile ─────────────────────────────
-          if (pack.status == RoutePackStatus.downloading) ...[
-            const SizedBox(height: 10),
-            InsetTile(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          '${pack.downloadedMb ?? 312} MB of ${pack.sizeMb} MB',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.manrope(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.darkCharcoal,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        pack.downloadSpeed ?? '4.2 MB/s',
-                        style: GoogleFonts.manrope(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.tacticalOrange,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
-                    child: LinearProgressIndicator(
-                      value: pack.downloadProgress ?? 0.68,
-                      minHeight: 6,
-                      backgroundColor: AppColors.clay,
-                      valueColor: const AlwaysStoppedAnimation(
-                        AppColors.tacticalOrange,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 12),
-
-          // ── Action Buttons ────────────────────────────────────────────────
-          _buildActionButton(),
         ],
       ),
     );
   }
 
-  Widget _buildStatusBadge() {
-    if (pack.status == RoutePackStatus.saved) {
-      return const StatusChip(
-        label: 'Saved',
-        variant: StatusChipVariant.success,
-        icon: Icons.check_circle_rounded,
-      );
-    }
-
-    if (pack.status == RoutePackStatus.downloading) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFEDD5),
-          borderRadius: BorderRadius.circular(AppColors.radiusPill),
+  Widget _buildComingSoonBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.clayDark,
+        borderRadius: BorderRadius.circular(AppColors.radiusPill),
+      ),
+      child: Text(
+        'Coming soon',
+        style: GoogleFonts.manrope(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w800,
+          color: AppColors.mutedText,
+          letterSpacing: 0.3,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 6,
-              height: 6,
-              decoration: const BoxDecoration(
-                color: AppColors.tacticalOrange,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 5),
-            Text(
-              pack.statusLabel ?? '68% DOWNLOADING',
-              style: GoogleFonts.manrope(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: AppColors.tacticalOrangeDark,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return const SizedBox.shrink();
-  }
-
-  Widget _buildActionButton() {
-    switch (pack.actionType) {
-      case RoutePackActionType.syncUpdate:
-        return Align(
-          alignment: Alignment.centerRight,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onActionTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-              decoration: BoxDecoration(
-                color: AppColors.darkCharcoal,
-                borderRadius: BorderRadius.circular(AppColors.radiusPill),
-                boxShadow: AppColors.skeuRaisedSmall,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.sync_rounded,
-                    size: 14,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    pack.actionLabel ?? 'Sync Update',
-                    style: GoogleFonts.manrope(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-
-      case RoutePackActionType.pause:
-        return Align(
-          alignment: Alignment.centerRight,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onActionTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-              decoration: BoxDecoration(
-                color: AppColors.clayDark,
-                borderRadius: BorderRadius.circular(AppColors.radiusPill),
-                boxShadow: AppColors.skeuRaisedSmall,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.pause_rounded,
-                    size: 14,
-                    color: AppColors.darkCharcoal,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    pack.actionLabel ?? 'Pause',
-                    style: GoogleFonts.manrope(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.darkCharcoal,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-
-      case RoutePackActionType.download:
-        return PrimaryButton(
-          label: pack.actionLabel ?? 'Download Pack (${pack.sizeMb} MB)',
-          icon: Icons.download_rounded,
-          isFullWidth: true,
-          onTap: onActionTap,
-        );
-    }
+      ),
+    );
   }
 }

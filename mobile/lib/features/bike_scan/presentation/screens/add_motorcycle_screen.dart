@@ -176,13 +176,13 @@ class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Scan your bike or open your garage.',
+                        'Add a photo or enter details manually.',
                         style: AppTextStyles.bodySecondary,
                       ),
 
                       const SizedBox(height: 24),
 
-                      // 3. "Scan Bike" Card
+                      // 3. "Take Bike Photo" Card
                       _buildScanBikeCard(context),
 
                       const SizedBox(height: AppColors.cardGap),
@@ -225,7 +225,7 @@ class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
     );
   }
 
-  // ── Option 1: Scan Bike Card ──────────────────────────────────────────────
+  // ── Option 1: Take Bike Photo Card ──────────────────────────────────────────
   Widget _buildScanBikeCard(BuildContext context) {
     return CampCard(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
@@ -267,7 +267,7 @@ class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Scan Bike',
+                  'Take Bike Photo',
                   style: GoogleFonts.manrope(
                     fontSize: 16.5,
                     fontWeight: FontWeight.w700,
@@ -276,7 +276,7 @@ class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Take a photo and we\'ll fill in the details',
+                  'Take or choose a photo of your motorcycle',
                   style: GoogleFonts.manrope(
                     fontSize: 13,
                     fontWeight: FontWeight.w400,

@@ -457,7 +457,7 @@ void main() {
       expect(routesPushed, initialPushed);
     });
 
-    testWidgets('Scan Bike card on AddMotorcycleScreen navigates to bikeScan',
+    testWidgets('Take Bike Photo card on AddMotorcycleScreen navigates to bikeScan',
         (WidgetTester tester) async {
       String? lastPushed;
 
@@ -476,7 +476,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Scan Bike'));
+      await tester.tap(find.text('Take Bike Photo'));
       await tester.pumpAndSettle();
 
       expect(lastPushed, CampRoutes.bikeScan);

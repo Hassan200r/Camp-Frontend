@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:camera/camera.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,19 +10,13 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/image_storage_helper.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../controllers/bike_onboarding_controller.dart';
-import '../../domain/bike_recognition_provider.dart';
-import '../../domain/bike_recognition_service.dart';
 import '../../utils/gallery_picker_helper.dart';
 import 'bike_details_screen.dart';
 
-// ── Recognition Banner state ──────────────────────────────────────────────────
-enum _BannerState { none, analyzing, identified, notIdentified }
-
-/// CAMP Bike Scan Screen — real camera flow that connects to the Bike Details form.
+/// CAMP Bike Photo Screen — camera flow that connects to the Bike Details form.
 ///
 /// Accepts:
 ///   [imagePath] — optional, starts in "photo taken" state with a gallery image.
-///   [recognitionService] — injectable for widget tests (defaults to [BikeRecognitionProvider.instance]).
 ///   [cameraAvailable] — injectable for widget tests (defaults to runtime detection).
 ///   [camerasFetcher] — injectable camera loader for widget tests (e.g. slow-start testing).
 ///   [cameraController] — injectable camera controller for widget tests.
@@ -31,16 +24,12 @@ class BikeScanScreen extends StatefulWidget {
   const BikeScanScreen({
     super.key,
     this.imagePath,
-    this.recognitionService,
     this.cameraAvailable,
     this.camerasFetcher,
     this.cameraController,
   });
 
   final String? imagePath;
-
-  /// Override the recognition service (e.g. for widget tests).
-  final BikeRecognitionService? recognitionService;
 
   /// Override camera availability (true = has camera, false = no camera, null = autodetect).
   final bool? cameraAvailable;
@@ -71,18 +60,7 @@ class _BikeScanScreenState extends State<BikeScanScreen>
   String? _capturedImagePath;
   bool get _hasPhoto => _capturedImagePath != null;
 
-  // ── Recognition ───────────────────────────────────────────────────────────
-  _BannerState _bannerState = _BannerState.none;
-  BikeRecognitionResult? _recognitionResult;
-  Timer? _analysisTimeoutTimer;
-
-  // ── Debug long-press demo toggle ──────────────────────────────────────────
-  _BannerState? _debugOverrideBanner;
-
   bool _cameraDepsInitialized = false;
-
-  BikeRecognitionService get _service =>
-      widget.recognitionService ?? BikeRecognitionProvider.instance;
 
   @override
   void initState() {
@@ -103,9 +81,6 @@ class _BikeScanScreenState extends State<BikeScanScreen>
       if (initPath != null && initPath.isNotEmpty) {
         _capturedImagePath = initPath;
         _isCameraLoading = false;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _runRecognition(File(initPath));
-        });
       } else {
         _initializeCamera();
       }
@@ -115,7 +90,6 @@ class _BikeScanScreenState extends State<BikeScanScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _analysisTimeoutTimer?.cancel();
     // Directly dispose the controller without setState — the element is
     // already being unmounted and calling setState would assert-fail.
     final c = _cameraController;
@@ -298,22 +272,15 @@ class _BikeScanScreenState extends State<BikeScanScreen>
       final savedPath = await persistBikePhoto(xFile.path);
       setState(() {
         _capturedImagePath = savedPath;
-        _bannerState = _BannerState.none;
-        _recognitionResult = null;
       });
-      await _runRecognition(File(savedPath));
     } catch (_) {
       // Ignore capture errors silently.
     }
   }
 
   void _retake() {
-    _analysisTimeoutTimer?.cancel();
     setState(() {
       _capturedImagePath = null;
-      _bannerState = _BannerState.none;
-      _recognitionResult = null;
-      _debugOverrideBanner = null;
     });
     if (!_isCameraInitialized) {
       _initializeCamera();
@@ -344,55 +311,7 @@ class _BikeScanScreenState extends State<BikeScanScreen>
     final savedPath = await persistBikePhoto(image.path);
     setState(() {
       _capturedImagePath = savedPath;
-      _bannerState = _BannerState.none;
-      _recognitionResult = null;
-      _debugOverrideBanner = null;
     });
-    await _runRecognition(File(savedPath));
-  }
-
-  // ── Recognition ───────────────────────────────────────────────────────────
-
-  Future<void> _runRecognition(File image) async {
-    _analysisTimeoutTimer?.cancel();
-    if (!mounted) return;
-    setState(() {
-      _bannerState = _BannerState.analyzing;
-      _recognitionResult = null;
-    });
-
-    // 8-second timeout — user is never stuck.
-    _analysisTimeoutTimer = Timer(const Duration(seconds: 8), () {
-      if (mounted && _bannerState == _BannerState.analyzing) {
-        setState(() {
-          _bannerState = _BannerState.notIdentified;
-        });
-      }
-    });
-
-    try {
-      final result = await _service.identify(image);
-      _analysisTimeoutTimer?.cancel();
-      if (!mounted) return;
-      if (result == null || result.confidence == RecognitionConfidence.low) {
-        setState(() {
-          _bannerState = _BannerState.notIdentified;
-          _recognitionResult = null;
-        });
-      } else {
-        setState(() {
-          _bannerState = _BannerState.identified;
-          _recognitionResult = result;
-        });
-      }
-    } catch (_) {
-      _analysisTimeoutTimer?.cancel();
-      if (!mounted) return;
-      setState(() {
-        _bannerState = _BannerState.notIdentified;
-        _recognitionResult = null;
-      });
-    }
   }
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -402,22 +321,10 @@ class _BikeScanScreenState extends State<BikeScanScreen>
     // Save the captured photo path.
     controller.setImagePath(_capturedImagePath);
 
-    final result = _recognitionResult;
-    if (result != null && result.confidence != RecognitionConfidence.low) {
-      controller.populateFromRecognition(result);
-    } else {
-      // Open with a blank form (only reset the scan-populated fields).
-      controller.setMake('Honda');
-      controller.setModelName('');
-      controller.setDisplacement(null);
-      controller.setBikeType('Adventure');
-      controller.setFuelTankCapacity(null);
-    }
-
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => BikeDetailsScreen(
-          prefilled: result != null && result.confidence != RecognitionConfidence.low,
+        builder: (context) => const BikeDetailsScreen(
+          prefilled: false,
         ),
       ),
     );
@@ -427,11 +334,6 @@ class _BikeScanScreenState extends State<BikeScanScreen>
 
   @override
   Widget build(BuildContext context) {
-    final effectiveBanner =
-        kDebugMode && _debugOverrideBanner != null
-            ? _debugOverrideBanner!
-            : _bannerState;
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -467,20 +369,9 @@ class _BikeScanScreenState extends State<BikeScanScreen>
               bottom: 0,
               child: SafeArea(
                 top: false,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (effectiveBanner != _BannerState.none)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 8),
-                        child: _buildBanner(effectiveBanner),
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
-                      child: _buildBottomControls(effectiveBanner),
-                    ),
-                  ],
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
+                  child: _buildBottomControls(),
                 ),
               ),
             ),
@@ -640,109 +531,9 @@ class _BikeScanScreenState extends State<BikeScanScreen>
     );
   }
 
-  // ── Banner ────────────────────────────────────────────────────────────────
-
-  Widget _buildBanner(_BannerState state) {
-    Widget content;
-    switch (state) {
-      case _BannerState.analyzing:
-        content = Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(
-              width: 15,
-              height: 15,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.tacticalOrangeLight,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'Analyzing photo…',
-              style: _bannerTextStyle(),
-            ),
-          ],
-        );
-        break;
-
-      case _BannerState.identified:
-        final r = _recognitionResult;
-        final label = r != null
-            ? 'Looks like a ${r.make} ${r.model}. Please confirm on the next screen.'
-            : 'Bike identified. Please confirm on the next screen.';
-        content = Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.check_circle_rounded,
-                color: AppColors.tacticalOrangeLight, size: 16),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(label, style: _bannerTextStyle(), maxLines: 2),
-            ),
-          ],
-        );
-        break;
-
-      case _BannerState.notIdentified:
-        content = Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.info_outline_rounded,
-                color: Colors.white70, size: 16),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                'Couldn\'t identify this bike. You can enter the details yourself.',
-                style: _bannerTextStyle(),
-                maxLines: 2,
-              ),
-            ),
-          ],
-        );
-        break;
-
-      case _BannerState.none:
-        return const SizedBox.shrink();
-    }
-
-    return GestureDetector(
-      // Debug long-press: toggle between identified ↔ notIdentified.
-      onLongPress: kDebugMode
-          ? () {
-              setState(() {
-                if (_debugOverrideBanner == _BannerState.identified) {
-                  _debugOverrideBanner = _BannerState.notIdentified;
-                } else {
-                  _debugOverrideBanner = _BannerState.identified;
-                }
-              });
-            }
-          : null,
-      child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.62),
-          borderRadius: BorderRadius.circular(AppColors.radiusPill),
-          border: Border.all(
-              color: Colors.white.withValues(alpha: 0.14), width: 1),
-        ),
-        child: content,
-      ),
-    );
-  }
-
-  TextStyle _bannerTextStyle() => GoogleFonts.manrope(
-        fontSize: 12.5,
-        fontWeight: FontWeight.w500,
-        color: Colors.white,
-        height: 1.35,
-      );
-
   // ── Bottom Controls ───────────────────────────────────────────────────────
 
-  Widget _buildBottomControls(_BannerState banner) {
+  Widget _buildBottomControls() {
     if (_cameraError && !_hasPhoto) {
       return _buildNoCameraControls();
     }
@@ -759,7 +550,7 @@ class _BikeScanScreenState extends State<BikeScanScreen>
 
         // Right: flip camera (live) or Add Details (photo taken)
         _hasPhoto
-            ? _addDetailsButton(banner)
+            ? _addDetailsButton()
             : _flipCameraButton(),
       ],
     );
@@ -900,12 +691,11 @@ class _BikeScanScreenState extends State<BikeScanScreen>
     );
   }
 
-  Widget _addDetailsButton(_BannerState banner) {
-    final isDisabled = banner == _BannerState.analyzing;
+  Widget _addDetailsButton() {
     return PrimaryButton(
       label: 'Add Details',
       icon: Icons.arrow_forward_rounded,
-      onTap: isDisabled ? null : _openBikeDetails,
+      onTap: _openBikeDetails,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
     );
   }

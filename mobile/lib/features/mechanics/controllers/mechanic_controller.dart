@@ -55,7 +55,7 @@ class MechanicController extends ChangeNotifier {
   }
 
   /// Load mechanics list from repository.
-  /// Gated: sample data is seeded ONLY when isFirstRun() AND kDebugMode.
+  /// Honest pass: no demo seeding, release and debug builds both start empty.
   Future<void> load([dynamic source]) async {
     final repo = resolveMechanicRepository(source, _repository);
     if (source != null) {
@@ -64,12 +64,8 @@ class MechanicController extends ChangeNotifier {
     final isFirst = await repo.isFirstRun();
 
     if (isFirst) {
-      if (kDebugMode) {
-        _mechanics.clear();
-        _mechanics.addAll(Mechanic.sampleMechanics);
-      } else {
-        _mechanics.clear();
-      }
+      _mechanics.clear();
+      await repo.markFirstRunCompleted();
       await save(repo);
       notifyListeners();
       return;
