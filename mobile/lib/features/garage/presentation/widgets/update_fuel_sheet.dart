@@ -12,7 +12,7 @@ import '../../../settings/controllers/settings_controller.dart';
 import '../../controllers/active_bike_controller.dart';
 import '../../domain/bike_model.dart';
 import '../../domain/fuel_estimator.dart';
-import '../../services/fuel_tracker_service.dart';
+import '../../services/fuel_refill_service.dart';
 
 /// Modal bottom sheet allowing riders to set their current fuel in liters
 /// or log/edit a refill with live 3-field recalculation.
@@ -173,17 +173,10 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
   }
 
   void _saveCurrentFuel() {
-    final updated = widget.bike.copyWith(
-      fuelRemainingLiters: double.parse(_liters.toStringAsFixed(1)),
-      lastFuelUpdate: DateTime.now(),
+    FuelRefillService.setFuelLevel(
+      bikeId: widget.bike.id,
+      litres: _liters,
     );
-    ActiveBikeController.instance.updateBike(updated);
-
-    final pct = FuelEstimator.percent(_liters, _tankCapacity);
-    if (pct != null && pct >= 15.0) {
-      FuelTrackerService.instance.resetLowFuelFlag();
-    }
-
     Navigator.of(context).pop();
   }
 
@@ -235,43 +228,13 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
     final roundedPrice = double.parse(price.toStringAsFixed(2));
     final roundedTotal = total.roundToDouble();
 
-    // 1. Update fuel level on bike
+    // Check full-to-full learning opportunity
+    double? learnedAvg;
     final currentOdo = widget.bike.preciseOdometerKm ??
         widget.bike.odometerKm.toDouble();
     final prevFullOdo = widget.bike.lastFullRefillOdometer;
+    final isFull = _isFullTank || (litres >= _tankCapacity - 0.2);
 
-    final currentRemaining = widget.bike.fuelRemainingLiters ?? 0.0;
-    final double newRemaining;
-    if (widget.initialExpense != null) {
-      // Editing a refill must not double-count:
-      // Saving an edited refill adjusts the fuel level only by the difference
-      // between the new and old litres, never by the full litres again.
-      // If a full-tank refill is edited, don't force the level to full again
-      // unless the flag was just turned on.
-      final oldIsFull = widget.initialExpense!.isFullTank;
-      final oldLitres = widget.initialExpense!.litres ?? 0.0;
-      final diff = litres - oldLitres;
-
-      if (!oldIsFull && _isFullTank) {
-        // Flag was just turned on
-        newRemaining = _tankCapacity;
-      } else {
-        newRemaining = (currentRemaining + diff).clamp(0.0, _tankCapacity);
-      }
-    } else {
-      // When on: after saving, the bike's fuel level becomes full capacity. Litres are still stored as entered.
-      // When off: the level rises by the litres entered, capped at capacity.
-      if (_isFullTank) {
-        newRemaining = _tankCapacity;
-      } else {
-        newRemaining = (currentRemaining + litres).clamp(0.0, _tankCapacity);
-      }
-    }
-
-    // The Step 4 learner uses full-to-full pairs.
-    final isFull = _isFullTank || (newRemaining >= _tankCapacity - 0.2);
-
-    // Full-to-full learning check if filled to full on a new refill
     if (widget.initialExpense == null &&
         isFull &&
         prevFullOdo != null &&
@@ -290,90 +253,37 @@ class _UpdateFuelSheetState extends State<UpdateFuelSheet> {
             litersAdded: litres,
             computedAvg: roundedAvg,
           );
-
           if (shouldUpdate == true) {
-            final updatedBike = widget.bike.copyWith(
-              fuelRemainingLiters: _tankCapacity,
-              fuelAverageKmPerLiter: roundedAvg,
-              lastFullRefillOdometer: currentOdo,
-              lastFuelUpdate: DateTime.now(),
-            );
-            ActiveBikeController.instance.updateBike(updatedBike);
-            FuelTrackerService.instance.resetLowFuelFlag();
-            _writeExpense(litres, roundedPrice, roundedTotal);
-            if (mounted) Navigator.of(context).pop();
-            return;
+            learnedAvg = roundedAvg;
           }
         }
       }
     }
 
-    final updatedBike = widget.bike.copyWith(
-      fuelRemainingLiters: double.parse(newRemaining.toStringAsFixed(1)),
-      lastFullRefillOdometer:
-          isFull ? currentOdo : widget.bike.lastFullRefillOdometer,
-      lastFuelUpdate: DateTime.now(),
+    await FuelRefillService.recordRefill(
+      bikeId: _selectedBikeId ?? widget.bike.id,
+      litres: litres,
+      pricePerLitre: roundedPrice,
+      total: roundedTotal,
+      isFullTank: _isFullTank,
+      existingExpense: widget.initialExpense,
+      fuelAverageKmPerLiter: learnedAvg,
     );
-    ActiveBikeController.instance.updateBike(updatedBike);
 
-    final pct = FuelEstimator.percent(newRemaining, _tankCapacity);
-    if (pct != null && pct >= 15.0) {
-      FuelTrackerService.instance.resetLowFuelFlag();
-    }
-
-    // 2. Save expense record
-    _writeExpense(litres, roundedPrice, roundedTotal);
-
-    if (mounted) Navigator.of(context).pop();
-  }
-
-  void _writeExpense(double litres, double roundedPrice, double roundedTotal) {
-    final litresStr = litres.truncateToDouble() == litres
-        ? litres.toInt().toString()
-        : litres.toStringAsFixed(1);
-
-    if (widget.initialExpense != null) {
-      final updated = widget.initialExpense!.copyWith(
-        title: 'Fuel Refill ($litresStr L)',
-        amount: roundedTotal,
-        litres: litres,
-        pricePerLitre: roundedPrice,
-        isFullTank: _isFullTank,
-        bikeId: _selectedBikeId,
-        updatedAt: DateTime.now().toUtc(),
-      );
-      TripBudgetController.instance.updateExpense(updated);
+    if (mounted) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Updated refill (${formatPkr(roundedTotal)})'),
+          content: Text(
+            widget.initialExpense != null
+                ? 'Updated refill (${formatPkr(roundedTotal)})'
+                : 'Added refill (${formatPkr(roundedTotal)})',
+          ),
           backgroundColor: AppColors.darkCharcoal,
           behavior: SnackBarBehavior.floating,
         ),
       );
-    } else {
-      final newExp = Expense(
-        id: 'exp-fuel-${DateTime.now().millisecondsSinceEpoch}',
-        title: 'Fuel Refill ($litresStr L)',
-        amount: roundedTotal,
-        litres: litres,
-        pricePerLitre: roundedPrice,
-        isFullTank: _isFullTank,
-        category: ExpenseCategory.fuel,
-        bikeId: _selectedBikeId,
-        dateRecorded: DateTime.now(),
-        trackingMode: ExpenseTrackingMode.manualEntry,
-        subtitle: '${widget.bike.make} ${widget.bike.modelName}',
-      );
-      TripBudgetController.instance.addExpense(newExp);
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Added refill (${formatPkr(roundedTotal)})'),
-          backgroundColor: AppColors.darkCharcoal,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      Navigator.of(context).pop();
     }
   }
 

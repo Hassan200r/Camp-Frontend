@@ -130,14 +130,17 @@ class TripBudgetCardWidget extends StatelessWidget {
               onTap: () async {
                 Navigator.of(ctx).pop();
                 if (expense.category == ExpenseCategory.fuel) {
-                  final activeBike = ActiveBikeController.instance.activeBike ??
+                  final targetBike = (expense.bikeId != null
+                          ? ActiveBikeController.instance.getBikeById(expense.bikeId!)
+                          : null) ??
+                      ActiveBikeController.instance.activeBike ??
                       (ActiveBikeController.instance.bikes.isNotEmpty
                           ? ActiveBikeController.instance.bikes.first
                           : null);
-                  if (activeBike != null) {
+                  if (targetBike != null) {
                     UpdateFuelSheet.show(
                       context,
-                      activeBike,
+                      targetBike,
                       initialExpense: expense,
                     );
                     return;
@@ -223,6 +226,8 @@ class TripBudgetCardWidget extends StatelessWidget {
             ),
             onPressed: () {
               Navigator.of(ctx).pop(true);
+              // Deleting a refill removes the expense and leaves the fuel level unchanged
+              // because the fuel is already in the tank.
               final removedIndex = expenses.indexOf(expense);
               TripBudgetController.instance.deleteExpense(expense.id);
               ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -489,32 +494,78 @@ class TripBudgetCardWidget extends StatelessWidget {
           const SizedBox(height: 4),
 
           // ── Under/Over-Budget Indicator ──────────────────────────────────
-          Row(
-            children: [
-              Text(
-                isUnder ? '↘ ' : '↗ ',
-                style: TextStyle(
-                  color: isUnder ? AppColors.statusGreen : AppColors.alertRed,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                ),
+          if (tripBudget.capAmount == 0)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onEditTrip,
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      'No budget cap set',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.manrope(
+                        color: AppColors.mutedText,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '•',
+                    style: GoogleFonts.manrope(
+                      color: AppColors.mutedText,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.add_circle_outline_rounded,
+                    size: 13,
+                    color: AppColors.tacticalOrange,
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    'Add a budget',
+                    maxLines: 1,
+                    style: GoogleFonts.manrope(
+                      color: AppColors.tacticalOrange,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
-              Expanded(
-                child: Text(
-                  isUnder
-                      ? '${formatPkr(underBudget)} under target budget'
-                      : '${formatPkr(-underBudget)} over target budget',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.manrope(
+            )
+          else
+            Row(
+              children: [
+                Text(
+                  isUnder ? '↘ ' : '↗ ',
+                  style: TextStyle(
                     color: isUnder ? AppColors.statusGreen : AppColors.alertRed,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-              ),
-            ],
-          ),
+                Expanded(
+                  child: Text(
+                    isUnder
+                        ? '${formatPkr(underBudget)} under target budget'
+                        : '${formatPkr(-underBudget)} over target budget',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.manrope(
+                      color: isUnder ? AppColors.statusGreen : AppColors.alertRed,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
 
           const SizedBox(height: 16),
 

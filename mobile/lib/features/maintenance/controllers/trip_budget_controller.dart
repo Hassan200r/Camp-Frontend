@@ -57,7 +57,12 @@ class TripBudgetController extends ChangeNotifier {
 
   /// Add a new expense line item to the ledger.
   void addExpense(Expense expense) {
-    _expenses.insert(0, expense);
+    final existingIndex = _expenses.indexWhere((e) => e.id == expense.id);
+    if (existingIndex != -1) {
+      _expenses[existingIndex] = expense;
+    } else {
+      _expenses.insert(0, expense);
+    }
     _budget = _budget.copyWith(
       allocatedSoFar: _expenses.fold<double>(0.0, (s, e) => s + e.amount),
     );

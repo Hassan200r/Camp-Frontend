@@ -81,7 +81,9 @@ class _FinanceRigHealthScreenState extends State<FinanceRigHealthScreen> {
       MaterialPageRoute(builder: (context) => const AddExpenseScreen()),
     );
     if (result != null && mounted) {
-      TripBudgetController.instance.addExpense(result);
+      if (!TripBudgetController.instance.expenses.any((e) => e.id == result.id)) {
+        TripBudgetController.instance.addExpense(result);
+      }
       _showNotification('Added ${result.title} (${formatPkr(result.amount)})');
     }
   }

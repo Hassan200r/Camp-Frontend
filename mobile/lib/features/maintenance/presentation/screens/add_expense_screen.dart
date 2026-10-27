@@ -7,7 +7,9 @@ import '../../../../app/theme/app_theme.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../garage/controllers/active_bike_controller.dart';
+import '../../../garage/services/fuel_refill_service.dart';
 import '../../../settings/controllers/settings_controller.dart';
+import '../../controllers/trip_budget_controller.dart';
 import '../../domain/expense_model.dart';
 
 /// Screen for recording or editing an expedition trip expense
@@ -184,7 +186,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     }
   }
 
-  void _saveExpense() {
+  Future<void> _saveExpense() async {
     final amountText = _amountCtrl.text.trim();
     final amount = parsePkr(amountText);
 
@@ -213,33 +215,106 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       category = ExpenseCategory.other;
     }
 
-    double? litres;
-    double? pricePerLitre;
-    if (category == ExpenseCategory.fuel) {
-      litres = double.tryParse(_litresCtrl.text.trim());
-      pricePerLitre = double.tryParse(_priceCtrl.text.trim());
-      if (litres == null || litres <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Litres must be greater than 0'),
-            backgroundColor: AppColors.alertRed,
-          ),
-        );
-        return;
-      }
-      if (pricePerLitre == null || pricePerLitre <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Price per litre must be greater than 0'),
-            backgroundColor: AppColors.alertRed,
-          ),
-        );
-        return;
-      }
-      pricePerLitre = double.parse(pricePerLitre.toStringAsFixed(2));
-    }
-
     final roundedTotal = amount.roundToDouble();
+
+    if (category == ExpenseCategory.fuel) {
+      final litres = double.tryParse(_litresCtrl.text.trim());
+      if (litres != null && litres > 0) {
+        // With litres entered, saving updates the fuel level of the bike chosen in the form
+        var pricePerLitre = double.tryParse(_priceCtrl.text.trim());
+        if (pricePerLitre == null || pricePerLitre <= 0) {
+          pricePerLitre = roundedTotal / litres;
+        }
+        pricePerLitre = double.parse(pricePerLitre.toStringAsFixed(2));
+
+        final saved = await FuelRefillService.recordRefill(
+          bikeId: _selectedBikeId,
+          litres: litres,
+          pricePerLitre: pricePerLitre,
+          total: roundedTotal,
+          isFullTank: _isFullTank,
+          existingExpense: widget.initialExpense,
+          dateRecorded: _expenseDate,
+          subtitle: _noteLocationCtrl.text.trim().isNotEmpty
+              ? _noteLocationCtrl.text.trim()
+              : null,
+          note: _noteLocationCtrl.text.trim().isNotEmpty
+              ? _noteLocationCtrl.text.trim()
+              : null,
+          trackingMode: _trackingModeIndex == 0
+              ? ExpenseTrackingMode.autoTrack
+              : ExpenseTrackingMode.manualEntry,
+        );
+
+        if (mounted) {
+          Navigator.of(context).pop(saved);
+        }
+        return;
+      } else {
+        // Amount only (no litres): save the expense, leave the fuel level alone,
+        // and show the hint "Add litres to update the fuel level".
+        var pricePerLitre = double.tryParse(_priceCtrl.text.trim());
+        if (pricePerLitre != null) {
+          pricePerLitre = double.parse(pricePerLitre.toStringAsFixed(2));
+        }
+
+        final expense = widget.initialExpense != null
+            ? widget.initialExpense!.copyWith(
+                category: ExpenseCategory.fuel,
+                title: 'Fuel Expense',
+                subtitle: _noteLocationCtrl.text.trim().isNotEmpty
+                    ? _noteLocationCtrl.text.trim()
+                    : null,
+                amount: roundedTotal,
+                litres: null,
+                pricePerLitre: pricePerLitre,
+                isFullTank: false,
+                bikeId: _selectedBikeId,
+                trackingMode: _trackingModeIndex == 0
+                    ? ExpenseTrackingMode.autoTrack
+                    : ExpenseTrackingMode.manualEntry,
+                formattedDate: _dateRecorded,
+                dateRecorded: _expenseDate,
+                updatedAt: DateTime.now().toUtc(),
+              )
+            : Expense(
+                id: 'exp-${DateTime.now().millisecondsSinceEpoch}',
+                category: ExpenseCategory.fuel,
+                title: 'Fuel Expense',
+                subtitle: _noteLocationCtrl.text.trim().isNotEmpty
+                    ? _noteLocationCtrl.text.trim()
+                    : null,
+                amount: roundedTotal,
+                litres: null,
+                pricePerLitre: pricePerLitre,
+                isFullTank: false,
+                bikeId: _selectedBikeId,
+                trackingMode: _trackingModeIndex == 0
+                    ? ExpenseTrackingMode.autoTrack
+                    : ExpenseTrackingMode.manualEntry,
+                formattedDate: _dateRecorded,
+                dateRecorded: _expenseDate,
+              );
+
+        if (widget.initialExpense != null) {
+          TripBudgetController.instance.updateExpense(expense);
+        } else {
+          TripBudgetController.instance.addExpense(expense);
+        }
+
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Add litres to update the fuel level'),
+            backgroundColor: AppColors.darkCharcoal,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+
+        Navigator.of(context).pop(expense);
+        return;
+      }
+    }
 
     final expense = widget.initialExpense != null
         ? widget.initialExpense!.copyWith(
@@ -249,9 +324,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ? _noteLocationCtrl.text.trim()
                 : null,
             amount: roundedTotal,
-            litres: litres,
-            pricePerLitre: pricePerLitre,
-            isFullTank: category == ExpenseCategory.fuel ? _isFullTank : false,
+            litres: null,
+            pricePerLitre: null,
+            isFullTank: false,
             bikeId: _selectedBikeId,
             trackingMode: _trackingModeIndex == 0
                 ? ExpenseTrackingMode.autoTrack
@@ -268,9 +343,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ? _noteLocationCtrl.text.trim()
                 : null,
             amount: roundedTotal,
-            litres: litres,
-            pricePerLitre: pricePerLitre,
-            isFullTank: category == ExpenseCategory.fuel ? _isFullTank : false,
+            litres: null,
+            pricePerLitre: null,
+            isFullTank: false,
             bikeId: _selectedBikeId,
             trackingMode: _trackingModeIndex == 0
                 ? ExpenseTrackingMode.autoTrack
@@ -319,6 +394,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: TextField(
+                  key: const ValueKey('add_expense_amount_field'),
                   controller: _amountCtrl,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
@@ -392,6 +468,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 children: [
                   // ── Bike Picker Dropdown ──────────────────────────────
                   LabeledDropdown<String?>(
+                    key: const ValueKey('add_expense_bike_dropdown'),
                     label: 'BIKE',
                     value: _selectedBikeId,
                     items: [
@@ -469,6 +546,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                   children: [
                                     Expanded(
                                       child: TextField(
+                                        key: const ValueKey('add_expense_litres_field'),
                                         controller: _litresCtrl,
                                         keyboardType: const TextInputType
                                             .numberWithOptions(decimal: true),
@@ -538,6 +616,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                     ),
                                     Expanded(
                                       child: TextField(
+                                        key: const ValueKey('add_expense_price_field'),
                                         controller: _priceCtrl,
                                         keyboardType: const TextInputType
                                             .numberWithOptions(decimal: true),
@@ -564,6 +643,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Add litres to update the fuel level',
+                      style: GoogleFonts.manrope(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.mutedText,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Container(
