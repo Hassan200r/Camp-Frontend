@@ -107,7 +107,7 @@ class _TopographicMapCanvasState extends State<TopographicMapCanvas>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    _centerCoord = widget.initialCenter ?? const LatLng(0.0, 0.0);
+    _centerCoord = widget.initialCenter ?? const LatLng(31.5204, 74.3587);
     _locationTitle = widget.locationName ?? '';
   }
 

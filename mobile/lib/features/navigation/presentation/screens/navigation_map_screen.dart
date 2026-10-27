@@ -5,6 +5,7 @@ import '../../../../app/routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/camp_bottom_nav.dart';
 import '../../controllers/navigation_controller.dart';
+import '../../domain/geocoding_service.dart';
 import '../../domain/location_service.dart';
 import '../widgets/nav_active_bottom_bar.dart';
 import '../widgets/nav_active_navigation_overlay.dart';
@@ -28,12 +29,14 @@ import '../widgets/nav_turn_banner.dart';
 class NavigationMapScreen extends StatefulWidget {
   const NavigationMapScreen({
     super.key,
+    this.initialDestination,
     this.onNavigateToHome,
     this.controller,
     this.locationService,
     this.tileProvider,
   });
 
+  final PlaceSearchResult? initialDestination;
   final VoidCallback? onNavigateToHome;
   final NavigationController? controller;
   final LocationService? locationService;
@@ -48,6 +51,8 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
   late final LocationService _locationService;
   late final MapController _mapController;
   bool _ownsController = false;
+  bool _hasCenteredOnInitialPosition = false;
+  bool _hasOpenedInitialDestination = false;
 
   @override
   void initState() {
@@ -62,6 +67,25 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
       _ownsController = true;
       _controller = NavigationController(locationService: _locationService);
       _controller.initialize();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasOpenedInitialDestination) {
+      final modalDest = ModalRoute.of(context)?.settings.arguments;
+      final dest = widget.initialDestination ??
+          (modalDest is PlaceSearchResult ? modalDest : null);
+      if (dest != null) {
+        _hasOpenedInitialDestination = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _controller.openRoutePreview(dest);
+            _fitRouteBounds();
+          }
+        });
+      }
     }
   }
 
@@ -171,7 +195,14 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
         // Auto-center camera during navigation when requested
         if (isNavigating && _controller.isScreenCentered) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _mapController.move(_controller.userLatLng, 17.0);
+            if (mounted) _mapController.move(_controller.userLatLng, 17.0);
+          });
+        } else if (!_hasCenteredOnInitialPosition && _controller.currentPosition != null) {
+          _hasCenteredOnInitialPosition = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _controller.state == NavigationState.idle) {
+              _mapController.move(_controller.userLatLng, 15.0);
+            }
           });
         }
 

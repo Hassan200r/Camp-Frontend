@@ -4,16 +4,16 @@ import 'package:latlong2/latlong.dart';
 /// Fake implementation of [GeocodingService] for testing.
 class FakeGeocodingService implements GeocodingService {
   FakeGeocodingService({
-    this.searchResults = const [],
+    this.searchResults,
     this.reverseResult,
   });
 
-  List<PlaceSearchResult> searchResults;
+  List<PlaceSearchResult>? searchResults;
   PlaceSearchResult? reverseResult;
 
   @override
   Future<List<PlaceSearchResult>> search(String query) async {
-    if (searchResults.isNotEmpty) return searchResults;
+    if (searchResults != null) return searchResults!;
     return [
       PlaceSearchResult(
         name: query,

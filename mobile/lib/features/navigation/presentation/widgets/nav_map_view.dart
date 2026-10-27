@@ -38,10 +38,14 @@ class NavMapView extends StatelessWidget {
     final isNavigating = controller.state == NavigationState.navigating;
     final route = controller.route;
 
+    final initialCenter = controller.currentPosition != null
+        ? userLoc
+        : (controller.destination?.location ?? userLoc);
+
     return FlutterMap(
       mapController: mapController,
       options: MapOptions(
-        initialCenter: userLoc,
+        initialCenter: initialCenter,
         initialZoom: 15.0,
         minZoom: 3.0,
         maxZoom: 19.0,

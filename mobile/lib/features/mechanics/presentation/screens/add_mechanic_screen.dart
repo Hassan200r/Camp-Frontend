@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../../app/theme/app_colors.dart';
@@ -11,17 +13,26 @@ import '../../../../core/widgets/camp_app_bar.dart';
 import '../../../../core/widgets/camp_bottom_nav.dart';
 import '../../../../core/widgets/labeled_text_field.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../navigation/domain/location_service.dart';
 import '../../controllers/mechanic_controller.dart';
 import '../../domain/mechanic_model.dart';
 import '../../domain/mechanic_open_status.dart';
+import '../widgets/map_pin_picker_modal.dart';
 
 /// Screen for adding or editing a community roadside mechanic / workshop.
 /// Follows the tactile CAMP clay design language with recessed inputs,
 /// camera/gallery photo picker, and persistent storage.
 class AddMechanicScreen extends StatefulWidget {
-  const AddMechanicScreen({super.key, this.mechanic});
+  const AddMechanicScreen({
+    super.key,
+    this.mechanic,
+    this.locationService,
+    this.tileProvider,
+  });
 
   final Mechanic? mechanic;
+  final LocationService? locationService;
+  final TileProvider? tileProvider;
 
   @override
   State<AddMechanicScreen> createState() => _AddMechanicScreenState();
@@ -31,10 +42,11 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _phoneController;
   late final TextEditingController _addressController;
-  late final TextEditingController _latitudeController;
-  late final TextEditingController _longitudeController;
   late final TextEditingController _specialityController;
   late final TextEditingController _notesController;
+
+  double? _latitude;
+  double? _longitude;
 
   String? _photoPath;
   bool _nameError = false;
@@ -57,12 +69,8 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
     _addressController = TextEditingController(
       text: mech?.address ?? (mech?.durationOrLocation ?? ''),
     );
-    _latitudeController = TextEditingController(
-      text: mech?.latitude != null ? mech!.latitude.toString() : '',
-    );
-    _longitudeController = TextEditingController(
-      text: mech?.longitude != null ? mech!.longitude.toString() : '',
-    );
+    _latitude = mech?.latitude;
+    _longitude = mech?.longitude;
     _specialityController = TextEditingController(
       text: mech != null && mech.tags1.isNotEmpty ? mech.tags1.join(', ') : '',
     );
@@ -82,8 +90,6 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
     _nameController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
-    _latitudeController.dispose();
-    _longitudeController.dispose();
     _specialityController.dispose();
     _notesController.dispose();
     super.dispose();
@@ -207,6 +213,92 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
     );
   }
 
+  Future<void> _useCurrentLocation() async {
+    try {
+      final locService =
+          widget.locationService ?? const GeolocatorLocationService();
+      final hasPerm = await locService.checkPermission();
+      if (!hasPerm) {
+        final granted = await locService.requestPermission();
+        if (!granted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Location permission is required to save current position'),
+                backgroundColor: AppColors.darkCharcoal,
+              ),
+            );
+          }
+          return;
+        }
+      }
+      final pos = await locService.getCurrentPosition();
+      if (pos != null && mounted) {
+        setState(() {
+          _latitude = pos.latitude;
+          _longitude = pos.longitude;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Current location saved as shop location'),
+            backgroundColor: AppColors.statusGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not get position: $e'),
+            backgroundColor: AppColors.alertRed,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _chooseOnMap() async {
+    LatLng center = const LatLng(31.5204, 74.3587);
+    if (_latitude != null && _longitude != null) {
+      center = LatLng(_latitude!, _longitude!);
+    } else {
+      try {
+        final locService =
+            widget.locationService ?? const GeolocatorLocationService();
+        final pos = await locService.getCurrentPosition();
+        if (pos != null) {
+          center = pos.toLatLng();
+        }
+      } catch (_) {}
+    }
+
+    if (!mounted) return;
+
+    final LatLng? picked = await showDialog<LatLng>(
+      context: context,
+      builder: (ctx) => MapPinPickerModal(
+        initialCenter: center,
+        initialPin: _latitude != null && _longitude != null
+            ? LatLng(_latitude!, _longitude!)
+            : null,
+        tileProvider: widget.tileProvider,
+      ),
+    );
+
+    if (picked != null && mounted) {
+      setState(() {
+        _latitude = picked.latitude;
+        _longitude = picked.longitude;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Map pin location saved as shop location'),
+          backgroundColor: AppColors.statusGreen,
+        ),
+      );
+    }
+  }
+
   void _saveMechanic() {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
@@ -280,15 +372,12 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
       tags2 = existing?.tags2 ?? const ['Local Area'];
     }
 
-    final lat = double.tryParse(_latitudeController.text.trim());
-    final lon = double.tryParse(_longitudeController.text.trim());
-
     final newMech = Mechanic(
       id: id,
       name: name,
       distance: null,
-      latitude: lat,
-      longitude: lon,
+      latitude: _latitude,
+      longitude: _longitude,
       durationOrLocation: address.isNotEmpty
           ? address
           : (existing?.durationOrLocation ?? ''),
@@ -416,29 +505,136 @@ class _AddMechanicScreenState extends State<AddMechanicScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // GPS Coordinates (optional)
+                        // Shop Location (GPS) Section
+                        Text(
+                          'SHOP LOCATION',
+                          style: AppTextStyles.overline.copyWith(
+                            color: AppColors.mutedText,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Location status card
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.clayDark,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _latitude != null
+                                  ? AppColors.statusGreen.withValues(alpha: 0.4)
+                                  : Colors.white.withValues(alpha: 0.08),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                _latitude != null
+                                    ? Icons.check_circle_rounded
+                                    : Icons.location_off_outlined,
+                                color: _latitude != null
+                                    ? AppColors.statusGreen
+                                    : AppColors.mutedText,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _latitude != null
+                                          ? 'Location saved'
+                                          : 'No location yet',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: _latitude != null
+                                            ? Colors.white
+                                            : AppColors.mutedText,
+                                      ),
+                                    ),
+                                    if (_latitude != null && _longitude != null)
+                                      Text(
+                                        '${_latitude!.toStringAsFixed(4)}°, ${_longitude!.toStringAsFixed(4)}°',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.mutedText,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              if (_latitude != null)
+                                TextButton(
+                                  key: const ValueKey('change_location_button'),
+                                  onPressed: _chooseOnMap,
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text(
+                                    'Change',
+                                    style: TextStyle(
+                                      color: AppColors.tacticalOrange,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Location Action Buttons: "Use my current location" & "Choose on map"
                         Row(
                           children: [
                             Expanded(
-                              child: LabeledTextField(
-                                label: 'Latitude (optional)',
-                                controller: _latitudeController,
-                                placeholder: 'e.g. 35.1234',
-                                keyboardType: const TextInputType.numberWithOptions(
-                                  decimal: true,
-                                  signed: true,
+                              child: OutlinedButton.icon(
+                                key: const ValueKey('use_current_location_button'),
+                                onPressed: _useCurrentLocation,
+                                icon: const Icon(Icons.my_location_rounded, size: 16),
+                                label: const Text(
+                                  'Use my current location',
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.tacticalOrange,
+                                  side: BorderSide(
+                                    color: AppColors.tacticalOrange.withValues(alpha: 0.5),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             Expanded(
-                              child: LabeledTextField(
-                                label: 'Longitude (optional)',
-                                controller: _longitudeController,
-                                placeholder: 'e.g. 74.5678',
-                                keyboardType: const TextInputType.numberWithOptions(
-                                  decimal: true,
-                                  signed: true,
+                              child: OutlinedButton.icon(
+                                key: const ValueKey('choose_on_map_button'),
+                                onPressed: _chooseOnMap,
+                                icon: const Icon(Icons.map_rounded, size: 16),
+                                label: const Text(
+                                  'Choose on map',
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  side: BorderSide(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                                 ),
                               ),
                             ),

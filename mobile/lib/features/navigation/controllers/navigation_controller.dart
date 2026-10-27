@@ -98,9 +98,11 @@ class NavigationController extends ChangeNotifier {
   PositionData? get currentPosition => _currentPosition;
   double? get currentHeading => _currentHeading ?? _currentPosition?.heading;
 
+  static const LatLng defaultFallbackCenter = LatLng(31.5204, 74.3587);
+
   /// Latitude & Longitude of current position or fallback center.
   LatLng get userLatLng =>
-      _currentPosition?.toLatLng() ?? const LatLng(0.0, 0.0);
+      _currentPosition?.toLatLng() ?? defaultFallbackCenter;
 
   PlaceSearchResult? get destination => _destination;
   List<PlaceSearchResult> get stops => List.unmodifiable(_stops);
@@ -280,6 +282,7 @@ class NavigationController extends ChangeNotifier {
   }
 
   void _handlePositionUpdate(PositionData pos) {
+    final wasPositionNull = _currentPosition == null;
     _currentPosition = pos;
     if (pos.heading != null && pos.heading! >= 0) {
       _currentHeading = pos.heading;
@@ -287,6 +290,11 @@ class NavigationController extends ChangeNotifier {
 
     if (_state == NavigationState.navigating && _route != null) {
       _processNavigationStepProgression(pos);
+    } else if (_state == NavigationState.previewing &&
+        _destination != null &&
+        (_route == null || wasPositionNull) &&
+        !_isCalculatingRoute) {
+      calculateRoute();
     }
 
     notifyListeners();
@@ -460,6 +468,16 @@ class NavigationController extends ChangeNotifier {
     _routeError = null;
     _state = NavigationState.previewing;
     notifyListeners();
+
+    if (_currentPosition == null) {
+      try {
+        final pos = await _locationService.getCurrentPosition();
+        if (pos != null && !_disposed) {
+          _currentPosition = pos;
+          _currentHeading = pos.heading;
+        }
+      } catch (_) {}
+    }
 
     await calculateRoute();
   }

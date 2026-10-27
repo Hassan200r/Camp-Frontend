@@ -31,6 +31,7 @@ import 'features/mechanics/controllers/mechanic_controller.dart';
 import 'features/mechanics/domain/mechanic_model.dart';
 import 'features/mechanics/presentation/screens/add_mechanic_screen.dart';
 import 'features/mechanics/presentation/screens/mechanics_home_screen.dart';
+import 'features/navigation/domain/geocoding_service.dart';
 import 'features/navigation/presentation/screens/navigation_map_screen.dart';
 import 'features/navigation/presentation/screens/route_packs_screen.dart';
 import 'features/ride_history/presentation/screens/ride_history_screen.dart';
@@ -129,9 +130,19 @@ class _CampAppState extends State<CampApp> with WidgetsBindingObserver {
           final args = ModalRoute.of(context)?.settings.arguments;
           return AddMechanicScreen(mechanic: args is Mechanic ? args : null);
         },
-        CampRoutes.navigationMap: (context) => const NavigationMapScreen(),
+        CampRoutes.navigationMap: (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          return NavigationMapScreen(
+            initialDestination: args is PlaceSearchResult ? args : null,
+          );
+        },
         // TODO: Legacy route aliases — kept for temporary backward compatibility during team branch merges. Remove once confirmed unused across all teammate branches.
-        CampRoutes.legacyMechanicsMap: (context) => const NavigationMapScreen(),
+        CampRoutes.legacyMechanicsMap: (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          return NavigationMapScreen(
+            initialDestination: args is PlaceSearchResult ? args : null,
+          );
+        },
         CampRoutes.voiceCopilot: (context) => const VoiceAssistantScreen(),
         CampRoutes.legacyMechanicsVoiceAssistant: (context) => const VoiceAssistantScreen(),
         CampRoutes.routePacks: (context) => const RoutePacksScreen(),

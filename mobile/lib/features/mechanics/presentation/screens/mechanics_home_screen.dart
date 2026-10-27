@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/routes.dart';
@@ -7,6 +8,8 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/utils/keyboard_visibility.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../navigation/domain/geocoding_service.dart';
+import '../../../navigation/domain/roadside_map_models.dart';
 import '../../../navigation/presentation/widgets/topographic_map_canvas.dart';
 import '../../controllers/mechanic_controller.dart';
 import '../../domain/mechanic_model.dart';
@@ -23,10 +26,12 @@ class MechanicsHomeScreen extends StatefulWidget {
   const MechanicsHomeScreen({
     super.key,
     this.currentDateTime,
+    this.geocodingService,
   });
 
   /// Optional fixed time for deterministic testing of opening hours.
   final DateTime? currentDateTime;
+  final GeocodingService? geocodingService;
 
   @override
   State<MechanicsHomeScreen> createState() => _MechanicsHomeScreenState();
@@ -47,6 +52,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
   String _searchQuery = '';
   CampTab _currentTab = CampTab.mechanics;
   final TextEditingController _searchController = TextEditingController();
+  late final GeocodingService _geocodingService;
   double? _userLatitude;
   double? _userLongitude;
   late DateTime _screenNow;
@@ -96,6 +102,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
   @override
   void initState() {
     super.initState();
+    _geocodingService = widget.geocodingService ?? NominatimGeocodingService();
     _screenNow = widget.currentDateTime ?? DateTime.now();
     WidgetsBinding.instance.addObserver(this);
     _fetchLocation();
@@ -117,8 +124,9 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
       if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
         return;
       }
-      final pos = await Geolocator.getLastKnownPosition();
-      if (pos != null && mounted) {
+      final pos = await Geolocator.getLastKnownPosition() ??
+          await Geolocator.getCurrentPosition();
+      if (mounted) {
         setState(() {
           _userLatitude = pos.latitude;
           _userLongitude = pos.longitude;
@@ -502,10 +510,7 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.pushNamed(context, CampRoutes.navigationMap);
-            },
+            onPressed: () => _handleStartGuidance(ctx, mechanic),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.tacticalOrange,
               shape: RoundedRectangleBorder(
@@ -519,6 +524,209 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
                 color: Colors.white,
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleStartGuidance(
+    BuildContext dialogCtx,
+    Mechanic mechanic,
+  ) async {
+    Navigator.pop(dialogCtx);
+
+    // 1. Shop with saved coordinates
+    if (mechanic.hasCoordinates) {
+      Navigator.pushNamed(
+        context,
+        CampRoutes.navigationMap,
+        arguments: PlaceSearchResult(
+          name: mechanic.name,
+          displayName: mechanic.address ?? mechanic.name,
+          location: LatLng(mechanic.latitude!, mechanic.longitude!),
+        ),
+      );
+      return;
+    }
+
+    // 2. Shop with only a text address
+    final rawAddress = mechanic.address?.trim() ?? '';
+    final fallbackLoc = (mechanic.durationOrLocation.isNotEmpty &&
+            mechanic.durationOrLocation != 'Nearby' &&
+            mechanic.durationOrLocation != 'Local Workshop' &&
+            !mechanic.durationOrLocation.contains('min'))
+        ? mechanic.durationOrLocation.trim()
+        : '';
+    final addressQuery = rawAddress.isNotEmpty ? rawAddress : fallbackLoc;
+
+    if (addressQuery.isNotEmpty) {
+      // Look the address up once through GeocodingService
+      List<PlaceSearchResult> results = [];
+      try {
+        results = await _geocodingService.search(addressQuery);
+      } catch (_) {}
+
+      if (!mounted) return;
+
+      if (results.isNotEmpty) {
+        final found = results.first;
+        // Show "Found: <result>" with Confirm and Cancel.
+        showDialog<void>(
+          context: context,
+          builder: (foundCtx) => AlertDialog(
+            backgroundColor: AppColors.clay,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            title: Text(
+              'Found: ${found.displayName}',
+              style: AppTextStyles.cardTitle.copyWith(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppColors.darkCharcoal,
+              ),
+            ),
+            content: Text(
+              'Save coordinates and start route guidance to ${mechanic.name}?',
+              style: AppTextStyles.body.copyWith(
+                fontSize: 14,
+                color: AppColors.mutedText,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(foundCtx),
+                child: Text(
+                  'Cancel',
+                  style: AppTextStyles.caption.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.mutedLight,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(foundCtx);
+                  final updatedMech = mechanic.copyWith(
+                    latitude: found.location.latitude,
+                    longitude: found.location.longitude,
+                  );
+                  MechanicController.instance.updateMechanic(updatedMech);
+                  if (mounted) {
+                    Navigator.pushNamed(
+                      context,
+                      CampRoutes.navigationMap,
+                      arguments: PlaceSearchResult(
+                        name: updatedMech.name,
+                        displayName: updatedMech.address ?? updatedMech.name,
+                        location: found.location,
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.tacticalOrange,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text('Confirm'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        // Nothing found: "Couldn't find this address. Add the shop's location." with a button to edit the shop.
+        showDialog<void>(
+          context: context,
+          builder: (notFoundCtx) => AlertDialog(
+            backgroundColor: AppColors.clay,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            content: Text(
+              "Couldn't find this address. Add the shop's location.",
+              style: AppTextStyles.body.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.darkCharcoal,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(notFoundCtx),
+                child: Text(
+                  'Cancel',
+                  style: AppTextStyles.caption.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.mutedLight,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(notFoundCtx);
+                  _navigateToEditMechanic(mechanic);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.tacticalOrange,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text('Edit Shop'),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
+    // 3. No address and no coordinates:
+    // No route. Message "This shop has no location saved." with an Edit button.
+    showDialog<void>(
+      context: context,
+      builder: (noLocCtx) => AlertDialog(
+        backgroundColor: AppColors.clay,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        content: Text(
+          'This shop has no location saved.',
+          style: AppTextStyles.body.copyWith(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: AppColors.darkCharcoal,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(noLocCtx),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.caption.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.mutedLight,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(noLocCtx);
+              _navigateToEditMechanic(mechanic);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.tacticalOrange,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: const Text('Edit Shop'),
           ),
         ],
       ),
@@ -718,6 +926,32 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
   }
 
   Widget _buildMapView() {
+    final mechanicsWithCoords = MechanicController.instance.mechanics
+        .where((m) => m.hasCoordinates)
+        .map((m) => RoadsideMechanic(
+              id: m.id,
+              name: m.name,
+              vehicleType: 'Workshop',
+              distance: m.distance ?? '',
+              eta: m.openStatus,
+              rating: m.rating,
+              reviews: m.reviewCount,
+              phone: m.phone,
+              location: LatLng(m.latitude!, m.longitude!),
+              isMobileVan: false,
+              isEmergencyVerified: m.badgeType == BadgeType.emergency,
+              capabilities: m.tags1,
+              supportedBikes: const ['Universal'],
+              openHours: m.openStatus,
+            ))
+        .toList();
+
+    final center = _userLatitude != null && _userLongitude != null
+        ? LatLng(_userLatitude!, _userLongitude!)
+        : (mechanicsWithCoords.isNotEmpty
+            ? mechanicsWithCoords.first.location
+            : const LatLng(31.5204, 74.3587));
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 110),
       decoration: BoxDecoration(
@@ -732,8 +966,11 @@ class _MechanicsHomeScreenState extends State<MechanicsHomeScreen>
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          const Positioned.fill(
-            child: TopographicMapCanvas(),
+          Positioned.fill(
+            child: TopographicMapCanvas(
+              initialCenter: center,
+              mechanics: mechanicsWithCoords,
+            ),
           ),
           Positioned(
             left: 20,
