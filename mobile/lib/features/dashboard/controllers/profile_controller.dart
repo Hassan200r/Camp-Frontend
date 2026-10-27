@@ -44,25 +44,35 @@ class ProfileController extends ChangeNotifier {
       return _fullName!.trim();
     }
     final authName = AuthController.instance.currentUser?.name.trim();
-    if (authName != null && authName.isNotEmpty) {
+    if (authName != null &&
+        authName.isNotEmpty &&
+        authName != 'Alex Henderson' &&
+        authName != 'Elena Vance') {
       return authName;
     }
-    return AuthController.instance.riderDisplayName;
+    return '';
   }
 
   String get firstName {
     final name = fullName;
+    if (name.isEmpty) return '';
     if (name.contains(' ')) return name.split(' ').first;
     return name;
   }
 
-  String get username => _username ?? '@rider';
+  String get username => _username ?? '';
 
   String get email {
     if (_email != null && _email!.trim().isNotEmpty) {
       return _email!.trim();
     }
-    return AuthController.instance.currentUser?.email ?? 'rider@example.com';
+    final authEmail = AuthController.instance.currentUser?.email;
+    if (authEmail != null &&
+        authEmail != 'moto.rider@example.com' &&
+        authEmail != 'rider@example.com') {
+      return authEmail;
+    }
+    return '';
   }
 
   String get phone => _phone ?? (AuthController.instance.currentUser?.phone ?? '');
@@ -75,7 +85,7 @@ class ProfileController extends ChangeNotifier {
   int get unitIndex => _unitIndex;
 
   String get emergencyContactName => _emergencyContactName ?? '';
-  String get emergencyContactRelation => _emergencyContactRelation ?? 'Emergency Contact';
+  String get emergencyContactRelation => _emergencyContactRelation ?? '';
   String get emergencyContactPhone => _emergencyContactPhone ?? '';
   String get bloodGroup => _bloodGroup;
   String get allergies => _allergies ?? '';

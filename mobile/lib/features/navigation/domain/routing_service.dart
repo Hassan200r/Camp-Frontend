@@ -6,7 +6,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../settings/domain/units_system.dart';
 
-/// Public demo server URL. Replace with self-hosted OSRM cluster or API key in production.
+/// Public OSRM server URL. Replace with self-hosted OSRM cluster or API key in production.
 const String kOsrmBaseUrl = 'https://router.project-osrm.org';
 
 /// Single step / maneuver in a turn-by-turn route.
@@ -327,71 +327,3 @@ class OsrmRoutingService implements RoutingService {
   }
 }
 
-/// Fake implementation of [RoutingService] for unit and widget testing.
-class FakeRoutingService implements RoutingService {
-  FakeRoutingService({
-    this.cannedResult,
-    this.shouldThrow = false,
-    this.errorMessage = 'Route needs an internet connection',
-  });
-
-  RouteResult? cannedResult;
-  bool shouldThrow;
-  String errorMessage;
-
-  @override
-  Future<RouteResult> getRoute({
-    required List<LatLng> waypoints,
-    bool requestAlternatives = true,
-  }) async {
-    if (shouldThrow) {
-      throw Exception(errorMessage);
-    }
-
-    if (cannedResult != null) {
-      return cannedResult!;
-    }
-
-    // Generate a simple synthetic route between the waypoints
-    final start = waypoints.first;
-    final end = waypoints.last;
-    final mid = LatLng(
-      (start.latitude + end.latitude) / 2 + 0.005,
-      (start.longitude + end.longitude) / 2 + 0.005,
-    );
-
-    final line = [start, mid, end];
-    return RouteResult(
-      polyline: line,
-      distanceMeters: 5400.0,
-      durationSeconds: 660.0, // 11 min
-      steps: [
-        RouteStep(
-          maneuverType: 'depart',
-          streetName: 'Cascade Alpine Way',
-          distanceMeters: 1600.0,
-          durationSeconds: 180.0,
-          location: start,
-          instruction: 'Head out on Cascade Alpine Way',
-        ),
-        RouteStep(
-          maneuverType: 'turn',
-          maneuverModifier: 'right',
-          streetName: 'Bear Creek Pass Rd',
-          distanceMeters: 3800.0,
-          durationSeconds: 480.0,
-          location: mid,
-          instruction: 'Turn right onto Bear Creek Pass Rd',
-        ),
-        RouteStep(
-          maneuverType: 'arrive',
-          streetName: 'Timber Ridge Moto Outpost',
-          distanceMeters: 0.0,
-          durationSeconds: 0.0,
-          location: end,
-          instruction: 'Arrive at destination',
-        ),
-      ],
-    );
-  }
-}

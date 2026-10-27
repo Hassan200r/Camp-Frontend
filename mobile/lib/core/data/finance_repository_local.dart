@@ -15,6 +15,40 @@ class FinanceRepositoryLocal implements FinanceRepository {
   @override
   Future<void> markFirstRunCompleted() => _store.markFirstRunCompleted();
 
+  /// Known trip names of legacy seeded demo budgets.
+  static const Set<String> seededTripNames = {
+    'Alpine Ridge Tour',
+    'Karakoram Highway Expedition',
+  };
+
+  /// Known IDs of legacy seeded demo expenses.
+  static const Set<String> seededExpenseIds = {
+    'exp-1',
+    'exp-2',
+    'exp-3',
+    'exp-4',
+    'exp-5',
+    'exp-6',
+  };
+
+  /// Determines whether a budget matches the legacy demo seed budget.
+  /// Matches strictly by exact seed ID plus exact seed trip name and seed cap amount,
+  /// never by trip name alone. A real trip named "Alpine Ridge Tour" or
+  /// "Karakoram Highway Expedition" entered by the rider must survive.
+  static bool isSeededBudget(TripBudget budget) {
+    final isSeedId = budget.id == 'budget-active' || budget.id == 'budget-seed-alpine';
+    final isSeedName = seededTripNames.contains(budget.tripName.trim());
+    final isSeedCap = (budget.capAmount == 250.0 && budget.allocatedSoFar == 145.0) ||
+        (budget.capAmount == 75000.0 && budget.allocatedSoFar == 46125.0);
+    return isSeedId && isSeedName && isSeedCap;
+  }
+
+  /// Determines whether an expense matches the legacy demo seed expenses.
+  /// Matches strictly by exact seed ID, never by note or subtitle pattern alone.
+  static bool isSeededExpense(Expense expense) {
+    return seededExpenseIds.contains(expense.id.trim());
+  }
+
   @override
   Future<TripBudget?> loadBudget() async {
     final isFirst = await _store.isFirstRun();
@@ -41,6 +75,14 @@ class FinanceRepositoryLocal implements FinanceRepository {
     }
 
     final budget = TripBudget.fromJson(map);
+
+    // One-time cleanup: remove saved legacy demo budget.
+    // Budgets entered by the rider are never touched.
+    if (isSeededBudget(budget)) {
+      await deleteBudget();
+      return null;
+    }
+
     final hasGeneratedId = (map['id'] == null || (map['id'] as String).isEmpty);
     final hasMissingDates = map['createdAt'] == null || map['updatedAt'] == null;
     if (hasGeneratedId || hasMissingDates) {
@@ -95,6 +137,14 @@ class FinanceRepositoryLocal implements FinanceRepository {
       if (raw is Map) {
         final map = raw is Map<String, dynamic> ? raw : raw.cast<String, dynamic>();
         final expense = Expense.fromJson(map);
+
+        // One-time cleanup: remove saved legacy demo expenses.
+        // Expenses entered by the rider are never touched.
+        if (isSeededExpense(expense)) {
+          needsMigration = true;
+          continue;
+        }
+
         if (expense.id.isEmpty || map['id'] == null || (map['id'] as String).isEmpty) {
           needsMigration = true;
           expenses.add(expense.copyWith(id: 'expense_${DateTime.now().millisecondsSinceEpoch}_$i'));

@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
-/// Public demo server URL. Replace with dedicated Nominatim instance in production.
+/// Public Nominatim server URL. Replace with dedicated Nominatim instance in production.
 const String kNominatimBaseUrl = 'https://nominatim.openstreetmap.org';
 
 /// Structured geocoding place search or reverse lookup result.
@@ -281,38 +281,5 @@ class NominatimGeocodingService implements GeocodingService {
       _activeRequestLock = null;
       lock.complete();
     }
-  }
-}
-
-/// Fake implementation of [GeocodingService] for testing.
-class FakeGeocodingService implements GeocodingService {
-  FakeGeocodingService({
-    this.searchResults = const [],
-    this.reverseResult,
-  });
-
-  List<PlaceSearchResult> searchResults;
-  PlaceSearchResult? reverseResult;
-
-  @override
-  Future<List<PlaceSearchResult>> search(String query) async {
-    if (searchResults.isNotEmpty) return searchResults;
-    return [
-      PlaceSearchResult(
-        name: query,
-        displayName: '$query, WA',
-        location: const LatLng(48.520, -120.650),
-      ),
-    ];
-  }
-
-  @override
-  Future<PlaceSearchResult?> reverseGeocode(LatLng location) async {
-    return reverseResult ??
-        PlaceSearchResult(
-          name: 'Cascade Alpine Loop',
-          displayName: 'Cascade Alpine Loop, North Cascades, WA',
-          location: location,
-        );
   }
 }

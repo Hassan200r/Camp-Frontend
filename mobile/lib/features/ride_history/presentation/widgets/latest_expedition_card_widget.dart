@@ -25,12 +25,10 @@ class LatestExpeditionCardWidget extends StatelessWidget {
   const LatestExpeditionCardWidget({
     super.key,
     this.report,
-    this.isDemo = false,
     this.onMenuActionSelected,
   });
 
   final PostRideReport? report;
-  final bool isDemo;
   final ValueChanged<LatestExpeditionOptionAction>? onMenuActionSelected;
 
   @override

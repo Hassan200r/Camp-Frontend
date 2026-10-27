@@ -37,12 +37,12 @@ void main() {
       await PostRideReportController.instance.load(store);
       await TripBudgetController.instance.load(store);
 
-      expect(ActiveBikeController.instance.bikes.isNotEmpty, isTrue);
-      expect(ActiveBikeController.instance.activeBikeId, 'bike-bmw-1250');
+      expect(ActiveBikeController.instance.bikes, isEmpty);
+      expect(ActiveBikeController.instance.activeBikeId, isNull);
       expect(SettingsController.instance.units, UnitsSystem.metric);
       expect(PostRideReportController.instance.reports, isEmpty);
-      expect(TripBudgetController.instance.budget.tripName, 'Alpine Ridge Tour');
-      expect(TripBudgetController.instance.expenses.isNotEmpty, isTrue);
+      expect(TripBudgetController.instance.budget.tripName, isEmpty);
+      expect(TripBudgetController.instance.expenses, isEmpty);
 
       await store.markFirstRunCompleted();
       expect(await store.isFirstRun(), isFalse);
@@ -52,11 +52,9 @@ void main() {
       final store = LocalStore();
       store.resetForTesting();
 
-      // Seed first run
-      await ActiveBikeController.instance.load(store);
       await store.markFirstRunCompleted();
 
-      // User adds a custom bike and removes original ones
+      // User adds a custom bike
       const customBike = Bike(
         id: 'custom-bike-99',
         make: 'Yamaha',
@@ -65,8 +63,6 @@ void main() {
         odometerKm: 500,
       );
       ActiveBikeController.instance.addBike(customBike, setActive: true);
-      ActiveBikeController.instance.removeBike('bike-bmw-1250');
-      ActiveBikeController.instance.removeBike('bike-rebel-500');
       await ActiveBikeController.instance.save(store);
 
       // Reload controller from fresh store
@@ -74,25 +70,28 @@ void main() {
       freshStore.resetForTesting();
       await ActiveBikeController.instance.load(freshStore);
 
-      // Custom bike wins and defaults are NOT re-seeded
+      // Custom bike wins and defaults are NOT seeded
       expect(ActiveBikeController.instance.bikes.length, 1);
       expect(ActiveBikeController.instance.bikes.first.id, 'custom-bike-99');
       expect(ActiveBikeController.instance.activeBikeId, 'custom-bike-99');
     });
 
-    test('Deleted bikes stay deleted after reload (demo data only seeded on isFirstRun)', () async {
+    test('Deleted bikes stay deleted after reload', () async {
       final store = LocalStore();
       store.resetForTesting();
 
-      // Complete first run seeding
-      await ActiveBikeController.instance.load(store);
-      await store.markFirstRunCompleted();
+      // Rider adds a bike then deletes it
+      const customBike = Bike(
+        id: 'temp-bike-1',
+        make: 'KTM',
+        modelName: '390 Adventure',
+        modelYear: 2023,
+        odometerKm: 500,
+      );
+      ActiveBikeController.instance.addBike(customBike, setActive: true);
+      await ActiveBikeController.instance.save(store);
 
-      // Rider deletes all bikes from garage
-      final existingIds = ActiveBikeController.instance.bikes.map((b) => b.id).toList();
-      for (final id in existingIds) {
-        ActiveBikeController.instance.removeBike(id);
-      }
+      ActiveBikeController.instance.removeBike('temp-bike-1');
       expect(ActiveBikeController.instance.bikes, isEmpty);
       await ActiveBikeController.instance.save(store);
 
@@ -101,7 +100,7 @@ void main() {
       freshStore.resetForTesting();
       await ActiveBikeController.instance.load(freshStore);
 
-      // Garage remains empty; does NOT re-seed defaults because isFirstRun is false
+      // Garage remains empty; does NOT re-seed defaults
       expect(ActiveBikeController.instance.bikes, isEmpty);
       expect(ActiveBikeController.instance.activeBikeId, isNull);
     });
@@ -362,10 +361,10 @@ void main() {
       await PostRideReportController.instance.load(store);
       await TripBudgetController.instance.load(store);
 
-      expect(ActiveBikeController.instance.bikes.isNotEmpty, isTrue);
+      expect(ActiveBikeController.instance.bikes, isEmpty);
       expect(SettingsController.instance.units, UnitsSystem.metric);
       expect(PostRideReportController.instance.reports, isEmpty);
-      expect(TripBudgetController.instance.budget.tripName, 'Alpine Ridge Tour');
+      expect(TripBudgetController.instance.budget.tripName, isEmpty);
     });
 
     test('Incompatible future schema version falls back safely to defaults', () async {
@@ -387,9 +386,9 @@ void main() {
       await TripBudgetController.instance.load(store);
 
       expect(SettingsController.instance.units, UnitsSystem.metric);
-      expect(ActiveBikeController.instance.bikes.first.id, 'bike-bmw-1250');
+      expect(ActiveBikeController.instance.bikes, isEmpty);
       expect(PostRideReportController.instance.reports, isEmpty);
-      expect(TripBudgetController.instance.budget.tripName, 'Alpine Ridge Tour');
+      expect(TripBudgetController.instance.budget.tripName, isEmpty);
     });
 
     test('Missing schema version after first run completed falls back safely', () async {
@@ -500,7 +499,15 @@ void main() {
       PostRideReportController.instance.addReport(report);
       await PostRideReportController.instance.save(store);
 
-      final maintenanceItemsBefore = List<MaintenanceItem>.from(MaintenanceItem.defaultSampleItems);
+      final maintenanceItemsBefore = [
+        const MaintenanceItem(
+          id: 'test-item-1',
+          name: 'Chain Lubrication',
+          category: 'Drive',
+          status: MaintenanceStatus.ok,
+          trackingMode: MaintenanceTrackingMode.manual,
+        ),
+      ];
 
       // Execute deleteTrip
       TripBudgetController.instance.deleteTrip();
@@ -520,7 +527,7 @@ void main() {
       expect(TripBudgetController.instance.expenses, isEmpty);
 
       // Confirm maintenance items, bikes, and reports are completely untouched
-      expect(maintenanceItemsBefore.length, MaintenanceItem.defaultSampleItems.length);
+      expect(maintenanceItemsBefore.length, 1);
       expect(
         ActiveBikeController.instance.bikes.any((b) => b.id == 'trip-del-bike'),
         isTrue,

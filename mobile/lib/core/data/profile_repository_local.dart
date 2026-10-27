@@ -8,6 +8,17 @@ class ProfileRepositoryLocal implements ProfileRepository {
   final LocalStore? _explicitStore;
   LocalStore get _store => _explicitStore ?? LocalStore.instance;
 
+  /// Known values of legacy seeded demo profile attributes.
+  static const Set<String> seededUsernames = {'@rider', 'rider'};
+  static const Set<String> seededEmails = {
+    'rider@example.com',
+    'moto.rider@example.com',
+  };
+  static const Set<String> seededFullNames = {
+    'Elena Vance',
+    'Alex Henderson',
+  };
+
   @override
   Future<UserProfile?> loadProfile() async {
     final json = await _store.readJson(LocalStore.keyProfile);
@@ -15,11 +26,34 @@ class ProfileRepositoryLocal implements ProfileRepository {
       return null;
     }
     final map = json is Map<String, dynamic> ? json : json.cast<String, dynamic>();
-    final profile = UserProfile.fromJson(map);
-    // If id was generated or dates were missing, re-save to ensure migrated state is persisted.
+    var profile = UserProfile.fromJson(map);
+    bool needsCleaning = false;
+
+    // One-time cleanup: remove saved legacy demo profile values.
+    // Real data entered by the rider is never touched.
+    if (profile.username != null && seededUsernames.contains(profile.username!.trim())) {
+      profile = profile.copyWith(username: '');
+      needsCleaning = true;
+    }
+    if (profile.email != null && seededEmails.contains(profile.email!.trim())) {
+      profile = profile.copyWith(email: '');
+      needsCleaning = true;
+    }
+    if (profile.fullName != null && seededFullNames.contains(profile.fullName!.trim())) {
+      profile = profile.copyWith(fullName: '');
+      needsCleaning = true;
+    }
+    if (profile.emergencyContactRelation != null &&
+        profile.emergencyContactRelation!.trim() == 'Emergency Contact' &&
+        (profile.emergencyContactName == null || profile.emergencyContactName!.trim().isEmpty)) {
+      profile = profile.copyWith(emergencyContactRelation: '');
+      needsCleaning = true;
+    }
+
+    // If id was generated or dates were missing or cleaned, re-save to ensure migrated state is persisted.
     final hasGeneratedId = (map['id'] == null || (map['id'] as String).isEmpty);
     final hasMissingDates = map['createdAt'] == null || map['updatedAt'] == null;
-    if (hasGeneratedId || hasMissingDates) {
+    if (needsCleaning || hasGeneratedId || hasMissingDates) {
       await saveProfile(profile);
     }
     return profile;

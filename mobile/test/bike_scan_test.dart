@@ -123,7 +123,7 @@ void main() {
 
       // Enter License Plate
       await tester.enterText(
-        find.widgetWithText(TextField, 'e.g. LEB-20-4567'),
+        find.widgetWithText(TextField, 'e.g. ABC-1234'),
         'MOTO-99',
       );
       await tester.pumpAndSettle();

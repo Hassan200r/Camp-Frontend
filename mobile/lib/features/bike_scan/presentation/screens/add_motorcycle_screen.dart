@@ -22,7 +22,7 @@ class AddMotorcycleScreen extends StatefulWidget {
 }
 
 class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
-  final TextEditingController _makeController = TextEditingController(text: 'Honda');
+  final TextEditingController _makeController = TextEditingController();
   final TextEditingController _modelController = TextEditingController();
   final TextEditingController _plateController = TextEditingController();
   final TextEditingController _colorController = TextEditingController();
@@ -384,7 +384,7 @@ class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
           LabeledTextField(
             label: 'License Plate (Optional)',
             controller: _plateController,
-            placeholder: 'e.g. LEB-20-4567',
+            placeholder: 'e.g. ABC-1234',
             helperText: 'Saved to Emergency QR and rescue ID',
             errorText: _submittedOnce ? _plateError : null,
             textCapitalization: TextCapitalization.characters,

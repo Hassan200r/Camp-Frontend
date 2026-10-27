@@ -4,7 +4,6 @@ import 'package:camp/core/widgets/camp_bottom_nav.dart';
 import 'package:camp/features/navigation/controllers/navigation_controller.dart';
 import 'package:camp/features/navigation/domain/geocoding_service.dart';
 import 'package:camp/features/navigation/domain/location_service.dart';
-import 'package:camp/features/navigation/domain/routing_service.dart';
 import 'package:camp/features/navigation/presentation/screens/navigation_map_screen.dart';
 import 'package:camp/features/navigation/presentation/widgets/nav_active_bottom_bar.dart';
 import 'package:camp/features/navigation/presentation/widgets/nav_active_navigation_overlay.dart';
@@ -16,6 +15,11 @@ import 'package:camp/features/navigation/presentation/widgets/nav_turn_banner.da
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
+
+import 'helpers/fake_geocoding_service.dart';
+import 'helpers/fake_location_service.dart';
+import 'helpers/fake_routing_service.dart';
 
 class FakeTileProvider extends TileProvider {
   FakeTileProvider();
@@ -94,6 +98,13 @@ void main() {
         routingService: fakeRouting,
         geocodingService: fakeGeocoding,
       );
+      controller.toggleSavedPlace(
+        const PlaceSearchResult(
+          name: 'Test Destination',
+          displayName: 'Test Destination Point',
+          location: LatLng(34.0, 74.0),
+        ),
+      );
 
       await tester.pumpWidget(
         buildTestScreen(
@@ -134,6 +145,13 @@ void main() {
         locationService: fakeLocation,
         routingService: fakeRouting,
         geocodingService: fakeGeocoding,
+      );
+      controller.toggleSavedPlace(
+        const PlaceSearchResult(
+          name: 'Test Destination',
+          displayName: 'Test Destination Point',
+          location: LatLng(34.0, 74.0),
+        ),
       );
 
       await tester.pumpWidget(
@@ -180,6 +198,13 @@ void main() {
         locationService: fakeLocation,
         routingService: fakeRouting,
         geocodingService: fakeGeocoding,
+      );
+      controller.toggleSavedPlace(
+        const PlaceSearchResult(
+          name: 'Test Destination',
+          displayName: 'Test Destination Point',
+          location: LatLng(34.0, 74.0),
+        ),
       );
 
       await tester.pumpWidget(

@@ -9,9 +9,7 @@ import '../domain/bike_model.dart';
 /// Provides reactive state for both the Garage overview screen and individual BikeProfileScreens.
 class ActiveBikeController extends ChangeNotifier {
   ActiveBikeController({BikeRepository? repository})
-      : _repository = repository ?? AppRepositories.instance.bikeRepository {
-    _initializeDefaultFleet();
-  }
+      : _repository = repository ?? AppRepositories.instance.bikeRepository;
 
   /// Shared singleton instance across the application.
   static ActiveBikeController instance = ActiveBikeController();
@@ -98,9 +96,10 @@ class ActiveBikeController extends ChangeNotifier {
     }
   }
 
-  /// Reset the controller to default fleet state (useful for tests and mock reset).
+  /// Reset the controller to an empty garage fleet.
   void reset() {
-    _initializeDefaultFleet();
+    _bikes.clear();
+    _activeBikeId = null;
     notifyListeners();
   }
 
@@ -124,8 +123,10 @@ class ActiveBikeController extends ChangeNotifier {
     try {
       final isFirst = await repo.isFirstRun();
       if (isFirst) {
-        _initializeDefaultFleet();
-        await save(repo);
+        _bikes.clear();
+        _activeBikeId = null;
+        await repo.markFirstRunCompleted();
+        notifyListeners();
         return;
       }
 
@@ -151,7 +152,8 @@ class ActiveBikeController extends ChangeNotifier {
       notifyListeners();
     } catch (_) {
       // Fallback without crashing
-      _initializeDefaultFleet();
+      _bikes.clear();
+      _activeBikeId = null;
       notifyListeners();
     }
   }
@@ -167,77 +169,5 @@ class ActiveBikeController extends ChangeNotifier {
     } catch (_) {
       // Ignore background write errors
     }
-  }
-
-  void _initializeDefaultFleet() {
-    _bikes.clear();
-    _bikes.addAll([
-      Bike(
-        id: 'bike-bmw-1250',
-        make: 'BMW',
-        modelName: 'R 1250 GS Adventure',
-        modelYear: 2023,
-        displacement: 1254,
-        bikeType: 'Adventure',
-        fuelSystem: FuelSystem.efi,
-        carburetorType: null,
-        fuelTankCapacityLiters: 30.0,
-        fuelAverageKmPerLiter: 22.5,
-        ridingTerrain: const ['City', 'Highway', 'Off-road'],
-        edition: 'Triple Black',
-        imagePath: 'assets/images/bmw_r1250_scan_placeholder.jpg',
-        odometerKm: 14820,
-        fuelRemainingLiters: 23.4,
-        lastFuelUpdate: DateTime(2026, 10, 1),
-        currentFuelLiters: 23.4,
-        lastOilChange: ServiceRecord(
-          mode: TrackingMode.byDistance,
-          km: 3200,
-          date: DateTime(2026, 6, 1),
-        ),
-        lastTuneUp: ServiceRecord(
-          mode: TrackingMode.byDistance,
-          km: 5000,
-          date: DateTime(2026, 6, 4),
-        ),
-        vin: 'WB10J9309PZE84102',
-        nickname: 'GS #441',
-        plateNumber: 'LEB-20-4567',
-        color: 'Triple Black',
-      ),
-      Bike(
-        id: 'bike-rebel-500',
-        make: 'Honda',
-        modelName: 'Rebel 500',
-        modelYear: 2022,
-        displacement: 471,
-        bikeType: 'Cruiser',
-        fuelSystem: FuelSystem.carburetor,
-        carburetorType: 'Keihin CVK',
-        fuelTankCapacityLiters: 11.2,
-        fuelAverageKmPerLiter: 26.0,
-        ridingTerrain: const ['City', 'Highway'],
-        edition: 'Special Edition',
-        odometerKm: 4120,
-        fuelRemainingLiters: 8.0,
-        lastFuelUpdate: DateTime(2026, 10, 1),
-        currentFuelLiters: 8.0,
-        lastOilChange: ServiceRecord(
-          mode: TrackingMode.byDistance,
-          km: 3940,
-          date: DateTime(2026, 2, 10),
-        ),
-        lastTuneUp: ServiceRecord(
-          mode: TrackingMode.byDistance,
-          km: 4000,
-          date: DateTime(2026, 1, 15),
-        ),
-        vin: 'JH2PC5601NM000000',
-        nickname: 'Urban Shadow',
-        plateNumber: 'KHI-22-8819',
-        color: 'Matte Armored Silver',
-      ),
-    ]);
-    _activeBikeId = 'bike-bmw-1250';
   }
 }

@@ -126,66 +126,6 @@ class MaintenanceItem {
   final String? conditionNote;
   final IconData? icon;
 
-  /// Default 5 items matching the CAMP expedition maintenance telemetry spec.
-  /// Costs are user-entered only; no hardcoded demo dollar estimates.
-  static List<MaintenanceItem> get defaultSampleItems => const [
-        MaintenanceItem(
-          id: 'maint-1',
-          name: 'Rear Brake Pad Replacement',
-          category: 'Brakes',
-          status: MaintenanceStatus.dueSoon,
-          trackingMode: MaintenanceTrackingMode.auto,
-          subtitle: 'Sintered Compound • Brembo Rear',
-          conditionNote: 'Due in 350 mi',
-          icon: Icons.disc_full_rounded,
-        ),
-        MaintenanceItem(
-          id: 'maint-2',
-          name: 'Engine Oil & Filter',
-          category: 'Engine',
-          status: MaintenanceStatus.ok,
-          trackingMode: MaintenanceTrackingMode.auto,
-          statusValueDisplay: 'OK',
-          subtitle: 'Synthetic 15W-50 • Motorex Cross Power',
-          conditionNote: 'Good • 2,180 mi left',
-          trailingNote: 'Changed Jun 04',
-          icon: Icons.opacity_rounded,
-        ),
-        MaintenanceItem(
-          id: 'maint-3',
-          name: 'Chain / Final Drive Shaft',
-          category: 'Drivetrain',
-          status: MaintenanceStatus.diyRec,
-          trackingMode: MaintenanceTrackingMode.auto,
-          statusValueDisplay: 'DIY',
-          subtitle: 'Tension Slack: 32mm (Spec: 30mm)',
-          conditionNote: 'Recommended before pass',
-          icon: Icons.link_rounded,
-        ),
-        MaintenanceItem(
-          id: 'maint-4',
-          name: 'Tire Tread Depth',
-          category: 'Tires',
-          status: MaintenanceStatus.dueSoon,
-          trackingMode: MaintenanceTrackingMode.auto,
-          statusValueDisplay: 'T-45%',
-          subtitle: 'Front: 4.2mm • Rear: 2.8mm',
-          conditionNote: 'Monitor rear',
-          trailingNote: 'Motoz Tractionator',
-          icon: Icons.album_rounded,
-        ),
-        MaintenanceItem(
-          id: 'maint-5',
-          name: 'Fork Seals & Dust Boots',
-          category: 'Suspension',
-          status: MaintenanceStatus.dueSoon,
-          trackingMode: MaintenanceTrackingMode.manual,
-          subtitle: 'WP XPLOR 48mm • Inspect seal weeping',
-          conditionNote: 'Due soon • 12,500 mi',
-          icon: Icons.swap_vert_circle_rounded,
-        ),
-      ];
-
   static const _sentinel = Object();
 
   MaintenanceItem copyWith({

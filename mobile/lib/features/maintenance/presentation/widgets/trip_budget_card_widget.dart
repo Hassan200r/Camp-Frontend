@@ -366,7 +366,9 @@ class TripBudgetCardWidget extends StatelessWidget {
                       children: [
                         Flexible(
                           child: Text(
-                            '🏔 ${tripBudget.tripName}',
+                            tripBudget.tripName.isNotEmpty
+                                ? '🏔 ${tripBudget.tripName}'
+                                : '🏔 Set Trip Budget',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.manrope(

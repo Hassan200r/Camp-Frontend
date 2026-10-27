@@ -39,9 +39,7 @@ class NavigationController extends ChangeNotifier {
         _routingService = routingService ?? OsrmRoutingService(),
         _geocodingService = geocodingService ?? NominatimGeocodingService(),
         _placesPoiService = placesPoiService ?? PlacesPoiService(),
-        _bikeController = bikeController ?? ActiveBikeController.instance {
-    _initDefaultPlaces();
-  }
+        _bikeController = bikeController ?? ActiveBikeController.instance;
 
   final LocationService _locationService;
   final RoutingService _routingService;
@@ -75,8 +73,8 @@ class NavigationController extends ChangeNotifier {
   bool _permissionDenied = false;
   bool _isLocationServiceEnabled = true;
 
-  String _currentLocationName = 'Cascade Alpine Loop';
-  String _currentLocationSubtitle = 'GPS Ready';
+  String _currentLocationName = 'Current Location';
+  String _currentLocationSubtitle = '';
   DateTime? _lastReverseGeocodeTime;
 
   // Off-route tracking
@@ -102,7 +100,7 @@ class NavigationController extends ChangeNotifier {
 
   /// Latitude & Longitude of current position or fallback center.
   LatLng get userLatLng =>
-      _currentPosition?.toLatLng() ?? const LatLng(48.515, -120.690);
+      _currentPosition?.toLatLng() ?? const LatLng(0.0, 0.0);
 
   PlaceSearchResult? get destination => _destination;
   List<PlaceSearchResult> get stops => List.unmodifiable(_stops);
@@ -690,36 +688,6 @@ class NavigationController extends ChangeNotifier {
     if (_recentPlaces.length > 5) {
       _recentPlaces.removeLast();
     }
-  }
-
-  void _initDefaultPlaces() {
-    _savedPlaces.addAll([
-      const PlaceSearchResult(
-        name: 'Timber Ridge Moto Outpost',
-        displayName: 'Timber Ridge Moto Outpost • North Cascades, WA',
-        location: LatLng(48.520, -120.650),
-        category: 'Outpost',
-      ),
-      const PlaceSearchResult(
-        name: 'Cascade Alpine Loop Summit',
-        displayName: 'Cascade Alpine Loop Summit • High Pass',
-        location: LatLng(48.540, -120.620),
-        category: 'Pass',
-      ),
-    ]);
-
-    _recentPlaces.addAll([
-      const PlaceSearchResult(
-        name: 'Bear Creek Pass Rd',
-        displayName: 'Bear Creek Pass Rd, Winthrop, WA',
-        location: LatLng(48.510, -120.670),
-      ),
-      const PlaceSearchResult(
-        name: 'Silver Creek Rest Area',
-        displayName: 'Silver Creek Rest Area, North Cascades Highway',
-        location: LatLng(48.500, -120.700),
-      ),
-    ]);
   }
 
   @override

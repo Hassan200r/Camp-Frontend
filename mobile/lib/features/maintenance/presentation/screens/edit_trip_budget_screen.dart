@@ -12,7 +12,11 @@ import '../../domain/trip_budget_model.dart';
 class EditTripBudgetScreen extends StatefulWidget {
   const EditTripBudgetScreen({
     super.key,
-    this.initialBudget = TripBudget.defaultSampleBudget,
+    this.initialBudget = const TripBudget(
+      tripName: '',
+      capAmount: 0.0,
+      allocatedSoFar: 0.0,
+    ),
   });
 
   final TripBudget initialBudget;

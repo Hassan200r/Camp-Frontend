@@ -9,6 +9,23 @@ class MaintenanceRepositoryLocal implements MaintenanceRepository {
   final LocalStore? _explicitStore;
   LocalStore get _store => _explicitStore ?? LocalStore.instance;
 
+  /// Known IDs of legacy seeded demo maintenance items.
+  static const Set<String> seededMaintenanceIds = {
+    'maint-1',
+    'maint-2',
+    'maint-3',
+    'maint-4',
+    'maint-5',
+  };
+
+  /// Determines whether a maintenance item matches the legacy demo seed records.
+  /// Matches strictly by exact seed ID, never by item name alone.
+  /// A real maintenance item named "Rear Brake Pad Replacement" or "Engine Oil & Filter"
+  /// entered by the rider must survive.
+  static bool isSeededMaintenanceItem(MaintenanceItem item) {
+    return seededMaintenanceIds.contains(item.id.trim());
+  }
+
   @override
   Future<List<MaintenanceItem>> loadMaintenanceItems() async {
     final json = await _store.readJson(LocalStore.keyMaintenanceItems);
@@ -24,6 +41,14 @@ class MaintenanceRepositoryLocal implements MaintenanceRepository {
       if (raw is Map) {
         final map = raw is Map<String, dynamic> ? raw : raw.cast<String, dynamic>();
         final item = MaintenanceItem.fromJson(map);
+
+        // One-time cleanup: remove saved maintenance items with the seeded IDs or exact names.
+        // Items the rider entered are never touched.
+        if (isSeededMaintenanceItem(item)) {
+          needsMigration = true;
+          continue;
+        }
+
         if (item.id.isEmpty || map['id'] == null || (map['id'] as String).isEmpty) {
           needsMigration = true;
           items.add(item.copyWith(id: 'maint_${DateTime.now().millisecondsSinceEpoch}_$i'));

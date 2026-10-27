@@ -1,3 +1,4 @@
+import 'package:camp/features/dashboard/controllers/profile_controller.dart';
 import 'package:camp/features/dashboard/presentation/screens/profile_screen.dart';
 import 'package:camp/features/maintenance/controllers/post_ride_report_controller.dart';
 import 'package:camp/features/maintenance/domain/post_ride_report.dart';
@@ -13,6 +14,11 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
     SettingsController.instance.reset();
+    ProfileController.instance.updateProfile(
+      fullName: 'Test Rider',
+      username: 'testrider',
+      email: 'test@example.com',
+    );
     PostRideReportController.instance =
         PostRideReportController(repository: FakeRideReportRepository());
     PostRideReportController.instance.addReport(
@@ -50,7 +56,7 @@ void main() {
     expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
 
     // 2. Cockpit Hero Card
-    expect(find.text('Elena Vance'), findsOneWidget);
+    expect(find.text('Test Rider'), findsOneWidget);
     expect(find.text('ADV PRO'), findsNothing);
     expect(find.text('Edit Profile'), findsOneWidget);
     expect(find.byIcon(Icons.qr_code_2_rounded), findsOneWidget);

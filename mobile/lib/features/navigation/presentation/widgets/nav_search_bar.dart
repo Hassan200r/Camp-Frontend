@@ -180,7 +180,7 @@ class _NavSearchBarState extends State<NavSearchBar> {
                         ? firstName[0].toUpperCase()
                         : (profile.fullName.isNotEmpty
                             ? profile.fullName[0].toUpperCase()
-                            : 'R');
+                            : '');
 
                     Widget avatarChild;
                     if (profile.avatarPath != null &&
@@ -196,16 +196,22 @@ class _NavSearchBarState extends State<NavSearchBar> {
                           ),
                         );
                       } else {
-                        avatarChild = Text(
-                          initial,
-                          style: const TextStyle(
-                            color: AppColors.tacticalOrange,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        );
+                        avatarChild = initial.isNotEmpty
+                            ? Text(
+                                initial,
+                                style: const TextStyle(
+                                  color: AppColors.tacticalOrange,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.person_outline_rounded,
+                                color: AppColors.tacticalOrange,
+                                size: 20,
+                              );
                       }
-                    } else {
+                    } else if (initial.isNotEmpty) {
                       avatarChild = Text(
                         initial,
                         style: const TextStyle(
@@ -213,6 +219,12 @@ class _NavSearchBarState extends State<NavSearchBar> {
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
                         ),
+                      );
+                    } else {
+                      avatarChild = const Icon(
+                        Icons.person_outline_rounded,
+                        color: AppColors.tacticalOrange,
+                        size: 20,
                       );
                     }
 
@@ -280,6 +292,21 @@ class _NavSearchBarState extends State<NavSearchBar> {
                       _buildSectionHeader('RECENT SEARCHES'),
                       ...widget.controller.recentPlaces.map(_buildPlaceTile),
                     ],
+                    if (widget.controller.savedPlaces.isEmpty &&
+                        widget.controller.recentPlaces.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                        child: Center(
+                          child: Text(
+                            'No saved places or recent searches',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.mutedLight,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ],
               ),

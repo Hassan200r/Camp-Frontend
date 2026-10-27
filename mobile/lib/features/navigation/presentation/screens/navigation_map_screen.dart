@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/camp_bottom_nav.dart';
 import '../../controllers/navigation_controller.dart';
-import '../../domain/geocoding_service.dart';
 import '../../domain/location_service.dart';
 import '../widgets/nav_active_bottom_bar.dart';
 import '../widgets/nav_active_navigation_overlay.dart';
@@ -22,47 +21,6 @@ import '../widgets/nav_search_bar.dart';
 import '../widgets/nav_turn_banner.dart';
 
 /// Preset locations for quick navigation previews.
-class LocationPreset {
-  const LocationPreset({
-    required this.name,
-    required this.subtitle,
-    required this.coordinates,
-    required this.emoji,
-  });
-
-  final String name;
-  final String subtitle;
-  final LatLng coordinates;
-  final String emoji;
-}
-
-const List<LocationPreset> kLocationPresets = [
-  LocationPreset(
-    name: 'Cascade Alpine Loop',
-    subtitle: 'North Cascades, WA • High Mountain Pass',
-    coordinates: LatLng(48.515, -120.690),
-    emoji: '🏔️',
-  ),
-  LocationPreset(
-    name: 'Karakoram Highway Pass',
-    subtitle: 'Khunjerab Border • 15,397 ft Peak',
-    coordinates: LatLng(36.850, 75.430),
-    emoji: '⛰️',
-  ),
-  LocationPreset(
-    name: 'Stelvio Pass (Alps)',
-    subtitle: 'Eastern Alps, Italy • 48 Hairpin Turns',
-    coordinates: LatLng(46.529, 10.453),
-    emoji: '❄️',
-  ),
-  LocationPreset(
-    name: 'Moab Slickrock Trail',
-    subtitle: 'Utah, USA • Red Rock Desert Adventure',
-    coordinates: LatLng(38.573, -109.549),
-    emoji: '🏜️',
-  ),
-];
-
 /// Rebuilt Navigation Map Screen matching the 3-state design:
 /// State 1: Default map with search, filter chips, controls & "Your Location" sheet
 /// State 2: Route preview with waypoints, swap, fuel estimate & Start button
@@ -117,17 +75,19 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
   }
 
   void _openDefaultDirections() {
-    // Default to the first saved place or a scenic outpost
-    final destination = _controller.savedPlaces.isNotEmpty
-        ? _controller.savedPlaces.first
-        : const PlaceSearchResult(
-            name: 'Timber Ridge Moto Outpost',
-            displayName: 'Timber Ridge Moto Outpost • North Cascades, WA',
-            location: LatLng(48.520, -120.650),
-          );
-
-    _controller.openRoutePreview(destination);
-    _fitRouteBounds();
+    if (_controller.savedPlaces.isNotEmpty) {
+      final destination = _controller.savedPlaces.first;
+      _controller.openRoutePreview(destination);
+      _fitRouteBounds();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Search or select a destination to preview route'),
+          backgroundColor: AppColors.darkCharcoal,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _fitRouteBounds() {

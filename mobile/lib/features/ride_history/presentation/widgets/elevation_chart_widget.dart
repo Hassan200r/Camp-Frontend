@@ -33,17 +33,6 @@ class ElevationChartWidget extends StatelessWidget {
   final String midLabel;
   final String descentLabel;
 
-  static const List<ElevationPoint> defaultPoints = [
-    ElevationPoint(0.00, 2100),
-    ElevationPoint(0.15, 2400),
-    ElevationPoint(0.30, 3100),
-    ElevationPoint(0.45, 3700),
-    ElevationPoint(0.55, 4173),
-    ElevationPoint(0.70, 3500),
-    ElevationPoint(0.85, 2100),
-    ElevationPoint(1.00, 1265),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Column(

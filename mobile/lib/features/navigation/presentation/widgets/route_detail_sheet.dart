@@ -9,7 +9,7 @@ class RouteDetailSheet extends StatelessWidget {
   const RouteDetailSheet({
     super.key,
     this.isExpanded = true,
-    this.title = 'Cascade Alpine Loop',
+    this.title = 'Route Details',
     this.userRole = 'driver',
     this.selectedMechanic,
     this.selectedIncident,

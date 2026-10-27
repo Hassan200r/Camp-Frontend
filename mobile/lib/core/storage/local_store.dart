@@ -122,7 +122,7 @@ class LocalStore {
         !p.containsKey(schemaVersionKey);
   }
 
-  /// Mark first-run seeding as completed in queued order.
+  /// Mark first-run initialization as completed in queued order.
   Future<void> markFirstRunCompleted() {
     return _enqueueWrite(() async {
       final p = await prefs;

@@ -107,8 +107,8 @@ class _TopographicMapCanvasState extends State<TopographicMapCanvas>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    _centerCoord = widget.initialCenter ?? const LatLng(48.515, -120.690);
-    _locationTitle = widget.locationName ?? 'Cascade Alpine Loop';
+    _centerCoord = widget.initialCenter ?? const LatLng(0.0, 0.0);
+    _locationTitle = widget.locationName ?? '';
   }
 
   @override

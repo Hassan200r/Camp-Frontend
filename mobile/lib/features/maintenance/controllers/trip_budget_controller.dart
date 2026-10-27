@@ -26,7 +26,11 @@ class TripBudgetController extends ChangeNotifier {
   @visibleForTesting
   set repository(FinanceRepository repo) => _repository = repo;
 
-  TripBudget _budget = TripBudget.defaultSampleBudget;
+  TripBudget _budget = const TripBudget(
+    tripName: '',
+    capAmount: 0.0,
+    allocatedSoFar: 0.0,
+  );
   final List<Expense> _expenses = [];
 
   final Map<String, MaintenanceItem> _cachedDeletedItems = {};
@@ -36,21 +40,12 @@ class TripBudgetController extends ChangeNotifier {
   List<Expense> get expenses => List.unmodifiable(_expenses);
 
   void _initializeDefaults() {
-    if (kDebugMode) {
-      _budget = TripBudget.defaultSampleBudget;
-      _expenses.clear();
-      _expenses.addAll(Expense.defaultSampleExpenses);
-      _budget = _budget.copyWith(
-        allocatedSoFar: _expenses.fold<double>(0.0, (s, e) => s + e.amount),
-      );
-    } else {
-      _budget = const TripBudget(
-        tripName: 'Trip Budget',
-        capAmount: 0.0,
-        allocatedSoFar: 0.0,
-      );
-      _expenses.clear();
-    }
+    _budget = const TripBudget(
+      tripName: '',
+      capAmount: 0.0,
+      allocatedSoFar: 0.0,
+    );
+    _expenses.clear();
   }
 
   /// Update the trip budget.
@@ -281,7 +276,7 @@ class TripBudgetController extends ChangeNotifier {
     save();
   }
 
-  /// Reset to default sample values.
+  /// Reset to empty budget.
   void reset() {
     _initializeDefaults();
     notifyListeners();
@@ -314,7 +309,8 @@ class TripBudgetController extends ChangeNotifier {
 
     if (isFirst) {
       _initializeDefaults();
-      await save(repo);
+      await repo.markFirstRunCompleted();
+      notifyListeners();
       return;
     }
 

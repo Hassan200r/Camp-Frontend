@@ -8,6 +8,9 @@ import 'package:camp/features/navigation/domain/routing_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'helpers/fake_location_service.dart';
+import 'helpers/fake_routing_service.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

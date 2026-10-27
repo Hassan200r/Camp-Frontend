@@ -11,6 +11,30 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/fake_ride_report_repository.dart';
 
+const testBike1 = Bike(
+  id: 'test-bike-1',
+  make: 'BMW',
+  modelName: 'R 1250 GS Adventure',
+  modelYear: 2023,
+  odometerKm: 14200,
+  displacement: 1254,
+  bikeType: 'Adventure',
+  fuelSystem: FuelSystem.efi,
+  ridingTerrain: ['City', 'Highway', 'Off-road', 'Mountain'],
+);
+
+const testBike2 = Bike(
+  id: 'test-bike-2',
+  make: 'Honda',
+  modelName: 'Rebel 500',
+  modelYear: 2021,
+  odometerKm: 8500,
+  displacement: 471,
+  bikeType: 'Cruiser',
+  fuelSystem: FuelSystem.carburetor,
+  carburetorType: 'Keihin CVK',
+);
+
 void main() {
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -26,32 +50,35 @@ void main() {
   });
 
   group('ActiveBikeController Unit Tests', () {
-    test('Initializes with default fleet and active bike', () {
+    test('Initializes with empty fleet on reset', () {
       final controller = ActiveBikeController.instance;
-      expect(controller.bikes.length, greaterThanOrEqualTo(2));
-      expect(controller.activeBikeId, 'bike-bmw-1250');
-      expect(controller.activeBike?.modelName, 'R 1250 GS Adventure');
-      expect(controller.isActive('bike-bmw-1250'), isTrue);
-      expect(controller.isActive('bike-rebel-500'), isFalse);
+      expect(controller.bikes, isEmpty);
+      expect(controller.activeBikeId, isNull);
     });
 
     test('setActiveBike changes the active rig', () {
       final controller = ActiveBikeController.instance;
-      controller.setActiveBike('bike-rebel-500');
-      expect(controller.activeBikeId, 'bike-rebel-500');
+      controller.addBike(testBike1, setActive: true);
+      controller.addBike(testBike2);
+      expect(controller.activeBikeId, 'test-bike-1');
+
+      controller.setActiveBike('test-bike-2');
+      expect(controller.activeBikeId, 'test-bike-2');
       expect(controller.activeBike?.modelName, 'Rebel 500');
-      expect(controller.isActive('bike-rebel-500'), isTrue);
-      expect(controller.isActive('bike-bmw-1250'), isFalse);
+      expect(controller.isActive('test-bike-2'), isTrue);
+      expect(controller.isActive('test-bike-1'), isFalse);
     });
 
     test('removeBike removes the bike and reassigns active rig if needed', () {
       final controller = ActiveBikeController.instance;
-      expect(controller.bikes.any((b) => b.id == 'bike-bmw-1250'), isTrue);
+      controller.addBike(testBike1, setActive: true);
+      controller.addBike(testBike2);
+      expect(controller.bikes.any((b) => b.id == 'test-bike-1'), isTrue);
 
-      controller.removeBike('bike-bmw-1250');
-      expect(controller.bikes.any((b) => b.id == 'bike-bmw-1250'), isFalse);
-      expect(controller.activeBikeId, 'bike-rebel-500');
-      expect(controller.activeBike?.id, 'bike-rebel-500');
+      controller.removeBike('test-bike-1');
+      expect(controller.bikes.any((b) => b.id == 'test-bike-1'), isFalse);
+      expect(controller.activeBikeId, 'test-bike-2');
+      expect(controller.activeBike?.id, 'test-bike-2');
     });
   });
 
@@ -62,6 +89,7 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
+      ActiveBikeController.instance.addBike(testBike1, setActive: true);
       final testBike = ActiveBikeController.instance.activeBike!;
       PostRideReportController.instance.addReport(
         PostRideReport(
@@ -137,12 +165,12 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      final standbyBike = ActiveBikeController.instance
-          .bikes
-          .firstWhere((b) => b.fuelSystem == FuelSystem.carburetor);
+      ActiveBikeController.instance.addBike(testBike1, setActive: true);
+      ActiveBikeController.instance.addBike(testBike2);
+      const standbyBike = testBike2;
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: BikeProfileScreen(bike: standbyBike),
         ),
       );
@@ -161,12 +189,12 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      final standbyBike = ActiveBikeController.instance
-          .bikes
-          .firstWhere((b) => b.id == 'bike-rebel-500');
+      ActiveBikeController.instance.addBike(testBike1, setActive: true);
+      ActiveBikeController.instance.addBike(testBike2);
+      const standbyBike = testBike2;
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: BikeProfileScreen(bike: standbyBike),
         ),
       );
@@ -176,8 +204,8 @@ void main() {
       await tester.tap(find.text('Set as Active Rig'));
       await tester.pumpAndSettle();
 
-      // Controller should now have bike-rebel-500 as active
-      expect(ActiveBikeController.instance.activeBikeId, 'bike-rebel-500');
+      // Controller should now have test-bike-2 as active
+      expect(ActiveBikeController.instance.activeBikeId, 'test-bike-2');
       expect(find.text('Currently Active Rig'), findsOneWidget);
       expect(find.text('ACTIVE RIG'), findsWidgets);
     });
@@ -188,10 +216,11 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      final bike = ActiveBikeController.instance.activeBike!;
+      ActiveBikeController.instance.addBike(testBike1, setActive: true);
+      const bike = testBike1;
 
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: BikeProfileScreen(bike: bike),
         ),
       );
@@ -219,6 +248,8 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.resetPhysicalSize);
 
+      ActiveBikeController.instance.addBike(testBike1, setActive: true);
+
       await tester.pumpWidget(
         const MaterialApp(
           home: GarageScreen(),
@@ -242,6 +273,8 @@ void main() {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.resetPhysicalSize);
+
+      ActiveBikeController.instance.addBike(testBike1, setActive: true);
 
       await tester.pumpWidget(
         const MaterialApp(

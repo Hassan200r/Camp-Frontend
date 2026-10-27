@@ -223,7 +223,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context, _) {
         final profile = ProfileController.instance;
         final avatarPath = profile.avatarPath;
-        final displayName = profile.fullName;
+        final displayName = profile.fullName.isNotEmpty ? profile.fullName : 'Welcome back';
         final firstName = profile.firstName;
         final activeBike = ActiveBikeController.instance.activeBike;
         final bikeSubtitle = activeBike != null
@@ -261,16 +261,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: avatarPath != null && File(avatarPath).existsSync()
                         ? Image.file(File(avatarPath), fit: BoxFit.cover)
                         : Center(
-                            child: Text(
-                              firstName.isNotEmpty
-                                  ? firstName[0].toUpperCase()
-                                  : 'R',
-                              style: GoogleFonts.manrope(
-                                color: const Color(0xFFFDE68A),
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
+                            child: firstName.isNotEmpty
+                                ? Text(
+                                    firstName[0].toUpperCase(),
+                                    style: GoogleFonts.manrope(
+                                      color: const Color(0xFFFDE68A),
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.person_rounded,
+                                    color: Color(0xFFFDE68A),
+                                    size: 24,
+                                  ),
                           ),
                   ),
                 ),

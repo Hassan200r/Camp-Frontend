@@ -1171,7 +1171,7 @@ class _BikeDetailsScreenState extends State<BikeDetailsScreen> {
           LabeledTextField(
             label: 'License Plate',
             controller: _plateNumberController,
-            placeholder: 'e.g. LEB-20-4567',
+            placeholder: 'e.g. ABC-1234',
             helperText: 'Shown on Emergency QR card and rescue telemetry',
             errorText: _submittedOnce ? _plateError : null,
             textCapitalization: TextCapitalization.characters,

@@ -16,6 +16,18 @@ class BikeRepositoryLocal implements BikeRepository {
   @override
   Future<void> markFirstRunCompleted() => _store.markFirstRunCompleted();
 
+  /// Known IDs of legacy seeded demo bikes.
+  static const Set<String> seededBikeIds = {
+    'bike-bmw-1250',
+    'bike-rebel-500',
+  };
+
+  /// Determines whether a bike record matches the legacy demo seed fleet.
+  /// Matches strictly by exact seed ID, never by nickname, plate, or vin alone.
+  static bool isSeededBike(Bike bike) {
+    return seededBikeIds.contains(bike.id.trim());
+  }
+
   @override
   Future<List<Bike>> loadBikes() async {
     final isFirst = await _store.isFirstRun();
@@ -42,6 +54,14 @@ class BikeRepositoryLocal implements BikeRepository {
       if (raw is Map) {
         final map = raw is Map<String, dynamic> ? raw : raw.cast<String, dynamic>();
         final bike = Bike.fromJson(map);
+
+        // One-time cleanup: remove saved bikes matching the seeded IDs or exact attributes.
+        // Bikes the rider entered are never touched.
+        if (isSeededBike(bike)) {
+          needsMigration = true;
+          continue;
+        }
+
         if (bike.id.isEmpty || map['id'] == null || (map['id'] as String).isEmpty) {
           needsMigration = true;
           bikes.add(bike.copyWith(id: 'bike_${DateTime.now().millisecondsSinceEpoch}_$i'));
@@ -56,6 +76,10 @@ class BikeRepositoryLocal implements BikeRepository {
 
     if (needsMigration) {
       await saveBikes(bikes);
+      final activeId = await loadActiveBikeId();
+      if (activeId != null && seededBikeIds.contains(activeId)) {
+        await saveActiveBikeId(bikes.isNotEmpty ? bikes.first.id : null);
+      }
     }
 
     return bikes;
@@ -82,11 +106,17 @@ class BikeRepositoryLocal implements BikeRepository {
   Future<String?> loadActiveBikeId() async {
     final raw = await _store.readString(LocalStore.keyActiveBikeId);
     if (raw == null || raw.isEmpty) return null;
+    String activeId = raw;
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is String) return decoded;
+      if (decoded is String) activeId = decoded;
     } catch (_) {}
-    return raw;
+
+    if (seededBikeIds.contains(activeId)) {
+      await saveActiveBikeId(null);
+      return null;
+    }
+    return activeId;
   }
 
   @override

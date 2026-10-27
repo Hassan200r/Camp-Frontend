@@ -9,6 +9,7 @@ import 'package:camp/features/garage/services/fuel_tracker_service.dart';
 import 'package:camp/features/navigation/domain/location_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'helpers/fake_location_service.dart';
 
 class TestFuelNotificationService extends FuelNotificationService {
   int alertCount = 0;

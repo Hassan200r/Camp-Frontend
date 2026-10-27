@@ -287,7 +287,7 @@ class Bike {
   /// Optional rider nickname for the motorcycle (e.g. Black Beast).
   final String? nickname;
 
-  /// Vehicle registration plate number (e.g. "LEB-20-4567").
+  /// Vehicle registration plate number (e.g. "ABC-1234").
   final String? plateNumber;
 
   /// Vehicle body colour (e.g. "Grand Prix Red").

@@ -74,11 +74,37 @@ void _seedFakeReportsForBmw() {
   }
 }
 
+const testBmwBike = Bike(
+  id: 'bike-bmw-1250',
+  make: 'BMW',
+  modelName: 'R 1250 GS Adventure',
+  modelYear: 2023,
+  odometerKm: 14200,
+  displacement: 1254,
+  bikeType: 'Adventure',
+  fuelSystem: FuelSystem.efi,
+  ridingTerrain: ['City', 'Highway', 'Off-road', 'Mountain'],
+);
+
+const testRebelBike = Bike(
+  id: 'bike-rebel-500',
+  make: 'Honda',
+  modelName: 'Rebel 500',
+  modelYear: 2021,
+  odometerKm: 8500,
+  displacement: 471,
+  bikeType: 'Cruiser',
+  fuelSystem: FuelSystem.carburetor,
+  carburetorType: 'Keihin CVK',
+);
+
 void main() {
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
     ActiveBikeController.instance.reset();
+    ActiveBikeController.instance.addBike(testBmwBike, setActive: true);
+    ActiveBikeController.instance.addBike(testRebelBike);
     PostRideReportController.instance = PostRideReportController(
       repository: FakeRideReportRepository(),
     );

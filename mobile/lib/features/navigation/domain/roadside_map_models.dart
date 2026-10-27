@@ -158,115 +158,13 @@ class RoadsideSectorDataset {
   final List<RoadsideSupplyCache> supplyCaches;
   final List<LatLng> primaryRescueRoute;
 
-  /// Dynamically computes realistic mechanics, stranded vehicles, and emergency rescue routes around ANY target coordinate!
+  /// Sector dataset initialization; returns empty lists when no live verified units are in sector.
   static RoadsideSectorDataset generate(LatLng center, String sectorName) {
-    // 1. Mobile Rescuers & Certified Garages
-    final mechanics = [
-      RoadsideMechanic(
-        id: 'mech-1',
-        name: 'Highland Mobile Rescue & Spares',
-        vehicleType: 'Heavy 4x4 Support Rig & Mobile Pit',
-        distance: '3.4 km away',
-        eta: '8 min response',
-        rating: 4.9,
-        reviews: 142,
-        phone: '',
-        location: LatLng(center.latitude - 0.038, center.longitude - 0.052),
-        isMobileVan: true,
-        isEmergencyVerified: true,
-        capabilities: [
-          'Tire Plug & Tube Change',
-          'Battery Boost 12V',
-          'Field TIG Welding',
-          'High-Altitude Carb Tuning',
-        ],
-        supportedBikes: ['KTM Adventure', 'BMW GS', 'Honda Transalp', 'Yamaha'],
-        openHours: '24/7 EMERGENCY DISPATCH',
-      ),
-      RoadsideMechanic(
-        id: 'mech-2',
-        name: 'Peak Moto Workshop & Recovery Base',
-        vehicleType: 'Permanent Service Center & Tow Rig',
-        distance: '6.8 km away',
-        eta: '15 min response',
-        rating: 4.8,
-        reviews: 98,
-        phone: '',
-        location: LatLng(center.latitude + 0.042, center.longitude + 0.065),
-        isMobileVan: false,
-        isEmergencyVerified: true,
-        capabilities: [
-          'Hydraulic Tire Changer',
-          'Diagnostic Computer Tool',
-          'Flatbed Motorcycle Tow',
-          'Clutch & Brake Hydraulics',
-        ],
-        supportedBikes: ['All Dual Sports', 'Ducati DesertX', 'Royal Enfield'],
-        openHours: 'OPEN NOW (Closes 9:00 PM)',
-      ),
-      RoadsideMechanic(
-        id: 'mech-3',
-        name: 'Apex Rapid-Response Dual-Sport Tech',
-        vehicleType: 'Enduro Fast-Response Motorcycle',
-        distance: '1.9 km away',
-        eta: '5 min response',
-        rating: 5.0,
-        reviews: 56,
-        phone: '',
-        location: LatLng(center.latitude + 0.018, center.longitude - 0.032),
-        isMobileVan: true,
-        isEmergencyVerified: true,
-        capabilities: [
-          'Puncture Quick Fix',
-          'Cable & Chain Master Links',
-          'Fuel Transfer Canister',
-          'Handlebar & Lever Straightening',
-        ],
-        supportedBikes: ['Universal Single & Twin Cylinders'],
-        openHours: 'ACTIVE ON PATROL',
-      ),
-    ];
-
-    // 2. Stranded Incidents (No fake riders; empty until real beacons exist)
-    const strandedIncidents = <StrandedIncident>[];
-
-    // 3. 24/7 Roadside Supply & Tools Depots
-    final supplyCaches = [
-      RoadsideSupplyCache(
-        id: 'cache-1',
-        name: 'Pass 91-Octane & Spares Depot',
-        subtitle: '24/7 High-Altitude Pitstop • MP 42',
-        location: LatLng(center.latitude - 0.012, center.longitude - 0.008),
-        fuelTypes: '91 Octane Non-Ethanol, Diesel, Water',
-        availableTools: [
-          'Compressed Air (120 psi)',
-          'Metric Socket Set',
-          'Heavy-Duty Tube Patch Kits',
-          '10W-50 Synthetic Oil',
-        ],
-      ),
-      RoadsideSupplyCache(
-        id: 'cache-2',
-        name: 'Alpine Ridge Emergency Tool Chest',
-        subtitle: 'Community Trail Box • VHF Ch 4',
-        location: LatLng(center.latitude + 0.038, center.longitude + 0.048),
-        fuelTypes: 'Emergency 1-Gal Canisters only',
-        availableTools: [
-          'Tire Spoons & Bead Buddy',
-          'Tow Strap (20ft 10,000 lbs)',
-          'First Aid Trauma Kit',
-        ],
-      ),
-    ];
-
-    // 4. Primary Rescue Route (empty when no active incident)
-    const primaryRoute = <LatLng>[];
-
-    return RoadsideSectorDataset(
-      mechanics: mechanics,
-      strandedIncidents: strandedIncidents,
-      supplyCaches: supplyCaches,
-      primaryRescueRoute: primaryRoute,
+    return const RoadsideSectorDataset(
+      mechanics: [],
+      strandedIncidents: [],
+      supplyCaches: [],
+      primaryRescueRoute: [],
     );
   }
 }

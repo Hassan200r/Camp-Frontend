@@ -3,8 +3,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
-import 'roadside_map_models.dart';
-
 /// Supported Points of Interest categories.
 enum PoiType {
   mechanic,
@@ -49,24 +47,9 @@ class PlacesPoiService {
   final Map<String, List<PoiMarker>> _fuelCache = {};
   final Map<String, List<PoiMarker>> _restStopCache = {};
 
-  /// Load mechanics from the verified CAMP mechanics dataset around the given coordinates.
+  /// Load mechanics from verified dataset around the given coordinates.
   List<PoiMarker> fetchNearbyMechanics(LatLng center, String centerName) {
-    try {
-      final dataset = RoadsideSectorDataset.generate(center, centerName);
-      return dataset.mechanics.map((m) {
-        return PoiMarker(
-          id: m.id,
-          name: m.name,
-          type: PoiType.mechanic,
-          location: m.location,
-          subtitle: '${m.vehicleType} • ${m.distance}',
-          phone: m.phone,
-          rating: m.rating,
-        );
-      }).toList();
-    } catch (_) {
-      return [];
-    }
+    return const [];
   }
 
   /// Fetch fuel stations via OpenStreetMap Overpass API for the given center.
@@ -124,18 +107,7 @@ out 10;
       }
     } catch (_) {}
 
-    // Fallback: If network is offline or Overpass fails, generate a realistic local station
-    final fallback = [
-      PoiMarker(
-        id: 'fuel_fallback_1',
-        name: 'Peak Ridge Fuel & Mart',
-        type: PoiType.fuel,
-        location: LatLng(center.latitude + 0.012, center.longitude + 0.015),
-        subtitle: 'High Octane 91/93 available',
-      ),
-    ];
-    _fuelCache[cacheKey] = fallback;
-    return fallback;
+    return const [];
   }
 
   /// Fetch rest stops via OpenStreetMap Overpass API for the given center.
@@ -195,17 +167,6 @@ out 10;
       }
     } catch (_) {}
 
-    // Fallback: If network is offline or Overpass fails
-    final fallback = [
-      PoiMarker(
-        id: 'rest_fallback_1',
-        name: 'Silver Creek Rest Area & Overlook',
-        type: PoiType.restStop,
-        location: LatLng(center.latitude - 0.018, center.longitude + 0.022),
-        subtitle: 'Water • Restrooms • Scenic View',
-      ),
-    ];
-    _restStopCache[cacheKey] = fallback;
-    return fallback;
+    return const [];
   }
 }

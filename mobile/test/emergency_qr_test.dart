@@ -12,6 +12,25 @@ import 'package:camp/features/settings/controllers/settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+const testBikeWithPlate = Bike(
+  id: 'bike-1',
+  make: 'BMW',
+  modelName: 'R 1250 GS Adventure',
+  modelYear: 2023,
+  odometerKm: 14820,
+  plateNumber: 'LEB-20-4567',
+  color: 'Triple Black',
+);
+
+const testBikeNoPlate = Bike(
+  id: 'bike-2',
+  make: 'Honda',
+  modelName: 'Africa Twin',
+  modelYear: 2024,
+  odometerKm: 4200,
+  color: 'Grand Prix Red',
+);
+
 void main() {
   setUp(() {
     final store = LocalStore();
@@ -22,24 +41,6 @@ void main() {
   });
 
   group('1. Emergency QR Payload Generation', () {
-    const testBikeWithPlate = Bike(
-      id: 'bike-1',
-      make: 'BMW',
-      modelName: 'R 1250 GS Adventure',
-      modelYear: 2023,
-      odometerKm: 14820,
-      plateNumber: 'LEB-20-4567',
-      color: 'Triple Black',
-    );
-
-    const testBikeNoPlate = Bike(
-      id: 'bike-2',
-      make: 'Honda',
-      modelName: 'Africa Twin',
-      modelYear: 2024,
-      odometerKm: 4200,
-      color: 'Grand Prix Red',
-    );
 
     test('Payload WITH a bike and plate includes "Bike: <make model>, <plate>"', () {
       final result = EmergencyQrPayloadBuilder.build(
@@ -286,10 +287,11 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.resetPhysicalSize);
 
+      ActiveBikeController.instance.addBike(testBikeWithPlate, setActive: true);
+
       await tester.pumpWidget(buildQrApp());
       await tester.pumpAndSettle();
 
-      // BMW R 1250 GS is active in default fleet with LEB-20-4567 plate
       expect(find.text('Bike details in QR'), findsOneWidget);
       expect(find.text('BMW R 1250 GS Adventure (2023)'), findsOneWidget);
       expect(find.text('LEB-20-4567'), findsOneWidget);
@@ -300,6 +302,8 @@ void main() {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.resetPhysicalSize);
+
+      ActiveBikeController.instance.addBike(testBikeWithPlate, setActive: true);
 
       await tester.pumpWidget(buildQrApp());
       await tester.pumpAndSettle();

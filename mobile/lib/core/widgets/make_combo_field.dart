@@ -24,7 +24,7 @@ class MakeComboField extends StatefulWidget {
     this.onUserEdited,
   });
 
-  /// The current make value (used to seed the text field on first build).
+  /// The current make value (used to initialize the text field on first build).
   final String initialValue;
 
   /// Called whenever the canonical make string changes.
