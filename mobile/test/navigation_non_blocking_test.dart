@@ -43,12 +43,39 @@ Widget _wrapTestApp({
   );
 }
 
+/// Test-only subclass under test/ that injects fakes through the constructor
+class _TestNavigationController extends NavigationController {
+  _TestNavigationController({
+    required this.fakeLocationService,
+    required this.fakeRoutingService,
+    required this.fakeGeocodingService,
+  }) : super(
+          locationService: fakeLocationService,
+          routingService: fakeRoutingService,
+          geocodingService: fakeGeocodingService,
+        );
+
+  final FakeLocationService fakeLocationService;
+  final FakeRoutingService fakeRoutingService;
+  final FakeGeocodingService fakeGeocodingService;
+
+  Future<void> startTestNavigation({
+    required RouteResult route,
+    required PlaceSearchResult destination,
+  }) async {
+    fakeRoutingService.cannedResult = route;
+    await openRoutePreview(destination);
+    startNavigation();
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late FakeLocationService fakeLocation;
   late FakeRoutingService fakeRouting;
   late FakeGeocodingService fakeGeocoding;
+  late _TestNavigationController testController;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -59,16 +86,18 @@ void main() {
     fakeRouting = FakeRoutingService();
     fakeGeocoding = FakeGeocodingService();
 
-    NavigationController.resetWith(
-      locationService: fakeLocation,
-      routingService: fakeRouting,
-      geocodingService: fakeGeocoding,
+    testController = _TestNavigationController(
+      fakeLocationService: fakeLocation,
+      fakeRoutingService: fakeRouting,
+      fakeGeocodingService: fakeGeocoding,
     );
+    NavigationController.instance = testController;
   });
 
   tearDown(() {
-    NavigationController.instance.resetForTesting();
+    testController.stopNavigation();
     fakeLocation.dispose();
+    NavigationController.instance = NavigationController();
   });
 
   group('Navigation Non-Blocking & Slim Bar Tests', () {
@@ -79,9 +108,7 @@ void main() {
         tester.view.devicePixelRatio = 2.0;
         addTearDown(tester.view.resetPhysicalSize);
 
-        final controller = NavigationController.instance;
-
-        // Set up active navigation with 24.3 km remaining
+        // Set up active navigation with 24.3 km remaining via real preview + start flow
         const testDest = PlaceSearchResult(
           name: 'Babusar Top',
           displayName: 'Babusar Top Pass',
@@ -93,9 +120,9 @@ void main() {
           durationSeconds: 1800,
           steps: [],
         );
-        controller.setNavigatingForTesting(
-          testRoute: testRoute,
-          testDestination: testDest,
+        await testController.startTestNavigation(
+          route: testRoute,
+          destination: testDest,
         );
 
         // Open Maps screen on top of Home screen
@@ -104,7 +131,7 @@ void main() {
             home: const Scaffold(body: Text('Previous Screen')),
             routes: {
               CampRoutes.navigationMap: (ctx) => NavigationMapScreen(
-                    controller: controller,
+                    controller: testController,
                     locationService: fakeLocation,
                     tileProvider: _FakeTileProvider(),
                   ),
@@ -121,7 +148,7 @@ void main() {
 
         // Maps direction screen is visible and navigating
         expect(find.byType(NavigationMapScreen), findsOneWidget);
-        expect(controller.state, NavigationState.navigating);
+        expect(testController.state, NavigationState.navigating);
 
         // Simulate Back button pop
         final mapContext = tester.element(find.byType(NavigationMapScreen));
@@ -134,7 +161,7 @@ void main() {
 
         // Previous screen is restored and Navigation state is strictly kept active
         expect(find.text('Previous Screen'), findsOneWidget);
-        expect(controller.state, NavigationState.navigating);
+        expect(testController.state, NavigationState.navigating);
       },
     );
 
@@ -145,7 +172,6 @@ void main() {
         tester.view.devicePixelRatio = 2.0;
         addTearDown(tester.view.resetPhysicalSize);
 
-        final controller = NavigationController.instance;
         const testDest = PlaceSearchResult(
           name: 'Naran Valley',
           displayName: 'Naran Valley Road',
@@ -157,15 +183,15 @@ void main() {
           durationSeconds: 1200,
           steps: [],
         );
-        controller.setNavigatingForTesting(
-          testRoute: testRoute,
-          testDestination: testDest,
+        await testController.startTestNavigation(
+          route: testRoute,
+          destination: testDest,
         );
 
         await tester.pumpWidget(
           _wrapTestApp(
             home: NavigationMapScreen(
-              controller: controller,
+              controller: testController,
               locationService: fakeLocation,
               tileProvider: _FakeTileProvider(),
             ),
@@ -192,7 +218,7 @@ void main() {
         await tester.tap(find.text('Resume'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 200));
-        expect(controller.state, NavigationState.navigating);
+        expect(testController.state, NavigationState.navigating);
         expect(find.text('End navigation?'), findsNothing);
 
         // Tap red X button again
@@ -204,7 +230,7 @@ void main() {
         await tester.tap(find.text('End Ride'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
-        expect(controller.state, NavigationState.idle);
+        expect(testController.state, NavigationState.idle);
       },
     );
 
@@ -214,8 +240,6 @@ void main() {
         tester.view.physicalSize = const Size(1080, 2400);
         tester.view.devicePixelRatio = 2.0;
         addTearDown(tester.view.resetPhysicalSize);
-
-        final controller = NavigationController.instance;
 
         // Start on Home screen while NOT navigating (idle)
         await tester.pumpWidget(
@@ -245,9 +269,9 @@ void main() {
           durationSeconds: 2100,
           steps: [],
         );
-        controller.setNavigatingForTesting(
-          testRoute: testRoute,
-          testDestination: testDest,
+        await testController.startTestNavigation(
+          route: testRoute,
+          destination: testDest,
         );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 200));
@@ -269,4 +293,3 @@ void main() {
     );
   });
 }
-

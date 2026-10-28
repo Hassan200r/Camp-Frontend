@@ -43,54 +43,6 @@ class NavigationController extends ChangeNotifier {
 
   static NavigationController instance = NavigationController();
 
-  @visibleForTesting
-  static void resetWith({
-    LocationService? locationService,
-    RoutingService? routingService,
-    GeocodingService? geocodingService,
-    PlacesPoiService? placesPoiService,
-    ActiveBikeController? bikeController,
-  }) {
-    if (!instance.isDisposed) {
-      instance.dispose();
-    }
-    instance = NavigationController(
-      locationService: locationService,
-      routingService: routingService,
-      geocodingService: geocodingService,
-      placesPoiService: placesPoiService,
-      bikeController: bikeController,
-    );
-  }
-
-  @visibleForTesting
-  void resetForTesting() {
-    stopNavigation();
-    _stops.clear();
-    _destination = null;
-    _route = null;
-    _currentStepIndex = 0;
-    _remainingDistanceMeters = 0.0;
-    _remainingDurationSeconds = 0.0;
-    _eta = null;
-    _state = NavigationState.idle;
-    notifyListeners();
-  }
-
-  @visibleForTesting
-  void setNavigatingForTesting({
-    required RouteResult testRoute,
-    PlaceSearchResult? testDestination,
-  }) {
-    _destination = testDestination;
-    _route = testRoute;
-    _remainingDistanceMeters = testRoute.distanceMeters;
-    _remainingDurationSeconds = testRoute.durationSeconds;
-    _eta = DateTime.now().add(Duration(seconds: testRoute.durationSeconds.round()));
-    _state = NavigationState.navigating;
-    notifyListeners();
-  }
-
   final LocationService _locationService;
   final RoutingService _routingService;
   final GeocodingService _geocodingService;
