@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/routes.dart';
 import '../../app/theme/app_colors.dart';
+import '../../features/navigation/controllers/navigation_controller.dart';
 import '../utils/keyboard_visibility.dart';
 import 'camp_tab.dart';
 
@@ -105,6 +106,85 @@ class CampBottomNav extends StatelessWidget {
   }
 
   Widget _buildNavContent(BuildContext context) {
+    return ListenableBuilder(
+      listenable: NavigationController.instance,
+      builder: (context, _) {
+        final navController = NavigationController.instance;
+        final isNavigatingActive =
+            navController.state == NavigationState.navigating &&
+            selected != CampTab.navigation;
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (isNavigatingActive) ...[
+              _buildActiveNavigationSlimBar(context, navController),
+              const SizedBox(height: 8),
+            ],
+            _buildDockBar(context),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildActiveNavigationSlimBar(
+    BuildContext context,
+    NavigationController controller,
+  ) {
+    final distanceText = controller.formattedRemainingDistance;
+    return GestureDetector(
+      key: const ValueKey('active_navigation_slim_bar'),
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        navigateToTab(context, CampTab.navigation, currentTab: selected);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: const Color(0xFF141416),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppColors.tacticalOrange.withValues(alpha: 0.6),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.navigation_rounded,
+              color: AppColors.tacticalOrange,
+              size: 14,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                'Navigation active - $distanceText left - Return',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDockBar(BuildContext context) {
     return Container(
       key: const ValueKey('camp_bottom_nav_visible'),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),

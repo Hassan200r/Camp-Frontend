@@ -179,8 +179,10 @@ void main() {
       expect(find.text('Google Maps'), findsOneWidget);
       expect(find.text('Offline Route Packs'), findsOneWidget);
 
-      // CampBottomNav is HIDDEN during active navigation
-      expect(find.byType(CampBottomNav), findsNothing);
+      // CampBottomNav remains visible so rider can switch dock tabs without ending guidance
+      expect(find.byType(CampBottomNav), findsOneWidget);
+      // Slim bar is NOT shown on Maps screen itself
+      expect(find.byKey(const ValueKey('active_navigation_slim_bar')), findsNothing);
 
       controller.dispose();
       fakeLocation.dispose();

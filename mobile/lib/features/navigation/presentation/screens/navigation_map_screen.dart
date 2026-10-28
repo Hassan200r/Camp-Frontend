@@ -64,8 +64,8 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
       _controller = widget.controller!;
       _controller.checkLocationPermissionAndStart();
     } else {
-      _ownsController = true;
-      _controller = NavigationController(locationService: _locationService);
+      _ownsController = false;
+      _controller = NavigationController.instance;
       _controller.initialize();
     }
   }
@@ -128,58 +128,21 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
     });
   }
 
-  Future<bool> _handleWillPop() async {
-    if (_controller.state == NavigationState.navigating) {
-      final shouldExit = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: const Color(0xFF1E1E22),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text(
-            'End navigation?',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-          content: const Text(
-            'Turn-by-turn guidance and live speed tracking will stop.',
-            style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Resume', style: TextStyle(color: Color(0xFF9CA3AF))),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEF4444),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('End Ride'),
-            ),
-          ],
-        ),
-      );
-
-      if (!mounted) return false;
-
-      if (shouldExit == true) {
-        _controller.stopNavigation();
-      }
-      return false;
-    } else if (_controller.state == NavigationState.previewing) {
+  void _handleBack() {
+    if (_controller.state == NavigationState.previewing) {
       _controller.cancelRoutePreview();
-      return false;
-    } else if (_controller.state == NavigationState.arrived) {
-      _controller.dismissArrived();
-      return false;
+      return;
     }
-
-    return true;
+    if (_controller.state == NavigationState.arrived) {
+      _controller.dismissArrived();
+      return;
+    }
+    // Leaving the Maps screen never ends navigation and never shows the dialog.
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      CampBottomNav.navigateToTab(context, CampTab.home);
+    }
   }
 
   @override
@@ -207,10 +170,10 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
         }
 
         return PopScope(
-          canPop: state == NavigationState.idle,
+          canPop: false,
           onPopInvokedWithResult: (didPop, _) {
             if (!didPop) {
-              _handleWillPop();
+              _handleBack();
             }
           },
           child: Scaffold(
@@ -301,7 +264,7 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
                   Positioned(
                     left: 0,
                     right: 0,
-                    bottom: 110,
+                    bottom: 170,
                     child: NavActiveNavigationOverlay(
                       controller: _controller,
                       mapController: _mapController,
@@ -312,7 +275,7 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
                 Positioned(
                   left: 0,
                   right: 0,
-                  bottom: isNavigating ? 0 : 80,
+                  bottom: isNavigating ? 84 : 80,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -365,18 +328,17 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
                   ),
                 ),
 
-                // ── 6. Bottom Dock Navigation (Hidden during Navigation) ─────
-                if (!isNavigating)
-                  const Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 24,
-                    child: Center(
-                      child: CampBottomNav(
-                        selected: CampTab.navigation,
-                      ),
+                // ── 6. Bottom Dock Navigation ───────────────────────────────
+                const Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 24,
+                  child: Center(
+                    child: CampBottomNav(
+                      selected: CampTab.navigation,
                     ),
                   ),
+                ),
               ],
             ),
           ),
