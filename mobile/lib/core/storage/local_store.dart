@@ -35,6 +35,7 @@ class LocalStore {
   static const String keySavedPlaces = 'camp_saved_places';
   static const String keyRecentPlaces = 'camp_recent_places';
   static const String keyFirstRunCompleted = 'camp_first_run_completed';
+  static const String keyVoiceConversations = 'camp_voice_conversations';
 
   Future<SharedPreferences> get prefs async {
     final p = _prefs;

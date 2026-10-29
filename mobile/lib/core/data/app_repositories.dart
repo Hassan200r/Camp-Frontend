@@ -19,6 +19,8 @@ import 'session_repository.dart';
 import 'session_repository_local.dart';
 import 'settings_repository.dart';
 import 'settings_repository_local.dart';
+import 'voice_chat_repository.dart';
+import 'voice_chat_repository_local.dart';
 
 /// Central container for all app repositories.
 /// Built in [main.dart] using local repositories, and swappable for tests.
@@ -34,6 +36,7 @@ class AppRepositories {
     PlaceRepository? placeRepository,
     ServiceVisitRepository? serviceVisitRepository,
     SessionRepository? sessionRepository,
+    VoiceChatRepository? voiceChatRepository,
   })  : profileRepository = profileRepository ?? ProfileRepositoryLocal(),
         bikeRepository = bikeRepository ?? BikeRepositoryLocal(),
         mechanicRepository = mechanicRepository ?? MechanicRepositoryLocal(),
@@ -43,7 +46,8 @@ class AppRepositories {
         financeRepository = financeRepository ?? FinanceRepositoryLocal(),
         placeRepository = placeRepository ?? PlaceRepositoryLocal(),
         serviceVisitRepository = serviceVisitRepository ?? ServiceVisitRepositoryLocal(),
-        sessionRepository = sessionRepository ?? SessionRepositoryLocal();
+        sessionRepository = sessionRepository ?? SessionRepositoryLocal(),
+        voiceChatRepository = voiceChatRepository ?? VoiceChatRepositoryLocal();
 
   static AppRepositories instance = AppRepositories();
 
@@ -57,6 +61,7 @@ class AppRepositories {
   final PlaceRepository placeRepository;
   final ServiceVisitRepository serviceVisitRepository;
   final SessionRepository sessionRepository;
+  final VoiceChatRepository voiceChatRepository;
 
   /// Initialize persistent storage backing the repositories.
   Future<void> init() async {
@@ -79,6 +84,7 @@ class AppRepositories {
     PlaceRepository? placeRepository,
     ServiceVisitRepository? serviceVisitRepository,
     SessionRepository? sessionRepository,
+    VoiceChatRepository? voiceChatRepository,
   }) {
     instance = AppRepositories(
       profileRepository: profileRepository,
@@ -91,6 +97,7 @@ class AppRepositories {
       placeRepository: placeRepository,
       serviceVisitRepository: serviceVisitRepository,
       sessionRepository: sessionRepository,
+      voiceChatRepository: voiceChatRepository,
     );
   }
 
