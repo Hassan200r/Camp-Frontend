@@ -5,10 +5,10 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/widgets/camp_bottom_nav.dart';
 import '../widgets/emergency_contact_card.dart';
 import '../widgets/emergency_dispatch_card.dart';
-import '../widgets/hardware_telematics_card.dart';
 import '../widgets/offline_medical_id_card.dart';
 import '../widgets/sos_header_bar.dart';
-import '../widgets/telemetry_stream_card.dart';
+import '../widgets/sos_hold_button.dart';
+import '../widgets/sos_location_card.dart';
 
 /// CAMP Emergency SOS Screen
 /// Honest emergency assistance screen backed exclusively by phone GPS and cellular dialer/SMS.
@@ -44,12 +44,12 @@ class EmergencySosScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           // Card 1: Concentric SOS Trigger Button & Signal Pill
-                          HardwareTelematicsCard(),
+                          SosHoldButton(),
 
                           SizedBox(height: 14),
 
                           // Card 2: Current Location & Topographic Preview
-                          TelemetryStreamCard(),
+                          SosLocationCard(),
 
                           SizedBox(height: 14),
 

@@ -9,9 +9,14 @@ import '../../../dashboard/controllers/profile_controller.dart';
 import '../../../navigation/domain/location_service.dart';
 import '../../domain/emergency_sos_helpers.dart';
 
-/// Top card containing the 3D Tactile SOS Button & real GPS status indicator
-class HardwareTelematicsCard extends StatefulWidget {
-  const HardwareTelematicsCard({
+/// Top card containing the 3D Tactile SOS Button & real GPS status indicator.
+///
+/// Renamed from HardwareTelematicsCard to SosHoldButton (#73).
+/// Detects a continuous 3-second press, shows an animated countdown ring,
+/// vibrates the phone, and opens the native SMS app pre-filled with the rider's
+/// emergency contact number and current phone GPS coordinates.
+class SosHoldButton extends StatefulWidget {
+  const SosHoldButton({
     super.key,
     this.locationService = const GeolocatorLocationService(),
   });
@@ -19,10 +24,10 @@ class HardwareTelematicsCard extends StatefulWidget {
   final LocationService locationService;
 
   @override
-  State<HardwareTelematicsCard> createState() => _HardwareTelematicsCardState();
+  State<SosHoldButton> createState() => _SosHoldButtonState();
 }
 
-class _HardwareTelematicsCardState extends State<HardwareTelematicsCard>
+class _SosHoldButtonState extends State<SosHoldButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _progressController;
   Timer? _countdownTimer;
@@ -332,14 +337,17 @@ class _HardwareTelematicsCardState extends State<HardwareTelematicsCard>
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  _isCheckingGps
-                      ? 'GPS location: checking...'
-                      : (_isGpsReady ? 'GPS location: ready' : 'GPS location: waiting'),
-                  style: GoogleFonts.manrope(
-                    color: _isGpsReady ? const Color(0xFF047857) : const Color(0xFF64748B),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                Flexible(
+                  child: Text(
+                    _isCheckingGps
+                        ? 'GPS location: checking...'
+                        : (_isGpsReady ? 'GPS location: ready' : 'GPS location: waiting'),
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.manrope(
+                      color: _isGpsReady ? const Color(0xFF047857) : const Color(0xFF64748B),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
@@ -358,12 +366,15 @@ class _HardwareTelematicsCardState extends State<HardwareTelematicsCard>
                 size: 13,
               ),
               const SizedBox(width: 5),
-              Text(
-                "Uses your phone's GPS and cellular signal",
-                style: GoogleFonts.manrope(
-                  color: const Color(0xFF94A3B8),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
+              Flexible(
+                child: Text(
+                  "Uses your phone's GPS and cellular signal",
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.manrope(
+                    color: const Color(0xFF94A3B8),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],

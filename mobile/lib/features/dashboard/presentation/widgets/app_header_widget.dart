@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/widgets/camp_app_bar.dart';
+import '../../../../core/widgets/gps_live_pill.dart';
+import '../../../navigation/domain/location_service.dart';
 
 /// Top Navigation Bar — thin wrapper delegating to [CampAppBar].
-/// Maintained to preserve existing import paths.
+/// Displays [GpsLivePill] when real GPS is active with recent fixes; hides otherwise.
 class AppHeaderWidget extends StatelessWidget {
   const AppHeaderWidget({
     super.key,
     this.onMenuPressed,
     this.onBadgePressed,
+    this.locationService = const GeolocatorLocationService(),
   });
 
   final VoidCallback? onMenuPressed;
   final VoidCallback? onBadgePressed;
+  final LocationService locationService;
 
   @override
   Widget build(BuildContext context) {
@@ -20,8 +24,7 @@ class AppHeaderWidget extends StatelessWidget {
       leading: CampAppBarLeading.menu,
       onLeadingPressed: onMenuPressed,
       showLogo: true,
-      actionText: 'EXPLORE HOME',
-      onActionPressed: onBadgePressed,
+      actionWidget: GpsLivePill(locationService: locationService),
     );
   }
 }

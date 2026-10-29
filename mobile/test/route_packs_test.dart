@@ -1,29 +1,22 @@
-import 'package:camp/core/data/app_repositories.dart';
 import 'package:camp/features/navigation/presentation/screens/route_packs_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'helpers/fake_settings_repository.dart';
+import 'helpers/fake_location_service.dart';
+
+Widget noAnimApp(Widget child) {
+  return MaterialApp(
+    home: child,
+  );
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late FakeSettingsRepository fakeSettingsRepo;
-
-  Widget noAnimApp(Widget home) {
-    return MediaQuery(
-      data: const MediaQueryData(disableAnimations: true),
-      child: MaterialApp(home: home),
-    );
-  }
+  late FakeLocationService fakeLocationService;
 
   setUp(() async {
-    fakeSettingsRepo = FakeSettingsRepository();
-    AppRepositories.resetWith(settingsRepository: fakeSettingsRepo);
-  });
-
-  tearDown(() async {
-    AppRepositories.resetToDefault();
+    fakeLocationService = FakeLocationService();
   });
 
   group('Route Packs Honesty Pass Tests', () {
@@ -33,7 +26,7 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(noAnimApp(RoutePacksScreen(settingsRepository: fakeSettingsRepo)));
+      await tester.pumpWidget(noAnimApp(RoutePacksScreen(locationService: fakeLocationService)));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
@@ -47,7 +40,6 @@ void main() {
       // 2. Every pack displays "Coming soon"
       final comingSoonPills = find.text('Coming soon');
       expect(comingSoonPills, findsWidgets);
-      // Section header + 5 pack cards = at least 6 "Coming soon" texts
       expect(comingSoonPills.evaluate().length, greaterThanOrEqualTo(6));
 
       // 3. NO size claims (GB or MB) anywhere on screen
@@ -69,55 +61,55 @@ void main() {
       expect(find.textContaining('Alps'), findsNothing);
       expect(find.textContaining('Cascades'), findsNothing);
 
-      // 6. Header is honest and displays Route Packs without Topo V4.8 button
-      expect(find.text('ROUTE PACKS'), findsOneWidget);
+      // 6. Header is honest: Displays ROUTE PACKS (renamed from TELEMETRY HUB) and no Topo V4.8
+      expect(find.text('ROUTE PACKS'), findsWidgets);
+      expect(find.text('TELEMETRY HUB'), findsNothing);
       expect(find.text('Topo V4.8'), findsNothing);
       expect(find.textContaining('Topo V4.8'), findsNothing);
       expect(find.byIcon(Icons.sync_rounded), findsNothing);
+
+      // 7. Wi-Fi auto-update switch removed (#135)
+      expect(find.byType(Switch), findsNothing);
+      expect(find.textContaining('Wi-Fi Auto-Update'), findsNothing);
 
       // No overflows occurred
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('Wi-Fi auto-update toggle loads from and persists to SettingsRepository',
+    testWidgets('GPS LIVE pill shows when location service is active with recent fix',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(360 * 2, 2400 * 2);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      // 1. Initially default is true
-      final initialSettings = await fakeSettingsRepo.loadSettings();
-      expect(initialSettings.wifiAutoUpdateRoutePacks, isTrue);
+      fakeLocationService = FakeLocationService(
+        serviceEnabled: true,
+        hasPermission: true,
+      );
 
-      await tester.pumpWidget(noAnimApp(RoutePacksScreen(settingsRepository: fakeSettingsRepo)));
+      await tester.pumpWidget(noAnimApp(RoutePacksScreen(locationService: fakeLocationService)));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      final switchFinder = find.byType(Switch);
-      expect(switchFinder, findsOneWidget);
-      final initialSwitch = tester.widget<Switch>(switchFinder);
-      expect(initialSwitch.value, isTrue);
+      expect(find.text('GPS LIVE'), findsOneWidget);
+    });
 
-      // 2. Toggle the switch off
-      await tester.tap(switchFinder);
+    testWidgets('GPS LIVE pill is hidden when location service is disabled or has no recent fix',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(360 * 2, 2400 * 2);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      fakeLocationService = FakeLocationService(
+        serviceEnabled: false,
+        nullInitialPosition: true,
+      );
+
+      await tester.pumpWidget(noAnimApp(RoutePacksScreen(locationService: fakeLocationService)));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      // Verify state updated in UI
-      final updatedSwitch = tester.widget<Switch>(switchFinder);
-      expect(updatedSwitch.value, isFalse);
-
-      // Verify persisted to SettingsRepository
-      final savedSettings = await fakeSettingsRepo.loadSettings();
-      expect(savedSettings.wifiAutoUpdateRoutePacks, isFalse);
-
-      // 3. Re-launch screen and assert it loads the persisted 'false' value
-      await tester.pumpWidget(noAnimApp(RoutePacksScreen(settingsRepository: fakeSettingsRepo)));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-
-      final reloadedSwitch = tester.widget<Switch>(find.byType(Switch));
-      expect(reloadedSwitch.value, isFalse);
+      expect(find.text('GPS LIVE'), findsNothing);
     });
   });
 }

@@ -1,5 +1,5 @@
 /// Central route-name constants for the CAMP application.
-/// Strictly one canonical constant per screen, plus documented legacy aliases.
+/// Strictly one canonical constant per screen.
 abstract final class CampRoutes {
   static const String home = '/';
   static const String signIn = '/sign-in';
@@ -35,11 +35,6 @@ abstract final class CampRoutes {
   static const String emergencyQr = '/emergency-qr';
   static const String weatherDetail = '/weather-detail';
 
-  // Legacy route aliases
-  // TODO: Legacy route aliases — kept for temporary backward compatibility during team branch merges. Remove once confirmed unused across all teammate branches.
-  static const String legacyMechanicsMap = '/mechanics/map';
-  static const String legacyMechanicsVoiceAssistant = '/mechanics/voice-assistant';
-
   /// All non-legacy canonical routes (one per screen / entry point).
   static const List<String> canonicalRoutes = [
     home,
@@ -69,11 +64,5 @@ abstract final class CampRoutes {
     emergencySos,
     emergencyQr,
     weatherDetail,
-  ];
-
-  /// Documented legacy route aliases.
-  static const List<String> legacyAliases = [
-    legacyMechanicsMap,
-    legacyMechanicsVoiceAssistant,
   ];
 }

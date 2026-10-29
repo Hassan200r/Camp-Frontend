@@ -8,6 +8,7 @@ export 'camp_tab.dart';
 export 'cockpit_hero_card.dart';
 export 'distance_or_date_input.dart';
 export 'ghost_button.dart';
+export 'gps_live_pill.dart';
 export 'icon_tile.dart';
 export 'inset_tile.dart';
 export 'labeled_dropdown.dart';

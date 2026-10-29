@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_theme.dart';
 
 /// Title row for Route Packs screen.
-/// Displays "TELEMETRY HUB" overline and "Route Packs" title.
+/// Displays "ROUTE PACKS" overline and "Route Packs" title.
 class RoutePacksTitleWidget extends StatelessWidget {
   const RoutePacksTitleWidget({super.key});
 
@@ -13,7 +13,7 @@ class RoutePacksTitleWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'TELEMETRY HUB',
+          'ROUTE PACKS',
           style: AppTextStyles.overline,
         ),
         const SizedBox(height: 4),

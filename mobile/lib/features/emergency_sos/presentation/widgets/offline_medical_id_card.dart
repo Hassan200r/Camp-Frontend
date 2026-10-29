@@ -64,24 +64,29 @@ class OfflineMedicalIdCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.medical_services_outlined,
-                    color: Color(0xFFDC2626),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Medical ID',
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.medical_services_outlined,
+                      color: Color(0xFFDC2626),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Medical ID',
+                        overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.manrope(
                       color: const Color(0xFF1E293B),
                       fontSize: 16.5,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
+          ),
               GestureDetector(
                 onTap: onEmergencyQrPressed ??
                     () => Navigator.of(context).pushNamed(CampRoutes.emergencyQr),

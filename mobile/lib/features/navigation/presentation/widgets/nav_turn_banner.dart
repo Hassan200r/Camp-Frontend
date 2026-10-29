@@ -5,8 +5,8 @@ import '../../../settings/controllers/settings_controller.dart';
 import '../../controllers/navigation_controller.dart';
 
 /// Top dark obsidian turn-by-turn banner displaying next maneuver icon,
-/// distance countdown, instruction with highlighted street name, next maneuver subtitle,
-/// and speaker mute toggle.
+/// distance countdown, instruction with highlighted street name, and next maneuver subtitle.
+/// Conforms to CAMP honesty rules (#146): unbacked speaker/audio button removed.
 class NavTurnBanner extends StatelessWidget {
   const NavTurnBanner({
     required this.controller,
@@ -134,34 +134,6 @@ class NavTurnBanner extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ),
-          const SizedBox(width: 10),
-
-          // Speaker Button (Mute / Unmute Toggle)
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: const Color(0xFF26262A),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.1),
-              ),
-            ),
-            child: IconButton(
-              icon: Icon(
-                controller.isMuted
-                    ? Icons.volume_off_rounded
-                    : Icons.volume_up_rounded,
-                color: controller.isMuted
-                    ? const Color(0xFF9CA3AF)
-                    : Colors.white,
-                size: 20,
-              ),
-              onPressed: controller.toggleMute,
-              tooltip: controller.isMuted ? 'Unmute prompts' : 'Mute prompts',
-              padding: EdgeInsets.zero,
             ),
           ),
         ],

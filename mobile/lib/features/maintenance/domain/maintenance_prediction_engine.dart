@@ -48,12 +48,16 @@ class ComponentPrediction {
   int get healthScore => (100 - wearPercent).clamp(0, 100);
 
   /// Status badge label for the component.
+  /// Replaces arbitrary "0% Wear" chips with honest "Up to date" status.
   String get statusBadgeText {
     if (scheduleStatus == ScheduleItemStatus.notSetUp) {
       return 'Not set up';
     }
     if (scheduleStatus == ScheduleItemStatus.addLastDone) {
       return 'Interval configured';
+    }
+    if (wearPercent <= 0) {
+      return 'Up to date';
     }
     return '$wearPercent% Wear';
   }

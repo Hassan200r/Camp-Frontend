@@ -136,15 +136,7 @@ class _CampAppState extends State<CampApp> with WidgetsBindingObserver {
             initialDestination: args is PlaceSearchResult ? args : null,
           );
         },
-        // TODO: Legacy route aliases — kept for temporary backward compatibility during team branch merges. Remove once confirmed unused across all teammate branches.
-        CampRoutes.legacyMechanicsMap: (context) {
-          final args = ModalRoute.of(context)?.settings.arguments;
-          return NavigationMapScreen(
-            initialDestination: args is PlaceSearchResult ? args : null,
-          );
-        },
         CampRoutes.voiceCopilot: (context) => const VoiceAssistantScreen(),
-        CampRoutes.legacyMechanicsVoiceAssistant: (context) => const VoiceAssistantScreen(),
         CampRoutes.routePacks: (context) => const RoutePacksScreen(),
         CampRoutes.rideHistory: (context) => const RideHistoryScreen(),
         CampRoutes.financeRigHealth: (context) => const FinanceRigHealthScreen(),

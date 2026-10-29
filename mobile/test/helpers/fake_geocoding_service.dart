@@ -27,8 +27,8 @@ class FakeGeocodingService implements GeocodingService {
   Future<PlaceSearchResult?> reverseGeocode(LatLng location) async {
     return reverseResult ??
         PlaceSearchResult(
-          name: 'Current Locus',
-          displayName: 'Current Locus, Mountain Pass',
+          name: 'Current location',
+          displayName: 'Current location, Mountain Pass',
           location: location,
         );
   }

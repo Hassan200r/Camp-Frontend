@@ -318,12 +318,15 @@ class EmergencyDispatchCard extends StatelessWidget {
                         size: 18,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        'Call Emergency ($emergencyNum)',
-                        style: GoogleFonts.manrope(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
+                      Flexible(
+                        child: Text(
+                          'Call Emergency ($emergencyNum)',
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.manrope(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ],

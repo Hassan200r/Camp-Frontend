@@ -3,9 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../navigation/domain/location_service.dart';
 
-/// Card 2: Current Location Card with real GPS status and coordinates
-class TelemetryStreamCard extends StatefulWidget {
-  const TelemetryStreamCard({
+/// Current Location Card with real GPS status and coordinates.
+///
+/// Renamed from TelemetryStreamCard to SosLocationCard (#73).
+/// Displays real phone GPS fix coordinates, satellite fix status, and location preview.
+class SosLocationCard extends StatefulWidget {
+  const SosLocationCard({
     super.key,
     this.locationService = const GeolocatorLocationService(),
   });
@@ -13,10 +16,10 @@ class TelemetryStreamCard extends StatefulWidget {
   final LocationService locationService;
 
   @override
-  State<TelemetryStreamCard> createState() => _TelemetryStreamCardState();
+  State<SosLocationCard> createState() => _SosLocationCardState();
 }
 
-class _TelemetryStreamCardState extends State<TelemetryStreamCard> {
+class _SosLocationCardState extends State<SosLocationCard> {
   PositionData? _position;
   bool _isLoading = true;
 
@@ -277,3 +280,4 @@ class _TopographicCurvesPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
