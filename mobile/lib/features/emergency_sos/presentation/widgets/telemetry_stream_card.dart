@@ -57,9 +57,7 @@ class _TelemetryStreamCardState extends State<TelemetryStreamCard> {
       locationSubtitle = 'Acquiring satellite fix from phone sensors';
     } else if (pos != null) {
       coordText = '${pos.latitude.toStringAsFixed(5)}°N, ${pos.longitude.toStringAsFixed(5)}°E';
-      locationSubtitle = pos.accuracy != null
-          ? 'Estimated ±${pos.accuracy!.toStringAsFixed(0)}m accuracy'
-          : 'Phone GPS fix acquired';
+      locationSubtitle = 'Phone GPS fix acquired';
     } else {
       coordText = 'Coordinates not available';
       locationSubtitle = 'Enable Location Services to view coordinates';

@@ -4,6 +4,7 @@ import 'package:camp/features/garage/controllers/active_bike_controller.dart';
 import 'package:camp/features/navigation/controllers/navigation_controller.dart';
 import 'package:camp/features/navigation/domain/geocoding_service.dart';
 import 'package:camp/features/navigation/domain/location_service.dart';
+import 'package:camp/features/navigation/domain/places_poi_service.dart';
 import 'package:camp/features/navigation/domain/routing_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
@@ -403,6 +404,105 @@ void main() {
         ),
       );
       await expectLater(previewFuture, completes);
+    });
+  });
+
+  group('Fallback Centre & Location Off Safety Tests', () {
+    test('Fallback centre does not affect distance or ETA calculations when location is off', () async {
+      final fakeLocation = FakeLocationService(
+        nullInitialPosition: true,
+        serviceEnabled: false,
+      );
+      final fakeRouting = FakeRoutingService();
+      final controller = NavigationController(
+        locationService: fakeLocation,
+        routingService: fakeRouting,
+      );
+
+      // Verify initial state: userLatLng is null and camera center points to Lahore fallback
+      expect(controller.userLatLng, isNull);
+      expect(controller.cameraCenter, NavigationController.defaultFallbackCenter);
+      expect(controller.cameraCenter.latitude, 31.5204);
+      expect(controller.cameraCenter.longitude, 74.3587);
+
+      const destination = PlaceSearchResult(
+        name: 'Margalla Ridge',
+        displayName: 'Margalla Ridge Trailhead, Islamabad',
+        location: LatLng(33.74, 73.05),
+      );
+
+      // Attempt to preview route when GPS location is unavailable
+      await controller.openRoutePreview(destination);
+
+      // Verify that Lahore fallback centre is NEVER used in route, distance, or ETA
+      expect(controller.route, isNull);
+      expect(controller.remainingDistanceMeters, 0.0);
+      expect(controller.remainingDurationSeconds, 0.0);
+      expect(controller.eta, isNull);
+      expect(
+        controller.routeError,
+        'Location unavailable. Turn on GPS to calculate route.',
+      );
+
+      // Verify cameraCenter now points to destination rather than user position
+      expect(controller.cameraCenter, destination.location);
+      expect(controller.userLatLng, isNull);
+
+      // Attempting to calculate route again with location off must still result in 0 distance and null ETA
+      await controller.calculateRoute();
+      expect(controller.route, isNull);
+      expect(controller.remainingDistanceMeters, 0.0);
+      expect(controller.remainingDurationSeconds, 0.0);
+      expect(controller.eta, isNull);
+
+      // Swapping endpoints when GPS is off must not set destination to Lahore fallback center
+      controller.swapStartAndDestination();
+      expect(controller.destination?.name, 'Margalla Ridge');
+      expect(controller.destination?.location, destination.location);
+
+      // When GPS fix is later acquired, real route and distance can be calculated
+      controller.startPositionStream();
+      fakeLocation.emitPosition(
+        PositionData(
+          latitude: 33.70,
+          longitude: 73.00,
+          timestamp: DateTime.now(),
+        ),
+      );
+      // Allow stream and calculateRoute async future to settle
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(controller.userLatLng, isNotNull);
+      expect(controller.userLatLng!.latitude, 33.70);
+      expect(controller.route, isNotNull);
+      expect(controller.remainingDistanceMeters, greaterThan(0.0));
+      expect(controller.eta, isNotNull);
+
+      controller.dispose();
+      fakeLocation.dispose();
+    });
+
+    test('POIs and reverse geocoding do not run around fallback centre when location is off', () async {
+      final fakeLocation = FakeLocationService(
+        nullInitialPosition: true,
+        serviceEnabled: false,
+      );
+      final controller = NavigationController(
+        locationService: fakeLocation,
+      );
+
+      expect(controller.userLatLng, isNull);
+
+      // Toggle mechanic POI filter with location off
+      await controller.togglePoiFilter(PoiType.mechanic);
+      expect(controller.poiMarkers, isEmpty);
+
+      // Toggle fuel POI filter with location off
+      await controller.togglePoiFilter(PoiType.fuel);
+      expect(controller.poiMarkers, isEmpty);
+
+      controller.dispose();
+      fakeLocation.dispose();
     });
   });
 }

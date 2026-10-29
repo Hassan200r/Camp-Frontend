@@ -38,9 +38,8 @@ class NavMapView extends StatelessWidget {
     final isNavigating = controller.state == NavigationState.navigating;
     final route = controller.route;
 
-    final initialCenter = controller.currentPosition != null
-        ? userLoc
-        : (controller.destination?.location ?? userLoc);
+    // Use cameraCenter which positions camera using GPS, destination, or Lahore fallback
+    final initialCenter = controller.cameraCenter;
 
     return FlutterMap(
       mapController: mapController,
@@ -191,19 +190,21 @@ class NavMapView extends StatelessWidget {
           ),
 
         // 5. User GPS Location Marker (Dot, Accuracy Circle & Heading Cone)
-        MarkerLayer(
-          markers: [
-            Marker(
-              point: userLoc,
-              width: 120,
-              height: 120,
-              child: _buildUserLocationMarker(
-                heading: heading,
-                isNavigating: isNavigating,
+        // Rendered strictly when a real GPS fix exists; never drawn at the camera fallback center.
+        if (userLoc != null)
+          MarkerLayer(
+            markers: [
+              Marker(
+                point: userLoc,
+                width: 120,
+                height: 120,
+                child: _buildUserLocationMarker(
+                  heading: heading,
+                  isNavigating: isNavigating,
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
       ],
     );
   }

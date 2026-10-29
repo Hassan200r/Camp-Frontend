@@ -18,7 +18,7 @@ class NavMapControls extends StatelessWidget {
 
   void _recenter() {
     controller.recenterMap();
-    mapController.move(controller.userLatLng, mapController.camera.zoom);
+    mapController.move(controller.cameraCenter, mapController.camera.zoom);
   }
 
   void _resetNorth() {

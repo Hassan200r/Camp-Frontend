@@ -46,7 +46,8 @@ class NavigationMapScreen extends StatefulWidget {
   State<NavigationMapScreen> createState() => _NavigationMapScreenState();
 }
 
-class _NavigationMapScreenState extends State<NavigationMapScreen> {
+class _NavigationMapScreenState extends State<NavigationMapScreen>
+    with WidgetsBindingObserver {
   late final NavigationController _controller;
   late final LocationService _locationService;
   late final MapController _mapController;
@@ -57,6 +58,7 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _mapController = MapController();
     _locationService = widget.locationService ?? const GeolocatorLocationService();
 
@@ -91,11 +93,21 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (_ownsController) {
       _controller.dispose();
     }
     _mapController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Silently check location service status upon returning to foreground.
+      // Shows non-blocking banner if location is off; never shows a blocking dialog.
+      _controller.checkLocationPermissionAndStart();
+    }
   }
 
   void _openDefaultDirections() {
@@ -158,13 +170,13 @@ class _NavigationMapScreenState extends State<NavigationMapScreen> {
         // Auto-center camera during navigation when requested
         if (isNavigating && _controller.isScreenCentered) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _mapController.move(_controller.userLatLng, 17.0);
+            if (mounted) _mapController.move(_controller.cameraCenter, 17.0);
           });
         } else if (!_hasCenteredOnInitialPosition && _controller.currentPosition != null) {
           _hasCenteredOnInitialPosition = true;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && _controller.state == NavigationState.idle) {
-              _mapController.move(_controller.userLatLng, 15.0);
+              _mapController.move(_controller.cameraCenter, 15.0);
             }
           });
         }

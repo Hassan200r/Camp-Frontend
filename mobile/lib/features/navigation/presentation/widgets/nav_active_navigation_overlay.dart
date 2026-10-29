@@ -49,7 +49,7 @@ class NavActiveNavigationOverlay extends StatelessWidget {
 
   void _recenter() {
     controller.recenterMap();
-    mapController.move(controller.userLatLng, 17.0);
+    mapController.move(controller.cameraCenter, 17.0);
   }
 
   @override

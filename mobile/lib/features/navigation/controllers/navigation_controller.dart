@@ -100,11 +100,23 @@ class NavigationController extends ChangeNotifier {
   PositionData? get currentPosition => _currentPosition;
   double? get currentHeading => _currentHeading ?? _currentPosition?.heading;
 
+  /// Default fallback map camera center (Lahore coordinates: 31.5204, 74.3587).
+  ///
+  /// IMPORTANT: Used strictly for positioning the map camera when device GPS is unavailable.
+  /// It must NEVER be used as the rider's location, in distance/ETA calculations, or be saved.
   static const LatLng defaultFallbackCenter = LatLng(31.5204, 74.3587);
 
-  /// Latitude & Longitude of current position or fallback center.
-  LatLng get userLatLng =>
-      _currentPosition?.toLatLng() ?? defaultFallbackCenter;
+  /// Centering coordinate for the map camera view.
+  ///
+  /// Uses active GPS fix if available, otherwise destination if set, and falls back
+  /// to [defaultFallbackCenter] strictly to position the camera overview.
+  LatLng get cameraCenter =>
+      _currentPosition?.toLatLng() ?? _destination?.location ?? defaultFallbackCenter;
+
+  /// Real GPS coordinates of the rider, or null if GPS fix is unavailable.
+  ///
+  /// When location is off, this is null and never falls back to Lahore coordinates.
+  LatLng? get userLatLng => _currentPosition?.toLatLng();
 
   PlaceSearchResult? get destination => _destination;
   List<PlaceSearchResult> get stops => List.unmodifiable(_stops);
@@ -208,8 +220,10 @@ class NavigationController extends ChangeNotifier {
     return 'https://www.google.com/maps/dir/?api=1&destination=${destination.latitude.toStringAsFixed(6)},${destination.longitude.toStringAsFixed(6)}&travelmode=two-wheeler';
   }
 
+  /// Deep-link URL pointing to destination, last route point, or current camera view center.
   String get googleMapsUrl {
-    final dest = _destination?.location ?? (_route?.polyline.isNotEmpty == true ? _route!.polyline.last : userLatLng);
+    final dest = _destination?.location ??
+        (_route?.polyline.isNotEmpty == true ? _route!.polyline.last : cameraCenter);
     return buildGoogleMapsUrl(dest);
   }
 
@@ -235,6 +249,8 @@ class NavigationController extends ChangeNotifier {
     _reverseGeocodeCurrentLocation();
   }
 
+  /// Checks whether location services are enabled on device and verifies permissions.
+  /// When location is off, updates state non-blockingly without triggering blocking dialogues.
   Future<void> checkLocationPermissionAndStart() async {
     final serviceEnabled = await _locationService.isLocationServiceEnabled();
     if (_disposed) return;
@@ -242,6 +258,9 @@ class NavigationController extends ChangeNotifier {
     if (!serviceEnabled) {
       _currentLocationSubtitle = 'Location off';
       notifyListeners();
+      // Early exit if device location is disabled: present non-blocking hint
+      // rather than requesting permissions or showing blocking dialogues.
+      return;
     }
 
     final hasPerm = await _locationService.checkPermission();
@@ -487,9 +506,23 @@ class NavigationController extends ChangeNotifier {
     await calculateRoute();
   }
 
-  /// Recalculate route between current position, stops, and destination.
+  /// Recalculates route between current position, stops, and destination.
+  /// When device location is off (_currentPosition == null), distance and ETA
+  /// cannot be computed and are NEVER calculated from the Lahore fallback center.
   Future<void> calculateRoute() async {
     if (_destination == null) return;
+
+    // Strict safety check: fallback center must never be used as rider origin or in ETA/distance.
+    if (_currentPosition == null) {
+      _isCalculatingRoute = false;
+      _route = null;
+      _remainingDistanceMeters = 0.0;
+      _remainingDurationSeconds = 0.0;
+      _eta = null;
+      _routeError = 'Location unavailable. Turn on GPS to calculate route.';
+      notifyListeners();
+      return;
+    }
 
     _isCalculatingRoute = true;
     _routeError = null;
@@ -497,7 +530,7 @@ class NavigationController extends ChangeNotifier {
 
     try {
       final waypoints = [
-        userLatLng,
+        _currentPosition!.toLatLng(),
         ..._stops.map((s) => s.location),
         _destination!.location,
       ];
@@ -588,13 +621,15 @@ class NavigationController extends ChangeNotifier {
     calculateRoute();
   }
 
+  /// Swaps start and destination endpoints.
+  /// Only allowed when a real GPS fix is available; never swaps using the fallback center.
   void swapStartAndDestination() {
-    if (_destination == null) return;
-    // Swap start and destination endpoints
+    if (_destination == null || _currentPosition == null) return;
+    // Swap start and destination endpoints using real rider GPS fix
     _destination = PlaceSearchResult(
       name: _currentLocationName,
       displayName: '$_currentLocationName, WA',
-      location: userLatLng,
+      location: _currentPosition!.toLatLng(),
     );
     calculateRoute();
   }
@@ -629,6 +664,8 @@ class NavigationController extends ChangeNotifier {
 
   // ── POI Markers ────────────────────────────────────────────────────────────
 
+  /// Toggles display of POI markers for the given [type].
+  /// Does not fetch POIs if GPS fix is unavailable.
   Future<void> togglePoiFilter(PoiType type) async {
     if (_activePoiFilter == type) {
       _activePoiFilter = null;
@@ -642,18 +679,25 @@ class NavigationController extends ChangeNotifier {
     _selectedPoiMarker = null;
     notifyListeners();
 
+    if (_currentPosition == null) {
+      _poiMarkers = [];
+      notifyListeners();
+      return;
+    }
+
+    final pos = _currentPosition!.toLatLng();
     switch (type) {
       case PoiType.mechanic:
         _poiMarkers = _placesPoiService.fetchNearbyMechanics(
-          userLatLng,
+          pos,
           _currentLocationName,
         );
         break;
       case PoiType.fuel:
-        _poiMarkers = await _placesPoiService.fetchFuelStations(userLatLng);
+        _poiMarkers = await _placesPoiService.fetchFuelStations(pos);
         break;
       case PoiType.restStop:
-        _poiMarkers = await _placesPoiService.fetchRestStops(userLatLng);
+        _poiMarkers = await _placesPoiService.fetchRestStops(pos);
         break;
     }
     notifyListeners();
@@ -675,7 +719,12 @@ class NavigationController extends ChangeNotifier {
     return _geocodingService.search(query);
   }
 
+  /// Reverse-geocodes user's current GPS location into human-readable place name.
+  /// Throttled to at most once per 5 seconds. Does nothing if GPS position is null
+  /// to ensure the fallback center is never saved or resolved as the user's location.
   Future<void> _reverseGeocodeCurrentLocation() async {
+    if (_currentPosition == null) return;
+
     final now = DateTime.now();
     if (_lastReverseGeocodeTime != null &&
         now.difference(_lastReverseGeocodeTime!).inSeconds < 5) {
@@ -683,7 +732,7 @@ class NavigationController extends ChangeNotifier {
     }
     _lastReverseGeocodeTime = now;
 
-    final place = await _geocodingService.reverseGeocode(userLatLng);
+    final place = await _geocodingService.reverseGeocode(_currentPosition!.toLatLng());
     if (place != null) {
       _currentLocationName = place.name;
       _currentLocationSubtitle = place.displayName;

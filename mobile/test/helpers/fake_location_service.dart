@@ -6,23 +6,30 @@ import 'package:camp/features/navigation/domain/location_service.dart';
 class FakeLocationService implements LocationService {
   FakeLocationService({
     PositionData? initialPosition,
+    bool nullInitialPosition = false,
     this.hasPermission = true,
     this.serviceEnabled = true,
-  }) : _currentPosition = initialPosition ??
-            PositionData(
-              latitude: 48.515,
-              longitude: -120.690,
-              heading: 45.0,
-              speed: 16.7, // ~60 km/h
-              accuracy: 5.0,
-              timestamp: DateTime.now(),
-            );
+  }) : _currentPosition = nullInitialPosition
+            ? null
+            : (initialPosition ??
+                PositionData(
+                  latitude: 48.515,
+                  longitude: -120.690,
+                  heading: 45.0,
+                  speed: 16.7, // ~60 km/h
+                  accuracy: 5.0,
+                  timestamp: DateTime.now(),
+                ));
 
   PositionData? _currentPosition;
   bool hasPermission;
   bool serviceEnabled;
   final StreamController<PositionData> _controller =
       StreamController<PositionData>.broadcast();
+
+  void clearPosition() {
+    _currentPosition = null;
+  }
 
   void emitPosition(PositionData position) {
     _currentPosition = position;

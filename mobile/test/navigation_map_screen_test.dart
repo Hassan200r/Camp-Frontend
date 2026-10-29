@@ -273,5 +273,41 @@ void main() {
       controller.dispose();
       fakeLocation.dispose();
     });
+
+    testWidgets('When device location service is off, displays non-blocking hint banner and never blocks the screen', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final fakeLocation = FakeLocationService(
+        serviceEnabled: false,
+        nullInitialPosition: true,
+      );
+      final controller = NavigationController(locationService: fakeLocation);
+      await controller.checkLocationPermissionAndStart();
+
+      await tester.pumpWidget(
+        buildTestScreen(
+          controller: controller,
+          locationService: fakeLocation,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Non-blocking hint banner is displayed
+      expect(find.byType(NavPermissionBanner), findsOneWidget);
+      expect(find.text('Location services are disabled on your device.'), findsOneWidget);
+      expect(find.text('Open Settings'), findsOneWidget);
+
+      // Verify no blocking dialogs are present
+      expect(find.byType(AlertDialog), findsNothing);
+
+      // Verify userLatLng is null and camera center is positioned at Lahore fallback
+      expect(controller.userLatLng, isNull);
+      expect(controller.cameraCenter, NavigationController.defaultFallbackCenter);
+
+      controller.dispose();
+      fakeLocation.dispose();
+    });
   });
 }
