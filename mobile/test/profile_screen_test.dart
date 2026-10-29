@@ -1,3 +1,4 @@
+import 'package:camp/core/widgets/camp_app_bar.dart';
 import 'package:camp/features/dashboard/controllers/profile_controller.dart';
 import 'package:camp/features/dashboard/presentation/screens/profile_screen.dart';
 import 'package:camp/features/maintenance/controllers/post_ride_report_controller.dart';
@@ -50,8 +51,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 1. Header
-    expect(find.text('CAMP'), findsWidgets);
+    // 1. Header (Brand mark removed per BATCH UI-1)
+    expect(find.byType(CampLogo), findsNothing);
     expect(find.text('PROFILE'), findsOneWidget);
     expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
 

@@ -46,7 +46,9 @@ enum CampAppBarLeading {
 }
 
 /// CAMP Top App Bar
-/// Circular back/menu button left, CAMP logo center, optional action pill right.
+/// Circular back/menu button left, optional screen title or Home CAMP logo center, optional action pill right.
+/// Conforms to BATCH UI-1: Only Home screen header shows the CAMP brand mark (icon + text, no dot).
+/// Every other screen has the brand mark removed (showLogo defaults to false).
 class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
   const CampAppBar({
     super.key,
@@ -55,6 +57,7 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.titleText,
     this.titleWidget,
     this.showLogo = false,
+    this.showDot = false,
     this.actionText,
     this.actionIcon,
     this.actionWidget,
@@ -67,6 +70,7 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? titleText;
   final Widget? titleWidget;
   final bool showLogo;
+  final bool showDot;
   final String? actionText;
   final IconData? actionIcon;
   final Widget? actionWidget;
@@ -91,7 +95,7 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
               // ── Left: Circular Back / Menu Button ─────────────────────────────
               _buildLeading(context),
 
-              // ── Center: Custom Widget, Title or CAMP Dot Logo ────────────────
+              // ── Center: Custom Widget, Screen Title or Logo (Home Only) ───────
               if (titleWidget != null)
                 Flexible(child: Center(child: titleWidget!))
               else if (titleText != null && titleText != 'CAMP')
@@ -109,8 +113,10 @@ class CampAppBar extends StatelessWidget implements PreferredSizeWidget {
                     ),
                   ),
                 )
+              else if (showLogo)
+                CampLogo(showDot: showDot)
               else
-                const CampLogo(),
+                const SizedBox.shrink(),
 
               // ── Right: Optional Action Pill or Widget ─────────────────────────
               Flexible(
@@ -247,7 +253,9 @@ class CampBackButton extends StatelessWidget {
   }
 }
 
-/// Standard CAMP Logo: app icon mark with bold "CAMP" text and tactical orange dot mark.
+/// Standard CAMP Logo: app icon mark with bold "CAMP" text and optional tactical orange dot mark.
+/// Conforms to BATCH UI-1: Home screen header renders with [showDot] = false (logo icon + "CAMP", no dot).
+/// Navigation drawer renders with [showDot] = true to preserve its full brand mark.
 class CampLogo extends StatelessWidget {
   const CampLogo({
     super.key,
@@ -255,12 +263,14 @@ class CampLogo extends StatelessWidget {
     this.dotSize = 7,
     this.iconSize = 28,
     this.showIcon = true,
+    this.showDot = false,
   });
 
   final double fontSize;
   final double dotSize;
   final double iconSize;
   final bool showIcon;
+  final bool showDot;
 
   @override
   Widget build(BuildContext context) {
@@ -304,17 +314,19 @@ class CampLogo extends StatelessWidget {
             letterSpacing: 1.0,
           ),
         ),
-        const SizedBox(width: 5),
-        Container(
-          width: dotSize,
-          height: dotSize,
-          decoration: const BoxDecoration(
-            color: AppColors.tacticalOrange,
-            shape: BoxShape.circle,
+        if (showDot) ...[
+          const SizedBox(width: 5),
+          Container(
+            key: const ValueKey('camp_logo_dot'),
+            width: dotSize,
+            height: dotSize,
+            decoration: const BoxDecoration(
+              color: AppColors.tacticalOrange,
+              shape: BoxShape.circle,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
 }
-

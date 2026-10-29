@@ -112,7 +112,6 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                           Navigator.of(context).pushReplacementNamed('/');
                         }
                       },
-                      showLogo: true,
                       actionText: '• MAINTENANCE',
                     ),
 

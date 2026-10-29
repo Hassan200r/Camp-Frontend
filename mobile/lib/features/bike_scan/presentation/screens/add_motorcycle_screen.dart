@@ -151,7 +151,6 @@ class _AddMotorcycleScreenState extends State<AddMotorcycleScreen> {
                       padding: EdgeInsets.symmetric(horizontal: AppColors.screenPadding),
                       child: CampAppBar(
                         leading: CampAppBarLeading.back,
-                        titleWidget: CampLogo(showIcon: false),
                         actionText: 'ADD BIKE',
                         padding: EdgeInsets.zero,
                       ),

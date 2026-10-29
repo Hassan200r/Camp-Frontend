@@ -149,7 +149,7 @@ class AppDrawerWidget extends StatelessWidget {
   }
 
   Widget _topBar(BuildContext context) => Row(children: [
-        const CampLogo(fontSize: 22, dotSize: 7, iconSize: 28),
+        const CampLogo(fontSize: 22, dotSize: 7, iconSize: 28, showDot: true),
         const Spacer(),
         GestureDetector(
           onTap: () => Navigator.of(context).pop(),

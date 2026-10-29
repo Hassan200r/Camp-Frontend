@@ -432,8 +432,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 1. App Bar
-      expect(find.text('CAMP'), findsWidgets);
+      // 1. App Bar (Header brand mark removed per BATCH UI-1)
+      expect(find.text('CAMP'), findsNothing);
       expect(find.text('• MAINTENANCE'), findsOneWidget);
 
       // 2. Bike context header (No OBD-II or hardware sensor language)

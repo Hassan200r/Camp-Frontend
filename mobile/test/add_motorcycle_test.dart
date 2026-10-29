@@ -21,8 +21,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Verify Header
-    expect(find.text('CAMP'), findsOneWidget);
+    // Verify Header (Brand mark removed per BATCH UI-1)
+    expect(find.text('CAMP'), findsNothing);
     expect(find.text('ADD BIKE'), findsOneWidget);
     expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
 

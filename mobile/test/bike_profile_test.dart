@@ -112,8 +112,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 1. Header: Back button, CAMP, and ACTIVE RIG pill
-      expect(find.text('CAMP'), findsOneWidget);
+      // 1. Header: Back button, and ACTIVE RIG pill (Brand mark removed per BATCH UI-1)
+      expect(find.text('CAMP'), findsNothing);
       expect(find.text('ACTIVE RIG'), findsNWidgets(2));
 
       // 2. Hero Card: Overline, Bike Name, single MANUALLY TRACKED badge

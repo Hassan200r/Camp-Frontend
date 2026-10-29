@@ -111,8 +111,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Header & Progress
-      expect(find.text('CAMP'), findsOneWidget);
+      // Header & Progress (Header brand mark removed per BATCH UI-1)
+      expect(find.text('CAMP'), findsNothing);
       expect(find.text('ADD BIKE'), findsOneWidget);
       expect(find.text('STEP 2 OF 4'), findsOneWidget);
       expect(find.text('Bike Details'), findsOneWidget);

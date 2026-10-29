@@ -97,7 +97,6 @@ class _WeatherDetailScreenState extends State<WeatherDetailScreen> {
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: CampAppBar(
                   leading: CampAppBarLeading.back,
-                  titleWidget: CampLogo(showIcon: false),
                   actionText: 'WEATHER',
                 ),
               ),
