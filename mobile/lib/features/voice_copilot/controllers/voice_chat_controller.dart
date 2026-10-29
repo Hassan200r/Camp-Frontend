@@ -17,11 +17,7 @@ class VoiceChatController extends ChangeNotifier {
   /// Global singleton instance across the application.
   static VoiceChatController instance = VoiceChatController();
 
-  VoiceChatRepository _repository;
-
-  /// Injects a custom repository for test harnesses.
-  @visibleForTesting
-  set repository(VoiceChatRepository repo) => _repository = repo;
+  final VoiceChatRepository _repository;
 
   final List<VoiceConversation> _conversations = [];
 
@@ -174,15 +170,6 @@ class VoiceChatController extends ChangeNotifier {
       'Yesterday': List.unmodifiable(yesterday),
       'Earlier': List.unmodifiable(earlier),
     };
-  }
-
-  /// Resets in-memory state and restores default repository binding for tests.
-  @visibleForTesting
-  void resetForTesting() {
-    _conversations.clear();
-    _currentConversation = null;
-    _repository = AppRepositories.instance.voiceChatRepository;
-    notifyListeners();
   }
 }
 

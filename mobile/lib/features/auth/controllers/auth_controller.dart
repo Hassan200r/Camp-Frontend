@@ -3,7 +3,7 @@ import '../../../core/data/app_repositories.dart';
 import '../domain/auth_state.dart';
 import '../domain/user_model.dart';
 
-/// Controller handling Rider Authentication, Session State, and Biometric Handshakes
+/// Controller handling Rider Authentication, Session State, and Biometric Handshakes.
 class AuthController extends ChangeNotifier {
   AuthController._();
   static final AuthController instance = AuthController._();
@@ -15,36 +15,38 @@ class AuthController extends ChangeNotifier {
   bool get isAuthenticated => _state.isAuthenticated;
   bool get isLoading => _state.isLoading;
 
-  /// Display name of the active rider (falls back gracefully to default)
+  /// Display name of the active rider (falls back gracefully to default).
   String get riderDisplayName {
     final name = currentUser?.name.trim();
     if (name != null && name.isNotEmpty) return name;
     return 'Elena Vance';
   }
 
-  /// First name of the active rider for avatar circle badges
+  /// First name of the active rider for avatar circle badges.
   String get riderFirstName {
     final name = riderDisplayName;
     if (name.contains(' ')) return name.split(' ').first;
     return name;
   }
 
-  /// Calculate password strength from 0 (none) to 4 (maximum)
+  /// Calculate password strength from 0 (none) to 4 (maximum).
   int calculateStrength(String password) {
     if (password.isEmpty) return 0;
     int strength = 0;
     if (password.length >= 6) strength++;
     if (password.length >= 9) strength++;
-    if (RegExp(r'[0-9]').hasMatch(password) || RegExp(r'[!@#\$%^&*(),.?":{}|<>]').hasMatch(password)) {
+    if (RegExp(r'[0-9]').hasMatch(password) ||
+        RegExp(r'[!@#\$%^&*(),.?":{}|<>]').hasMatch(password)) {
       strength++;
     }
-    if (RegExp(r'[A-Z]').hasMatch(password) && RegExp(r'[a-z]').hasMatch(password)) {
+    if (RegExp(r'[A-Z]').hasMatch(password) &&
+        RegExp(r'[a-z]').hasMatch(password)) {
       strength++;
     }
     return strength.clamp(1, 4);
   }
 
-  /// Format an input into a clean rider display name
+  /// Format an input into a clean rider display name.
   String _parseRiderName(String input) {
     final trimmed = input.trim();
     if (trimmed.isEmpty) return 'Elena Vance';
@@ -64,7 +66,7 @@ class AuthController extends ChangeNotifier {
     return trimmed;
   }
 
-  /// Sign In with Rider ID or Email
+  /// Sign In with Rider ID or Email.
   Future<bool> signIn({
     required String riderIdOrEmail,
     required String password,
@@ -75,7 +77,7 @@ class AuthController extends ChangeNotifier {
     );
     notifyListeners();
 
-    // Simulate network telemetry authentication handshake
+    // Simulate authentication delay
     await Future<void>.delayed(const Duration(milliseconds: 900));
 
     final trimmedInput = riderIdOrEmail.trim();
@@ -91,9 +93,13 @@ class AuthController extends ChangeNotifier {
     final parsedName = _parseRiderName(trimmedInput);
 
     final user = RiderUser(
-      id: trimmedInput.contains('@') ? 'RIDER-${trimmedInput.split('@').first.toUpperCase()}' : trimmedInput,
+      id: trimmedInput.contains('@')
+          ? 'RIDER-${trimmedInput.split('@').first.toUpperCase()}'
+          : trimmedInput,
       name: parsedName,
-      email: trimmedInput.contains('@') ? trimmedInput : '$trimmedInput@example.com',
+      email: trimmedInput.contains('@')
+          ? trimmedInput
+          : '$trimmedInput@example.com',
       phone: '+1 (555) 019–2834',
       telemetryActive: true,
       biometricEnabled: true,
@@ -110,7 +116,7 @@ class AuthController extends ChangeNotifier {
     return true;
   }
 
-  /// Sign Up / Register New Rider Profile
+  /// Sign Up / Register New Rider Profile.
   Future<bool> signUp({
     required String fullName,
     required String email,
@@ -158,7 +164,6 @@ class AuthController extends ChangeNotifier {
       email: email.trim(),
       phone: phone.trim().isEmpty ? '+1 (555) 019–2834' : phone.trim(),
       callSign: 'Adventure Pilot',
-      helmetTokenId: 'TOKEN-CAMP-${DateTime.now().millisecondsSinceEpoch % 1000}',
       telemetryActive: true,
       biometricEnabled: true,
       memberSince: DateTime.now(),
@@ -174,7 +179,7 @@ class AuthController extends ChangeNotifier {
     return true;
   }
 
-  /// Sign In with Biometric / Helmet Token
+  /// Sign In with Biometric authentication.
   Future<bool> signInWithBiometric() async {
     _state = _state.copyWith(
       status: AuthStatus.authenticating,
@@ -187,7 +192,6 @@ class AuthController extends ChangeNotifier {
     _state = _state.copyWith(
       status: AuthStatus.authenticated,
       currentUser: RiderUser.defaultRider,
-      activeHelmetToken: 'SCHUBERTH-C5-BT-ACTIVE',
       errorMessage: null,
     );
     AppRepositories.instance.sessionRepository.setLoggedIn(true);
@@ -195,7 +199,7 @@ class AuthController extends ChangeNotifier {
     return true;
   }
 
-  /// Request Password Reset link
+  /// Request Password Reset link.
   Future<bool> requestPasswordReset(String email) async {
     _state = _state.copyWith(
       status: AuthStatus.authenticating,
@@ -213,7 +217,7 @@ class AuthController extends ChangeNotifier {
     return true;
   }
 
-  /// Sign Out current rider (ends session, keeps local data)
+  /// Sign Out current rider (ends session, keeps local data).
   void signOut() {
     _state = const AuthState(status: AuthStatus.unauthenticated);
     AppRepositories.instance.sessionRepository.clearSession();

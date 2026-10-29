@@ -51,6 +51,11 @@ class FakeVoiceChatRepository implements VoiceChatRepository {
   Future<void> flush() async {}
 }
 
+/// Test-only subclass under test/ that injects fakes and provides test-level reset capabilities.
+class _TestVoiceChatController extends VoiceChatController {
+  _TestVoiceChatController({super.repository});
+}
+
 void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -58,8 +63,7 @@ void main() {
     LocalStore.instance.resetForTesting(prefs);
     AppRepositories.resetToDefault();
     final fakeRepo = FakeVoiceChatRepository();
-    VoiceChatController.instance.resetForTesting();
-    VoiceChatController.instance.repository = fakeRepo;
+    VoiceChatController.instance = _TestVoiceChatController(repository: fakeRepo);
     ActiveBikeController.instance.reset();
   });
 
@@ -177,7 +181,7 @@ void main() {
         updatedAt: referenceNow.subtract(const Duration(days: 5)),
       );
 
-      VoiceChatController.instance.resetForTesting();
+      VoiceChatController.instance = _TestVoiceChatController();
       // Inject conversations into controller
       VoiceChatController.instance.selectConversation(todayConv);
       VoiceChatController.instance.saveActiveMessage(
@@ -194,9 +198,6 @@ void main() {
       expect(groups.containsKey('Earlier'), isTrue);
 
       // Verify custom list grouping with referenceDate
-      final controller = VoiceChatController();
-      controller.resetForTesting();
-
       final customGroups = {
         'Today': [todayConv],
         'Yesterday': [yesterdayConv],
@@ -328,7 +329,7 @@ void main() {
       );
 
       final fakeRepo = FakeVoiceChatRepository([conv1, conv2]);
-      VoiceChatController.instance.repository = fakeRepo;
+      VoiceChatController.instance = _TestVoiceChatController(repository: fakeRepo);
       await VoiceChatController.instance.load();
 
       await tester.pumpWidget(buildTestableWidget());
@@ -408,7 +409,7 @@ void main() {
       );
 
       final fakeRepo = FakeVoiceChatRepository([savedConv]);
-      VoiceChatController.instance.repository = fakeRepo;
+      VoiceChatController.instance = _TestVoiceChatController(repository: fakeRepo);
       await VoiceChatController.instance.load();
 
       await tester.pumpWidget(buildTestableWidget());

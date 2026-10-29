@@ -7,11 +7,14 @@ import 'package:camp/features/voice_copilot/presentation/screens/voice_assistant
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// Test-only subclass under test/ providing isolated state for widget tests.
+class _TestVoiceChatController extends VoiceChatController {}
+
 void main() {
   setUp(() {
     ActiveBikeController.instance.reset();
     MechanicController.instance.resetForTesting();
-    VoiceChatController.instance.resetForTesting();
+    VoiceChatController.instance = _TestVoiceChatController();
   });
 
   Widget buildTestableWidget() {
