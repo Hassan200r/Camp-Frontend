@@ -13,18 +13,6 @@ class VoiceChatMessage {
     required this.timestamp,
   });
 
-  /// Unique identifier of the message.
-  final String id;
-
-  /// Content text of the user or assistant message.
-  final String text;
-
-  /// Whether the message originated from the rider (`true`) or assistant (`false`).
-  final bool isUser;
-
-  /// Timestamp when the message was recorded (in UTC).
-  final DateTime timestamp;
-
   /// Creates a [VoiceChatMessage] instance from a JSON map with tolerant defaults.
   ///
   /// Defensively handles missing, null, or malformed fields without throwing exceptions.
@@ -64,6 +52,18 @@ class VoiceChatMessage {
     );
   }
 
+  /// Unique identifier of the message.
+  final String id;
+
+  /// Content text of the user or assistant message.
+  final String text;
+
+  /// Whether the message originated from the rider (`true`) or assistant (`false`).
+  final bool isUser;
+
+  /// Timestamp when the message was recorded (in UTC).
+  final DateTime timestamp;
+
   /// Serializes the message to a persistent JSON map.
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -86,38 +86,6 @@ class VoiceConversation {
     required this.updatedAt,
     this.messages = const [],
   });
-
-  /// Unique conversation identifier.
-  final String id;
-
-  /// Human-readable title of the conversation (derived from the first user query).
-  final String title;
-
-  /// UTC timestamp when the conversation was initiated.
-  final DateTime createdAt;
-
-  /// UTC timestamp of the most recent interaction in this thread.
-  final DateTime updatedAt;
-
-  /// Sequential messages exchanged in this conversation.
-  final List<VoiceChatMessage> messages;
-
-  /// Returns a copy of this conversation with optionally updated fields.
-  VoiceConversation copyWith({
-    String? id,
-    String? title,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    List<VoiceChatMessage>? messages,
-  }) {
-    return VoiceConversation(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      messages: messages ?? this.messages,
-    );
-  }
 
   /// Creates a [VoiceConversation] from a JSON map using tolerant parsing.
   ///
@@ -184,6 +152,38 @@ class VoiceConversation {
     );
   }
 
+  /// Unique conversation identifier.
+  final String id;
+
+  /// Human-readable title of the conversation (derived from the first user query).
+  final String title;
+
+  /// UTC timestamp when the conversation was initiated.
+  final DateTime createdAt;
+
+  /// UTC timestamp of the most recent interaction in this thread.
+  final DateTime updatedAt;
+
+  /// Sequential messages exchanged in this conversation.
+  final List<VoiceChatMessage> messages;
+
+  /// Returns a copy of this conversation with optionally updated fields.
+  VoiceConversation copyWith({
+    String? id,
+    String? title,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    List<VoiceChatMessage>? messages,
+  }) {
+    return VoiceConversation(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      messages: messages ?? this.messages,
+    );
+  }
+
   /// Serializes the conversation thread to a persistent JSON map.
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -193,4 +193,3 @@ class VoiceConversation {
         'messages': messages.map((m) => m.toJson()).toList(),
       };
 }
-

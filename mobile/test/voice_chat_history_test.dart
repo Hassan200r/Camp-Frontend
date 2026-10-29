@@ -1,4 +1,5 @@
 import 'package:camp/core/data/app_repositories.dart';
+import 'package:camp/core/data/voice_chat_repository.dart';
 import 'package:camp/core/data/voice_chat_repository_local.dart';
 import 'package:camp/core/storage/local_store.dart';
 import 'package:camp/features/garage/controllers/active_bike_controller.dart';
@@ -10,13 +11,55 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Test fake for [VoiceChatRepository] allowing instantaneous async operations without disk I/O.
+class FakeVoiceChatRepository implements VoiceChatRepository {
+  FakeVoiceChatRepository([List<VoiceConversation>? initial])
+      : conversations = List.from(initial ?? []);
+
+  final List<VoiceConversation> conversations;
+
+  @override
+  Future<List<VoiceConversation>> loadConversations() async =>
+      List.from(conversations);
+
+  @override
+  Future<void> saveConversations(List<VoiceConversation> convs) async {
+    conversations
+      ..clear()
+      ..addAll(convs);
+  }
+
+  @override
+  Future<void> saveConversation(VoiceConversation conv) async {
+    final idx = conversations.indexWhere((c) => c.id == conv.id);
+    if (idx != -1) {
+      conversations[idx] = conv;
+    } else {
+      conversations.insert(0, conv);
+    }
+  }
+
+  @override
+  Future<void> deleteConversation(String id) async {
+    conversations.removeWhere((c) => c.id == id);
+  }
+
+  @override
+  Future<void> clear() async => conversations.clear();
+
+  @override
+  Future<void> flush() async {}
+}
+
 void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     LocalStore.instance.resetForTesting(prefs);
     AppRepositories.resetToDefault();
+    final fakeRepo = FakeVoiceChatRepository();
     VoiceChatController.instance.resetForTesting();
+    VoiceChatController.instance.repository = fakeRepo;
     ActiveBikeController.instance.reset();
   });
 
@@ -38,13 +81,13 @@ void main() {
       expect(convFromNull.messages, isEmpty);
 
       // Empty map input
-      final convFromEmpty = VoiceConversation.fromJson({});
+      final convFromEmpty = VoiceConversation.fromJson(const {});
       expect(convFromEmpty.id, isNotEmpty);
       expect(convFromEmpty.title, 'Untitled Chat');
       expect(convFromEmpty.messages, isEmpty);
 
       // Corrupted / malformed input
-      final convFromCorrupted = VoiceConversation.fromJson({
+      final convFromCorrupted = VoiceConversation.fromJson(const {
         'id': '   ',
         'title': null,
         'createdAt': 'invalid-date',
@@ -61,7 +104,7 @@ void main() {
       expect(msgFromNull.text, isEmpty);
       expect(msgFromNull.isUser, isTrue);
 
-      final msgFromMalformed = VoiceChatMessage.fromJson({
+      final msgFromMalformed = VoiceChatMessage.fromJson(const {
         'id': null,
         'text': null,
         'isUser': 'not-a-bool',
@@ -215,22 +258,22 @@ void main() {
 
       // 1. Open panel
       await tester.tap(find.byIcon(Icons.menu_rounded));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
       expect(find.text('Chat History'), findsOneWidget);
 
       // 2. Tap close button (X) inside panel
-      await tester.tap(find.byIcon(Icons.close_rounded).first);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.byTooltip('Close history'));
+      await tester.pump();
       expect(find.text('Chat History'), findsNothing);
 
       // 3. Open panel again
       await tester.tap(find.byIcon(Icons.menu_rounded));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
       expect(find.text('Chat History'), findsOneWidget);
 
       // 4. Tap backdrop (right half of screen at x=600, y=300)
       await tester.tapAt(const Offset(600, 300));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
       expect(find.text('Chat History'), findsNothing);
     });
 
@@ -284,9 +327,8 @@ void main() {
         updatedAt: now,
       );
 
-      final repo = VoiceChatRepositoryLocal();
-      await repo.saveConversation(conv1);
-      await repo.saveConversation(conv2);
+      final fakeRepo = FakeVoiceChatRepository([conv1, conv2]);
+      VoiceChatController.instance.repository = fakeRepo;
       await VoiceChatController.instance.load();
 
       await tester.pumpWidget(buildTestableWidget());
@@ -294,19 +336,23 @@ void main() {
 
       // Open side panel
       await tester.tap(find.byIcon(Icons.menu_rounded));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
 
       expect(find.text('Check fuel level'), findsOneWidget);
       expect(find.text('Find mechanic in Babusar'), findsOneWidget);
 
       // Type in search field
-      final searchFinder = find.widgetWithText(TextField, 'Search chats');
+      final searchFinder = find.byKey(const Key('voice_chat_search_field'));
       await tester.enterText(searchFinder, 'Babusar');
       await tester.pump();
 
       // 'Find mechanic in Babusar' matches; 'Check fuel level' is filtered out
       expect(find.text('Find mechanic in Babusar'), findsOneWidget);
       expect(find.text('Check fuel level'), findsNothing);
+
+      // Dismiss keyboard / cursor timer
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
     });
 
     testWidgets('New chat button clears the conversation view and resets to idle body',
@@ -361,8 +407,8 @@ void main() {
         ],
       );
 
-      final repo = VoiceChatRepositoryLocal();
-      await repo.saveConversation(savedConv);
+      final fakeRepo = FakeVoiceChatRepository([savedConv]);
+      VoiceChatController.instance.repository = fakeRepo;
       await VoiceChatController.instance.load();
 
       await tester.pumpWidget(buildTestableWidget());
@@ -373,11 +419,11 @@ void main() {
 
       // Open side panel
       await tester.tap(find.byIcon(Icons.menu_rounded));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
 
       // Tap the saved conversation
       await tester.tap(find.text('Check tire maintenance'));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
 
       // Panel closed and dialogue is loaded into conversation view
       expect(find.text('Chat History'), findsNothing);

@@ -2,6 +2,7 @@ import 'package:camp/features/garage/controllers/active_bike_controller.dart';
 import 'package:camp/features/garage/domain/bike_model.dart';
 import 'package:camp/features/mechanics/controllers/mechanic_controller.dart';
 import 'package:camp/features/mechanics/domain/mechanic_model.dart';
+import 'package:camp/features/voice_copilot/controllers/voice_chat_controller.dart';
 import 'package:camp/features/voice_copilot/presentation/screens/voice_assistant_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +11,7 @@ void main() {
   setUp(() {
     ActiveBikeController.instance.reset();
     MechanicController.instance.resetForTesting();
+    VoiceChatController.instance.resetForTesting();
   });
 
   Widget buildTestableWidget() {

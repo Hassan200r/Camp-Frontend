@@ -24,7 +24,7 @@ class _ChatMessage {
   /// Whether the turn was spoken/typed by the rider (`true`) or assistant (`false`).
   final bool isUser;
 
-  /// Time when the message occurred.
+  /// Time when the message occurred
   final DateTime timestamp;
 }
 
@@ -386,7 +386,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
           ),
 
           // Dim backdrop: tapping closes the panel
-          if (_isPanelOpen)
+          if (_isPanelOpen) ...[
             Positioned.fill(
               child: GestureDetector(
                 onTap: _closePanel,
@@ -396,17 +396,31 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
                 ),
               ),
             ),
-
-          // Side panel: slides in from the left, 320px wide
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 260),
-            curve: Curves.easeOutCubic,
-            left: _isPanelOpen ? 0 : -320,
-            top: 0,
-            bottom: 0,
-            width: 320,
-            child: _buildSidePanel(),
-          ),
+            // Side panel: slides in from the left, 320px wide
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(
+                begin: (MediaQuery.maybeOf(context)?.disableAnimations ?? false)
+                    ? 0.0
+                    : -320.0,
+                end: 0.0,
+              ),
+              duration:
+                  (MediaQuery.maybeOf(context)?.disableAnimations ?? false)
+                      ? Duration.zero
+                      : const Duration(milliseconds: 240),
+              curve: Curves.easeOutCubic,
+              builder: (context, leftOffset, child) {
+                return Positioned(
+                  left: leftOffset,
+                  top: 0,
+                  bottom: 0,
+                  width: 320,
+                  child: child!,
+                );
+              },
+              child: _buildSidePanel(),
+            ),
+          ],
         ],
       ),
     );
@@ -809,6 +823,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
                     const SizedBox(width: 8),
                     Expanded(
                       child: TextField(
+                        key: const Key('voice_chat_search_field'),
                         controller: _searchController,
                         onChanged: (_) => setState(() {}),
                         style: const TextStyle(
@@ -874,12 +889,12 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
                           ],
                       ],
                     )
-                  : Center(
+                  : const Center(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        padding: EdgeInsets.symmetric(horizontal: 24),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
-                          children: const [
+                          children: [
                             Icon(
                               Icons.chat_bubble_outline_rounded,
                               size: 36,
